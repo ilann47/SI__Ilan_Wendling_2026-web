@@ -9,6 +9,8 @@ export type AppColorMode = 'light' | 'dark';
  */
 export function createAppTheme(mode: AppColorMode) {
   const isLight = mode === 'light';
+  const scrollThumb = isLight ? 'rgba(15,23,42,0.25)' : 'rgba(255,255,255,0.22)';
+  const scrollThumbHover = isLight ? 'rgba(15,23,42,0.42)' : 'rgba(255,255,255,0.40)';
   const options: ThemeOptions = {
     palette: {
       mode,
@@ -31,6 +33,22 @@ export function createAppTheme(mode: AppColorMode) {
       button: { textTransform: 'none', fontWeight: 600 },
     },
     components: {
+      MuiCssBaseline: {
+        styleOverrides: {
+          '*': { scrollbarWidth: 'thin', scrollbarColor: `${scrollThumb} transparent` },
+          '*::-webkit-scrollbar': { width: 10, height: 10 },
+          '*::-webkit-scrollbar-track': { backgroundColor: 'transparent' },
+          '*::-webkit-scrollbar-thumb': {
+            backgroundColor: scrollThumb,
+            borderRadius: 8,
+            border: '2px solid transparent',
+            backgroundClip: 'content-box',
+          },
+          '*::-webkit-scrollbar-thumb:hover': { backgroundColor: scrollThumbHover },
+          '*::-webkit-scrollbar-button': { display: 'none', width: 0, height: 0 },
+          '*::-webkit-scrollbar-corner': { backgroundColor: 'transparent' },
+        },
+      },
       MuiButton: { defaultProps: { disableElevation: true } },
       MuiPaper: { styleOverrides: { root: { backgroundImage: 'none' } } },
       MuiCard: {
