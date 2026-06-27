@@ -45,6 +45,8 @@ export interface PaisResponse {
   sigla?: string;
   codigo?: string;
   nacionalidade?: string;
+  moeda?: string;
+  ddi?: string;
   ativo?: boolean;
   createdAt: string;
   updatedAt: string;
@@ -54,6 +56,8 @@ export interface PaisRequest {
   sigla?: string;
   codigo?: string;
   nacionalidade?: string;
+  moeda?: string;
+  ddi?: string;
   ativo?: boolean;
 }
 
