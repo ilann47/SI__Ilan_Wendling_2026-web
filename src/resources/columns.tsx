@@ -7,6 +7,7 @@ import {
   formatPercent,
 } from '../utils/format';
 import { StatusChip } from '../components/common/StatusChip';
+import { mascaraDocumento } from '../utils/documento';
 
 type Extra = Partial<GridColDef>;
 
@@ -18,6 +19,14 @@ export const cols = {
     headerName,
     flex: 1,
     minWidth: 140,
+    ...extra,
+  }),
+  documento: (field: string, headerName: string, extra: Extra = {}): GridColDef => ({
+    field,
+    headerName,
+    flex: 0,
+    width: 165,
+    valueFormatter: (v: string) => (v ? mascaraDocumento(String(v), 'auto') : ''),
     ...extra,
   }),
   money: (field: string, headerName: string, extra: Extra = {}): GridColDef => ({

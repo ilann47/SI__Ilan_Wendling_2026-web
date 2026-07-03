@@ -13,7 +13,7 @@ export const clientesConfig: ResourceConfig = {
   columns: [
     cols.id(),
     cols.text('nome', 'Nome'),
-    cols.text('documento', 'Documento', { flex: 0, width: 160 }),
+    cols.documento('documento', 'Documento'),
     cols.text('telefone', 'Telefone', { flex: 0, width: 140 }),
     cols.text('cidadeNome', 'Cidade'),
     cols.bool('ativo', 'Ativo'),
@@ -26,7 +26,7 @@ export const clientesConfig: ResourceConfig = {
   fields: [
     { name: 'nome', label: 'Nome', type: 'text', required: true, cols: 8 },
     { name: 'tipo', label: 'Tipo', type: 'select', cols: 4, options: tipoPessoaOptions, defaultValue: 'FISICA' },
-    { name: 'documento', label: 'CPF / CNPJ', type: 'text', required: true, cols: 4 },
+    { name: 'documento', label: 'CPF / CNPJ', type: 'document', documentTypeFrom: 'tipo', required: true, cols: 4 },
     { name: 'rgInscricaoEstadual', label: 'RG / Inscrição Estadual', type: 'text', cols: 4 },
     { name: 'apelido', label: 'Apelido / Nome fantasia', type: 'text', cols: 4 },
     { name: 'dataNascimento', label: 'Nascimento', type: 'date', cols: 4 },

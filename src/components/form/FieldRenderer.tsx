@@ -11,6 +11,7 @@ import dayjs from 'dayjs';
 import type { FieldConfig } from './fieldConfig';
 import { ReferenceSelect } from './ReferenceSelect';
 import { SubItemsEditor } from './SubItemsEditor';
+import { DocumentField } from './DocumentField';
 
 interface Props {
   field: FieldConfig;
@@ -28,6 +29,10 @@ export function FieldRenderer({ field, namePrefix = '', dense }: Props) {
 
   if (field.type === 'subitems' && field.subFields) {
     return <SubItemsEditor name={name} label={field.label} subFields={field.subFields} />;
+  }
+
+  if (field.type === 'document') {
+    return <DocumentField field={field} namePrefix={namePrefix} dense={dense} />;
   }
 
   if (field.type === 'switch') {

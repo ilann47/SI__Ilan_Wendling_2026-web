@@ -10,6 +10,7 @@ export type FieldType =
   | 'select'
   | 'reference'
   | 'password'
+  | 'document'
   | 'subitems';
 
 export interface SelectOption {
@@ -42,6 +43,10 @@ export interface FieldConfig {
   defaultValue?: unknown;
   disabled?: boolean;
   step?: number;
+  /** Para type 'document': modo fixo de mascara/validacao. Default 'auto'. */
+  documentMode?: 'cpf' | 'cnpj' | 'auto';
+  /** Para type 'document': nome do campo irmao (ex.: 'tipo') que define CPF/CNPJ. */
+  documentTypeFrom?: string;
 }
 
 /** Valor inicial de um campo ao abrir o formulario em modo de criacao. */

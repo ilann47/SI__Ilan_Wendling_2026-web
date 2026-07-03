@@ -39,7 +39,7 @@ export const funcionariosConfig: ResourceConfig = {
   columns: [
     cols.id(),
     cols.text('nome', 'Nome'),
-    cols.text('cpf', 'CPF', { flex: 0, width: 160 }),
+    cols.documento('cpf', 'CPF'),
     cols.text('cargoNome', 'Cargo'),
     cols.text('telefone', 'Telefone', { flex: 0, width: 140 }),
     cols.bool('ativo', 'Ativo'),
@@ -57,7 +57,7 @@ export const funcionariosConfig: ResourceConfig = {
   fields: [
     { name: 'nome', label: 'Nome', type: 'text', required: true, cols: 8 },
     { name: 'tipo', label: 'Tipo', type: 'select', cols: 4, options: tipoPessoaOptions, defaultValue: 'FISICA' },
-    { name: 'cpf', label: 'CPF', type: 'text', required: true, cols: 4 },
+    { name: 'cpf', label: 'CPF', type: 'document', documentMode: 'cpf', required: true, cols: 4 },
     { name: 'rgInscricaoEstadual', label: 'RG / Inscr. Estadual', type: 'text', cols: 4 },
     { name: 'apelido', label: 'Apelido', type: 'text', cols: 4 },
     { name: 'dataNascimento', label: 'Nascimento', type: 'date', cols: 4 },

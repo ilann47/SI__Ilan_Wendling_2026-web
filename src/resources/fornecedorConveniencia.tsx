@@ -25,7 +25,7 @@ export const fornecedoresConfig: ResourceConfig = {
   columns: [
     cols.id(),
     cols.text('nome', 'Nome'),
-    cols.text('documento', 'Documento', { flex: 0, width: 160 }),
+    cols.documento('documento', 'Documento'),
     cols.text('cidadeNome', 'Cidade'),
     cols.bool('ativo', 'Ativo'),
   ],
@@ -51,7 +51,7 @@ export const fornecedoresConfig: ResourceConfig = {
     { name: 'nome', label: 'Nome', type: 'text', required: true, cols: 6 },
     { name: 'nomeFantasia', label: 'Nome fantasia', type: 'text', cols: 6 },
     { name: 'tipo', label: 'Tipo', type: 'select', cols: 4, options: tipoPessoaOptions, defaultValue: 'JURIDICA' },
-    { name: 'documento', label: 'CNPJ / CPF', type: 'text', required: true, cols: 4 },
+    { name: 'documento', label: 'CNPJ / CPF', type: 'document', documentTypeFrom: 'tipo', required: true, cols: 4 },
     { name: 'rgInscricaoEstadual', label: 'RG / Inscr. Estadual', type: 'text', cols: 4 },
     { name: 'apelido', label: 'Apelido', type: 'text', cols: 4 },
     { name: 'endereco', label: 'Endereço', type: 'text', cols: 6 },
