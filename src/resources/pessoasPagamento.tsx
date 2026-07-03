@@ -135,8 +135,6 @@ export const condicoesPagamentoConfig: ResourceConfig = {
     { name: 'nome', label: 'Nome', type: 'text', required: true, cols: 6 },
     { name: 'numeroParcelas', label: 'Nº de parcelas', type: 'integer', required: true, cols: 3, defaultValue: 1 },
     { name: 'ativo', label: 'Ativo', type: 'switch', cols: 3 },
-    { name: 'diasPrimeiraParcela', label: 'Dias 1ª parcela', type: 'integer', cols: 4 },
-    { name: 'diasEntreParcelas', label: 'Dias entre parcelas', type: 'integer', cols: 4 },
     { name: 'percentualJuros', label: 'Juros', type: 'percent', cols: 4 },
     { name: 'percentualMulta', label: 'Multa', type: 'percent', cols: 4 },
     { name: 'percentualDesconto', label: 'Desconto', type: 'percent', cols: 4 },

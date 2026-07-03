@@ -183,8 +183,6 @@ export interface CondicaoPagamentoResponse {
   id: number;
   nome: string;
   numeroParcelas: number;
-  diasPrimeiraParcela: number;
-  diasEntreParcelas: number;
   percentualJuros: number;
   percentualMulta: number;
   percentualDesconto: number;
@@ -196,8 +194,6 @@ export interface CondicaoPagamentoResponse {
 export interface CondicaoPagamentoRequest {
   nome: string;
   numeroParcelas: number;
-  diasPrimeiraParcela?: number;
-  diasEntreParcelas?: number;
   percentualJuros?: number;
   percentualMulta?: number;
   percentualDesconto?: number;
