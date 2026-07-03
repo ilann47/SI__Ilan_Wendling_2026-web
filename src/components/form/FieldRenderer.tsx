@@ -128,6 +128,9 @@ export function FieldRenderer({ field, namePrefix = '', dense }: Props) {
   const isNumeric = NUMERIC.includes(field.type);
   const isMoney = field.type === 'money';
   const isPercent = field.type === 'percent';
+  // Cadastro em CAIXA ALTA: campos de texto viram maiúsculo ao digitar.
+  // Exceção: senha (type 'password', quebraria o login) e e-mail.
+  const upper = (field.type === 'text' || field.type === 'textarea') && field.name !== 'email';
 
   return (
     <Controller
@@ -148,11 +151,14 @@ export function FieldRenderer({ field, namePrefix = '', dense }: Props) {
           onChange={(e) => {
             const v = e.target.value;
             if (isNumeric) f.onChange(v === '' ? undefined : Number(v));
-            else f.onChange(v);
+            else f.onChange(upper ? v.toUpperCase() : v);
+          }}
+          inputProps={{
+            ...(isNumeric ? { step: field.step ?? (field.type === 'integer' ? 1 : 0.01) } : {}),
+            ...(upper ? { style: { textTransform: 'uppercase' } } : {}),
           }}
           error={!!fieldState.error}
           helperText={fieldState.error?.message || field.helperText}
-          inputProps={isNumeric ? { step: field.step ?? (field.type === 'integer' ? 1 : 0.01) } : undefined}
           InputProps={{
             startAdornment: isMoney ? <InputAdornment position="start">R$</InputAdornment> : undefined,
             endAdornment: isPercent ? <InputAdornment position="end">%</InputAdornment> : undefined,
