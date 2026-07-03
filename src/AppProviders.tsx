@@ -7,6 +7,7 @@ import 'dayjs/locale/pt-br';
 import { ColorModeProvider } from './context/ColorModeContext';
 import { SnackbarProvider } from './components/SnackbarProvider';
 import { AuthProvider } from './auth/AuthContext';
+import { QuickCreateProvider } from './context/QuickCreateContext';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -21,7 +22,9 @@ export function AppProviders({ children }: { children: ReactNode }) {
         <ColorModeProvider>
           <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="pt-br">
             <SnackbarProvider>
-              <AuthProvider>{children}</AuthProvider>
+              <AuthProvider>
+                <QuickCreateProvider>{children}</QuickCreateProvider>
+              </AuthProvider>
             </SnackbarProvider>
           </LocalizationProvider>
         </ColorModeProvider>

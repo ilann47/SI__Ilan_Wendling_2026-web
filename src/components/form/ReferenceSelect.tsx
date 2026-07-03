@@ -1,8 +1,17 @@
 import { useQuery } from '@tanstack/react-query';
-import { Autocomplete, CircularProgress, TextField } from '@mui/material';
+import {
+  Autocomplete,
+  Box,
+  CircularProgress,
+  IconButton,
+  TextField,
+  Tooltip,
+} from '@mui/material';
+import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import { api } from '../../api/client';
 import type { Page } from '../../api/resource';
 import type { ReferenceConfig } from './fieldConfig';
+import { useQuickCreate } from '../../context/QuickCreateContext';
 
 interface RefOption {
   id: number;
@@ -30,6 +39,10 @@ function optionLabel(option: RefOption, ref: ReferenceConfig): string {
 }
 
 export function ReferenceSelect({ label, value, onChange, reference, required, error, disabled }: Props) {
+  const quick = useQuickCreate();
+  const createConfig = quick?.configFor(reference.basePath);
+  const canQuickCreate = !disabled && !!quick && !!createConfig && createConfig.canCreate !== false;
+
   const { data, isLoading } = useQuery({
     queryKey: ['reference', reference.basePath, reference.params],
     queryFn: () =>
@@ -42,37 +55,52 @@ export function ReferenceSelect({ label, value, onChange, reference, required, e
   const options = data ?? [];
   const selected = options.find((o) => o.id === value) ?? null;
 
+  const handleQuickCreate = async () => {
+    if (!quick || !createConfig) return;
+    const newId = await quick.openCreate(createConfig);
+    if (newId != null) onChange(newId);
+  };
+
   return (
-    <Autocomplete
-      fullWidth
-      size="small"
-      options={options}
-      loading={isLoading}
-      value={selected}
-      disabled={disabled}
-      noOptionsText="Nenhum registro"
-      loadingText="Carregando..."
-      getOptionLabel={(o) => optionLabel(o, reference)}
-      isOptionEqualToValue={(o, v) => o.id === v.id}
-      onChange={(_, v) => onChange(v ? v.id : null)}
-      renderInput={(params) => (
-        <TextField
-          {...params}
-          label={label}
-          required={required}
-          error={!!error}
-          helperText={error}
-          InputProps={{
-            ...params.InputProps,
-            endAdornment: (
-              <>
-                {isLoading ? <CircularProgress color="inherit" size={16} /> : null}
-                {params.InputProps.endAdornment}
-              </>
-            ),
-          }}
-        />
-      )}
-    />
+    <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 0.5 }}>
+      <Autocomplete
+        sx={{ flex: 1, minWidth: 0 }}
+        size="small"
+        options={options}
+        loading={isLoading}
+        value={selected}
+        disabled={disabled}
+        noOptionsText="Nenhum registro"
+        loadingText="Carregando..."
+        getOptionLabel={(o) => optionLabel(o, reference)}
+        isOptionEqualToValue={(o, v) => o.id === v.id}
+        onChange={(_, v) => onChange(v ? v.id : null)}
+        renderInput={(params) => (
+          <TextField
+            {...params}
+            label={label}
+            required={required}
+            error={!!error}
+            helperText={error}
+            InputProps={{
+              ...params.InputProps,
+              endAdornment: (
+                <>
+                  {isLoading ? <CircularProgress color="inherit" size={16} /> : null}
+                  {params.InputProps.endAdornment}
+                </>
+              ),
+            }}
+          />
+        )}
+      />
+      {canQuickCreate ? (
+        <Tooltip title={`Cadastrar ${createConfig!.singular}`}>
+          <IconButton color="primary" size="small" sx={{ mt: 0.5 }} onClick={handleQuickCreate}>
+            <AddCircleOutlineIcon />
+          </IconButton>
+        </Tooltip>
+      ) : null}
+    </Box>
   );
 }
