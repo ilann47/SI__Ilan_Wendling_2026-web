@@ -57,7 +57,7 @@ export const funcionariosConfig: ResourceConfig = {
   fields: [
     { name: 'nome', label: 'Nome', type: 'text', required: true, cols: 8 },
     { name: 'tipo', label: 'Tipo', type: 'select', cols: 4, options: tipoPessoaOptions, defaultValue: 'FISICA' },
-    { name: 'cpf', label: 'CPF', type: 'document', documentMode: 'cpf', required: true, cols: 4 },
+    { name: 'cpf', label: 'CPF / CNPJ', type: 'document', documentTypeFrom: 'tipo', required: true, cols: 4 },
     { name: 'rgInscricaoEstadual', label: 'RG / Inscr. Estadual', type: 'text', cols: 4 },
     { name: 'apelido', label: 'Apelido', type: 'text', cols: 4 },
     { name: 'dataNascimento', label: 'Nascimento', type: 'date', cols: 4 },
@@ -89,13 +89,6 @@ export const funcionariosConfig: ResourceConfig = {
       type: 'reference',
       cols: 4,
       reference: { basePath: '/api/cidades', labelField: 'nome', secondaryField: 'estadoNome' },
-    },
-    {
-      name: 'nacionalidadeId',
-      label: 'Nacionalidade',
-      type: 'reference',
-      cols: 6,
-      reference: { basePath: '/api/paises', labelField: 'nome' },
     },
     { name: 'ativo', label: 'Ativo', type: 'switch', cols: 3 },
     { name: 'observacao', label: 'Observação', type: 'textarea' },

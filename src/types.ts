@@ -117,8 +117,6 @@ export interface ClienteResponse {
   cep?: string;
   cidadeId?: number;
   cidadeNome?: string;
-  nacionalidadeId?: number;
-  nacionalidadeNome?: string;
   condicaoPagamentoId?: number;
   condicaoPagamentoNome?: string;
   limiteCredito?: number;
@@ -144,7 +142,6 @@ export interface ClienteRequest {
   bairro?: string;
   cep?: string;
   cidadeId?: number;
-  nacionalidadeId?: number;
   condicaoPagamentoId?: number;
   limiteCredito?: number;
   observacao?: string;
@@ -241,8 +238,6 @@ export interface FuncionarioResponse {
   cep?: string;
   cidadeId?: number;
   cidadeNome?: string;
-  nacionalidadeId?: number;
-  nacionalidadeNome?: string;
   cargoId: number;
   cargoNome: string;
   cnh?: string;
@@ -272,7 +267,6 @@ export interface FuncionarioRequest {
   bairro?: string;
   cep?: string;
   cidadeId?: number;
-  nacionalidadeId?: number;
   cargoId: number;
   cnh?: string;
   dataValidadeCnh?: string;
@@ -343,8 +337,6 @@ export interface FornecedorResponse {
   cep?: string;
   cidadeId?: number;
   cidadeNome?: string;
-  nacionalidadeId?: number;
-  nacionalidadeNome?: string;
   condicaoPagamentoId?: number;
   condicaoPagamentoNome?: string;
   limiteCredito?: number;
@@ -368,7 +360,6 @@ export interface FornecedorRequest {
   bairro?: string;
   cep?: string;
   cidadeId?: number;
-  nacionalidadeId?: number;
   condicaoPagamentoId?: number;
   limiteCredito?: number;
   observacao?: string;
@@ -446,6 +437,7 @@ export interface ProdutoResponse {
   categoriaId?: number;
   categoriaNome?: string;
   valorCompra?: number;
+  custo?: number;
   valorVenda?: number;
   percentualLucro?: number;
   quantidade?: number;
@@ -463,10 +455,7 @@ export interface ProdutoRequest {
   marcaId: number;
   unidadeMedidaId: number;
   categoriaId?: number;
-  valorCompra?: number;
   valorVenda?: number;
-  percentualLucro?: number;
-  quantidade?: number;
   quantidadeMinima?: number;
   descricao?: string;
   observacao?: string;

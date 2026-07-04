@@ -47,13 +47,6 @@ export const clientesConfig: ResourceConfig = {
       reference: { basePath: '/api/cidades', labelField: 'nome', secondaryField: 'estadoNome' },
     },
     {
-      name: 'nacionalidadeId',
-      label: 'Nacionalidade',
-      type: 'reference',
-      cols: 6,
-      reference: { basePath: '/api/paises', labelField: 'nome' },
-    },
-    {
       name: 'condicaoPagamentoId',
       label: 'Condição de pagamento',
       type: 'reference',
