@@ -1,35 +1,14 @@
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useMemo,
-  useRef,
-  useState,
-  type ReactNode,
-} from 'react';
+import { useCallback, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { api, describeError } from '../api/client';
 import { useSnackbar } from '../components/SnackbarProvider';
 import { ResourceFormDialog } from '../components/form/ResourceFormDialog';
 import { allConfigs } from '../resources';
 import { type ResourceConfig } from '../components/crud/resourceConfig';
+import { QuickCreateContext } from './quickCreateCore';
 
 /** Mapa endpoint -> config de cadastro, para "criar na hora" a partir de um select. */
 const configByBasePath = new Map(allConfigs.map((c) => [c.basePath, c]));
-
-interface QuickCreateValue {
-  /** Config de cadastro de um endpoint referenciado, se existir um cadastro para ele. */
-  configFor: (basePath: string) => ResourceConfig | undefined;
-  /** Abre o cadastro do recurso em um diálogo; resolve com o id criado (ou null se cancelado). */
-  openCreate: (config: ResourceConfig) => Promise<number | null>;
-}
-
-const QuickCreateContext = createContext<QuickCreateValue | null>(null);
-
-// eslint-disable-next-line react-refresh/only-export-components
-export function useQuickCreate(): QuickCreateValue | null {
-  return useContext(QuickCreateContext);
-}
 
 interface StackEntry {
   key: number;

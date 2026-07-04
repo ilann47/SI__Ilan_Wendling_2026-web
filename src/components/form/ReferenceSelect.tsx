@@ -1,22 +1,12 @@
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import {
-  Autocomplete,
-  Box,
-  CircularProgress,
-  IconButton,
-  TextField,
-  Tooltip,
-} from '@mui/material';
-import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
+import { IconButton, InputAdornment, TextField, Tooltip } from '@mui/material';
+import CloseIcon from '@mui/icons-material/Close';
+import SearchIcon from '@mui/icons-material/Search';
 import { api } from '../../api/client';
-import type { Page } from '../../api/resource';
 import type { ReferenceConfig } from './fieldConfig';
-import { useQuickCreate } from '../../context/QuickCreateContext';
-
-interface RefOption {
-  id: number;
-  [key: string]: unknown;
-}
+import { useQuickCreate } from '../../context/quickCreateCore';
+import { ReferencePickerDialog, optionLabel, type RefOption } from './ReferencePickerDialog';
 
 interface Props {
   label: string;
@@ -28,79 +18,76 @@ interface Props {
   disabled?: boolean;
 }
 
-function optionLabel(option: RefOption, ref: ReferenceConfig): string {
-  const main = option[ref.labelField];
-  const text = main === undefined || main === null ? `#${option.id}` : String(main);
-  if (ref.secondaryField) {
-    const sec = option[ref.secondaryField];
-    if (sec !== undefined && sec !== null && sec !== '') return `${text} — ${sec}`;
-  }
-  return text;
-}
-
+/**
+ * Campo de referencia: exibe o registro selecionado e abre um seletor
+ * (lista + busca + "cadastrar") ao ser clicado. O rotulo do selecionado e
+ * resolvido buscando o registro pelo id.
+ */
 export function ReferenceSelect({ label, value, onChange, reference, required, error, disabled }: Props) {
   const quick = useQuickCreate();
-  const createConfig = quick?.configFor(reference.basePath);
-  const canQuickCreate = !disabled && !!quick && !!createConfig && createConfig.canCreate !== false;
+  const singular = quick?.configFor(reference.basePath)?.singular ?? label;
+  const [open, setOpen] = useState(false);
 
-  const { data, isLoading } = useQuery({
-    queryKey: ['reference', reference.basePath, reference.params],
-    queryFn: () =>
-      api
-        .get<Page<RefOption>>(reference.basePath, { params: { size: 200, ...reference.params } })
-        .then((r) => r.data.content),
+  // O valor pode chegar como '' (default do formulario); normaliza para id numerico ou null.
+  const parsed = value == null || `${value}`.trim() === '' ? null : Number(value);
+  const id = parsed != null && Number.isFinite(parsed) ? parsed : null;
+
+  const { data: selected } = useQuery({
+    queryKey: ['reference-one', reference.basePath, id],
+    queryFn: () => api.get<RefOption>(`${reference.basePath}/${id}`).then((r) => r.data),
+    enabled: id != null,
     staleTime: 60_000,
   });
 
-  const options = data ?? [];
-  const selected = options.find((o) => o.id === value) ?? null;
-
-  const handleQuickCreate = async () => {
-    if (!quick || !createConfig) return;
-    const newId = await quick.openCreate(createConfig);
-    if (newId != null) onChange(newId);
-  };
+  const display = id == null ? '' : selected ? optionLabel(selected, reference) : `#${id}`;
 
   return (
-    <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 0.5 }}>
-      <Autocomplete
-        sx={{ flex: 1, minWidth: 0 }}
+    <>
+      <TextField
+        fullWidth
         size="small"
-        options={options}
-        loading={isLoading}
-        value={selected}
+        label={label}
+        required={required}
         disabled={disabled}
-        noOptionsText="Nenhum registro"
-        loadingText="Carregando..."
-        getOptionLabel={(o) => optionLabel(o, reference)}
-        isOptionEqualToValue={(o, v) => o.id === v.id}
-        onChange={(_, v) => onChange(v ? v.id : null)}
-        renderInput={(params) => (
-          <TextField
-            {...params}
-            label={label}
-            required={required}
-            error={!!error}
-            helperText={error}
-            InputProps={{
-              ...params.InputProps,
-              endAdornment: (
-                <>
-                  {isLoading ? <CircularProgress color="inherit" size={16} /> : null}
-                  {params.InputProps.endAdornment}
-                </>
-              ),
-            }}
-          />
-        )}
+        error={!!error}
+        helperText={error}
+        placeholder="Selecionar..."
+        value={display}
+        onClick={() => {
+          if (!disabled) setOpen(true);
+        }}
+        inputProps={{ readOnly: true, style: { cursor: disabled ? 'default' : 'pointer' } }}
+        InputProps={{
+          endAdornment: (
+            <InputAdornment position="end">
+              {id != null && !disabled ? (
+                <Tooltip title="Limpar">
+                  <IconButton
+                    size="small"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onChange(null);
+                    }}
+                  >
+                    <CloseIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+              ) : null}
+              <IconButton size="small" disabled={disabled} onClick={() => setOpen(true)}>
+                <SearchIcon fontSize="small" />
+              </IconButton>
+            </InputAdornment>
+          ),
+        }}
       />
-      {canQuickCreate ? (
-        <Tooltip title={`Cadastrar ${createConfig!.singular}`}>
-          <IconButton color="primary" size="small" sx={{ mt: 0.5 }} onClick={handleQuickCreate}>
-            <AddCircleOutlineIcon />
-          </IconButton>
-        </Tooltip>
-      ) : null}
-    </Box>
+      <ReferencePickerDialog
+        open={open}
+        reference={reference}
+        singular={singular}
+        value={id}
+        onSelect={(selectedId) => onChange(selectedId)}
+        onClose={() => setOpen(false)}
+      />
+    </>
   );
 }
