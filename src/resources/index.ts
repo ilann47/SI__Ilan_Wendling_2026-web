@@ -3,6 +3,7 @@ import { geografiaConfigs } from './geografia';
 import { pessoasPagamentoConfigs } from './pessoasPagamento';
 import { rhUsuarioConfigs } from './rhUsuario';
 import { fornecedorConvenienciaConfigs } from './fornecedorConveniencia';
+import { logisticaConfigs } from './logistica';
 import { patioConfigs } from './patio';
 import { fiscalConfigs } from './fiscal';
 import { financeiroConfigs } from './financeiro';
@@ -12,6 +13,7 @@ export const allConfigs: ResourceConfig[] = [
   ...pessoasPagamentoConfigs,
   ...rhUsuarioConfigs,
   ...fornecedorConvenienciaConfigs,
+  ...logisticaConfigs,
   ...patioConfigs,
   ...fiscalConfigs,
   ...financeiroConfigs,

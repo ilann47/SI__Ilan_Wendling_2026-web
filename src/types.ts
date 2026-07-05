@@ -339,6 +339,8 @@ export interface FornecedorResponse {
   cidadeNome?: string;
   condicaoPagamentoId?: number;
   condicaoPagamentoNome?: string;
+  transportadoraId?: number;
+  transportadoraNome?: string;
   limiteCredito?: number;
   observacao?: string;
   ativo?: boolean;
@@ -361,11 +363,92 @@ export interface FornecedorRequest {
   cep?: string;
   cidadeId?: number;
   condicaoPagamentoId?: number;
+  transportadoraId?: number;
   limiteCredito?: number;
   observacao?: string;
   ativo?: boolean;
   emails?: EmailRequest[];
   telefones?: TelefoneRequest[];
+}
+
+// ===================== Logistica =====================
+export interface TransportadoraResponse {
+  id: number;
+  nome: string;
+  nomeFantasia?: string;
+  tipo?: TipoPessoa;
+  documento: string;
+  rgInscricaoEstadual?: string;
+  telefone?: string;
+  email?: string;
+  endereco?: string;
+  numero?: string;
+  complemento?: string;
+  bairro?: string;
+  cep?: string;
+  cidadeId?: number;
+  cidadeNome?: string;
+  condicaoPagamentoId?: number;
+  condicaoPagamentoNome?: string;
+  observacao?: string;
+  ativo?: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+export interface TransportadoraRequest {
+  nome: string;
+  nomeFantasia?: string;
+  tipo?: TipoPessoa;
+  documento: string;
+  rgInscricaoEstadual?: string;
+  telefone?: string;
+  email?: string;
+  endereco?: string;
+  numero?: string;
+  complemento?: string;
+  bairro?: string;
+  cep?: string;
+  cidadeId?: number;
+  condicaoPagamentoId?: number;
+  observacao?: string;
+  ativo?: boolean;
+}
+
+export interface VeiculoFrotaResponse {
+  id: number;
+  placa: string;
+  modelo?: string;
+  marca?: string;
+  ano?: number;
+  capacidade?: number;
+  observacao?: string;
+  ativo?: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+export interface VeiculoFrotaRequest {
+  placa: string;
+  modelo?: string;
+  marca?: string;
+  ano?: number;
+  capacidade?: number;
+  observacao?: string;
+  ativo?: boolean;
+}
+
+export interface TransportadoraVeiculoFrotaResponse {
+  id: number;
+  transportadoraId: number;
+  transportadoraNome: string;
+  veiculoFrotaId: number;
+  veiculoFrotaPlaca: string;
+  ativo?: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+export interface TransportadoraVeiculoFrotaRequest {
+  transportadoraId: number;
+  veiculoFrotaId: number;
 }
 
 // ===================== Conveniencia =====================

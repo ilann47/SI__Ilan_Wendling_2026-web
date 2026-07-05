@@ -73,6 +73,13 @@ export const fornecedoresConfig: ResourceConfig = {
       cols: 6,
       reference: { basePath: '/api/condicoes-pagamento', labelField: 'nome' },
     },
+    {
+      name: 'transportadoraId',
+      label: 'Transportadora (frete)',
+      type: 'reference',
+      cols: 6,
+      reference: { basePath: '/api/transportadoras', labelField: 'nome' },
+    },
     { name: 'limiteCredito', label: 'Limite de crédito', type: 'money', cols: 4 },
     { name: 'ativo', label: 'Ativo', type: 'switch', cols: 4 },
     { name: 'observacao', label: 'Observação', type: 'textarea' },
