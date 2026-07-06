@@ -5,7 +5,7 @@ import { type FieldConfig, type ReferenceConfig } from '../form/fieldConfig';
 export interface FilterConfig {
   name: string;
   label: string;
-  type: 'text' | 'boolean' | 'select' | 'reference';
+  type: 'text' | 'number' | 'boolean' | 'select' | 'reference';
   options?: { value: string; label: string }[];
   reference?: ReferenceConfig;
 }

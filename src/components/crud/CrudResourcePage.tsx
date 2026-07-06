@@ -12,16 +12,27 @@ import {
 import { ptBR } from '@mui/x-data-grid/locales';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { describeError } from '../../api/client';
-import { createResourceApi, type PageParams } from '../../api/resource';
+import { createResourceApi, type Page, type PageParams } from '../../api/resource';
 import { useSnackbar } from '../SnackbarProvider';
 import { ResourceFormDialog } from '../form/ResourceFormDialog';
 import { ConfirmDialog } from '../common/ConfirmDialog';
 import { PageHeader } from '../common/PageHeader';
 import { FilterBar } from './FilterBar';
 import { ActionRunner } from './ActionRunner';
-import { type ResourceConfig, type RowAction } from './resourceConfig';
+import { type FilterConfig, type ResourceConfig, type RowAction } from './resourceConfig';
 
 const gridLocale = ptBR.components.MuiDataGrid.defaultProps.localeText;
+
+/** Filtro de ID disponivel em todas as listagens (busca o registro exato). */
+const idFilter: FilterConfig = { name: 'id', label: 'ID', type: 'number' };
+
+function pageVazia(size: number): Page<any> {
+  return { content: [], totalElements: 0, totalPages: 0, number: 0, size, first: true, last: true, numberOfElements: 0, empty: true };
+}
+
+function pageUnica(row: any, size: number): Page<any> {
+  return { content: [row], totalElements: 1, totalPages: 1, number: 0, size, first: true, last: true, numberOfElements: 1, empty: false };
+}
 
 export function CrudResourcePage({ config }: { config: ResourceConfig }) {
   const queryClient = useQueryClient();
@@ -39,6 +50,11 @@ export function CrudResourcePage({ config }: { config: ResourceConfig }) {
   const canEdit = config.canEdit !== false;
   const canDelete = config.canDelete !== false;
 
+  const filtersWithId = useMemo<FilterConfig[]>(
+    () => [idFilter, ...(config.filters ?? [])],
+    [config.filters],
+  );
+
   const params: PageParams = {
     page: pagination.page,
     size: pagination.pageSize,
@@ -46,9 +62,24 @@ export function CrudResourcePage({ config }: { config: ResourceConfig }) {
     ...filters,
   };
 
+  const buscaId = filters.id != null && `${filters.id}`.trim() !== '' ? `${filters.id}`.trim() : null;
+
   const { data, isFetching } = useQuery({
     queryKey: ['list', config.basePath, pagination, filters],
-    queryFn: () => resource.list(params),
+    queryFn: async (): Promise<Page<any>> => {
+      // Busca por ID: retorna exatamente aquele registro (todo recurso tem GET /{id}).
+      if (buscaId !== null) {
+        const numId = Number(buscaId);
+        if (!Number.isInteger(numId) || numId <= 0) return pageVazia(pagination.pageSize);
+        try {
+          const row = await resource.get(numId);
+          return pageUnica(row, pagination.pageSize);
+        } catch {
+          return pageVazia(pagination.pageSize);
+        }
+      }
+      return resource.list(params);
+    },
     placeholderData: keepPreviousData,
   });
 
@@ -127,7 +158,11 @@ export function CrudResourcePage({ config }: { config: ResourceConfig }) {
         return items;
       },
     };
-    return [...config.columns, actionsCol];
+    const temIdCol = config.columns.some((c) => c.field === 'id');
+    const colunas = temIdCol
+      ? config.columns
+      : [{ field: 'id', headerName: 'ID', width: 80 } as GridColDef, ...config.columns];
+    return [...colunas, actionsCol];
   }, [config, canEdit, canDelete]);
 
   const initialValues = editing ? (config.toFormValues ? config.toFormValues(editing) : editing) : null;
@@ -153,12 +188,11 @@ export function CrudResourcePage({ config }: { config: ResourceConfig }) {
         }
       />
 
-      {config.filters && config.filters.length > 0 && (
-        <FilterBar filters={config.filters} onChange={(v) => {
-          setFilters(v);
-          setPagination((p) => ({ ...p, page: 0 }));
-        }} />
-      )}
+      <FilterBar filters={filtersWithId} onChange={(v) => {
+        setFilters(v);
+        setPagination((p) => ({ ...p, page: 0 }));
+      }} />
+
 
       <Card>
         <DataGrid

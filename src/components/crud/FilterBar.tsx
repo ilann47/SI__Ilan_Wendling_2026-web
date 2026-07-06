@@ -60,6 +60,20 @@ export function FilterBar({ filters, onChange }: Props) {
             </TextField>
           );
         }
+        if (f.type === 'number') {
+          return (
+            <TextField
+              key={f.name}
+              size="small"
+              type="number"
+              label={f.label}
+              sx={{ width: 120 }}
+              value={(local[f.name] as string) ?? ''}
+              onChange={(e) => set(f.name, e.target.value)}
+              inputProps={{ min: 1, inputMode: 'numeric' }}
+            />
+          );
+        }
         if (f.type === 'reference' && f.reference) {
           return (
             <Box key={f.name} sx={{ minWidth: 230 }}>
