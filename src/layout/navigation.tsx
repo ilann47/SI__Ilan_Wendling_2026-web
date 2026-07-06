@@ -52,14 +52,41 @@ export const navGroups: NavGroup[] = [
     ],
   },
   {
+    label: 'Fiscal',
+    items: [
+      { label: 'Notas de Entrada', path: '/app/notas-entrada', icon: <CallReceivedOutlinedIcon fontSize="small" /> },
+      { label: 'Notas de Saída', path: '/app/notas-saida', icon: <CallMadeOutlinedIcon fontSize="small" /> },
+      { label: 'Notas de Serviço', path: '/app/notas-servico', icon: <DescriptionOutlinedIcon fontSize="small" /> },
+    ],
+  },
+  {
+    label: 'Financeiro',
+    items: [
+      { label: 'Contas a Receber', path: '/app/contas-receber', icon: <TrendingUpOutlinedIcon fontSize="small" /> },
+      { label: 'Contas a Pagar', path: '/app/contas-pagar', icon: <TrendingDownOutlinedIcon fontSize="small" /> },
+      { label: 'Despesas Avulsas', path: '/app/contas-pagar-avulsas', icon: <ReceiptOutlinedIcon fontSize="small" /> },
+    ],
+  },
+  {
+    label: 'Cadastros',
+    items: [
+      { label: 'Clientes', path: '/app/clientes', icon: <PeopleOutlinedIcon fontSize="small" /> },
+      { label: 'Veículos', path: '/app/veiculos', icon: <DirectionsCarOutlinedIcon fontSize="small" /> },
+      { label: 'Fornecedores', path: '/app/fornecedores', icon: <LocalShippingOutlinedIcon fontSize="small" /> },
+      { label: 'Tarifas', path: '/app/tarifas', icon: <PriceChangeOutlinedIcon fontSize="small" /> },
+      { label: 'Condições de Pagamento', path: '/app/condicoes-pagamento', icon: <EventRepeatOutlinedIcon fontSize="small" /> },
+      { label: 'Formas de Pagamento', path: '/app/formas-pagamento', icon: <PaymentOutlinedIcon fontSize="small" /> },
+    ],
+  },
+  {
     label: 'Conveniência',
     items: [
       { label: 'Produtos', path: '/app/produtos', icon: <Inventory2OutlinedIcon fontSize="small" /> },
+      { label: 'Serviços', path: '/app/servicos', icon: <BuildOutlinedIcon fontSize="small" /> },
+      { label: 'Produto x Fornecedor', path: '/app/produto-fornecedores', icon: <LinkOutlinedIcon fontSize="small" /> },
       { label: 'Categorias', path: '/app/categorias', icon: <CategoryOutlinedIcon fontSize="small" /> },
       { label: 'Marcas', path: '/app/marcas', icon: <SellOutlinedIcon fontSize="small" /> },
       { label: 'Unidades de Medida', path: '/app/unidades-medida', icon: <StraightenOutlinedIcon fontSize="small" /> },
-      { label: 'Serviços', path: '/app/servicos', icon: <BuildOutlinedIcon fontSize="small" /> },
-      { label: 'Produto x Fornecedor', path: '/app/produto-fornecedores', icon: <LinkOutlinedIcon fontSize="small" /> },
     ],
   },
   {
@@ -71,30 +98,11 @@ export const navGroups: NavGroup[] = [
     ],
   },
   {
-    label: 'Fiscal',
+    label: 'Geografia',
     items: [
-      { label: 'Notas de Entrada', path: '/app/notas-entrada', icon: <CallReceivedOutlinedIcon fontSize="small" /> },
-      { label: 'Notas de Saída', path: '/app/notas-saida', icon: <CallMadeOutlinedIcon fontSize="small" /> },
-      { label: 'Notas de Serviço', path: '/app/notas-servico', icon: <DescriptionOutlinedIcon fontSize="small" /> },
-    ],
-  },
-  {
-    label: 'Financeiro',
-    items: [
-      { label: 'Contas a Pagar', path: '/app/contas-pagar', icon: <TrendingDownOutlinedIcon fontSize="small" /> },
-      { label: 'Contas a Receber', path: '/app/contas-receber', icon: <TrendingUpOutlinedIcon fontSize="small" /> },
-      { label: 'Despesas Avulsas', path: '/app/contas-pagar-avulsas', icon: <ReceiptOutlinedIcon fontSize="small" /> },
-    ],
-  },
-  {
-    label: 'Cadastros',
-    items: [
-      { label: 'Clientes', path: '/app/clientes', icon: <PeopleOutlinedIcon fontSize="small" /> },
-      { label: 'Fornecedores', path: '/app/fornecedores', icon: <LocalShippingOutlinedIcon fontSize="small" /> },
-      { label: 'Veículos', path: '/app/veiculos', icon: <DirectionsCarOutlinedIcon fontSize="small" /> },
-      { label: 'Tarifas', path: '/app/tarifas', icon: <PriceChangeOutlinedIcon fontSize="small" /> },
-      { label: 'Formas de Pagamento', path: '/app/formas-pagamento', icon: <PaymentOutlinedIcon fontSize="small" /> },
-      { label: 'Condições de Pagamento', path: '/app/condicoes-pagamento', icon: <EventRepeatOutlinedIcon fontSize="small" /> },
+      { label: 'Países', path: '/app/paises', icon: <PublicOutlinedIcon fontSize="small" /> },
+      { label: 'Estados', path: '/app/estados', icon: <MapOutlinedIcon fontSize="small" /> },
+      { label: 'Cidades', path: '/app/cidades', icon: <LocationCityOutlinedIcon fontSize="small" /> },
     ],
   },
   {
@@ -103,14 +111,6 @@ export const navGroups: NavGroup[] = [
       { label: 'Cargos', path: '/app/cargos', icon: <BadgeOutlinedIcon fontSize="small" /> },
       { label: 'Funcionários', path: '/app/funcionarios', icon: <WorkOutlineIcon fontSize="small" /> },
       { label: 'Usuários', path: '/app/usuarios', icon: <ManageAccountsOutlinedIcon fontSize="small" /> },
-    ],
-  },
-  {
-    label: 'Geografia',
-    items: [
-      { label: 'Países', path: '/app/paises', icon: <PublicOutlinedIcon fontSize="small" /> },
-      { label: 'Estados', path: '/app/estados', icon: <MapOutlinedIcon fontSize="small" /> },
-      { label: 'Cidades', path: '/app/cidades', icon: <LocationCityOutlinedIcon fontSize="small" /> },
     ],
   },
 ];
