@@ -1,4 +1,4 @@
-> Links: [[core]]
+> Links: [[core]] · [[auth]]
 
 # Acesso de Eventos
 
@@ -10,7 +10,9 @@ operacional de credenciais de eventos.
 ## Contexto
 
 `EventAccessPage` é visível conforme `access:checkin`, `access:checkout` ou
-`credentials:block`. A tela não envia comando de cancela e não simula hardware.
+`credentials:block`. O backend continua sendo a autoridade de autorização,
+ocupação, presença, sessão, política de reentrada e RBAC. A tela não envia
+comando de cancela e não simula hardware.
 
 ## Fluxo (camadas da arquitetura)
 
@@ -43,7 +45,8 @@ Nenhuma integração física. A página consome exclusivamente a API central.
 ## Tratamento de Erros
 
 Falhas HTTP usam `describeError`; recusas de negócio de acesso são exibidas
-como decisões válidas. O bloqueio mantém erro e resultado em estados separados.
+como decisões válidas e o retry reutiliza a chave idempotente. O bloqueio mantém
+erro e resultado em estados separados.
 
 ## Testes (curl ou equivalente)
 
@@ -56,13 +59,17 @@ como decisões válidas. O bloqueio mantém erro e resultado em estados separado
 - Retry do mesmo acesso reutiliza a chave idempotente; mudança de payload cria
   nova chave.
 - Bloqueio exige motivo localmente e continua protegido pelo RBAC do backend.
+- A navegação por permissão é somente UX; o backend permanece a barreira de
+  segurança.
 
 ## Módulos relacionados
 
 - [[core]]
+- [[auth]]
 
 ## Histórico
 
 | Data | Ação |
 |---|---|
-| 2026-08-01 | Documenta check-in/check-out QR e bloqueio operacional por Supervisor. |
+| 2026-08-01 | Implementa operação QR online responsiva para entrada e saída. |
+| 2026-08-01 | Adiciona bloqueio operacional de credencial por Supervisor. |

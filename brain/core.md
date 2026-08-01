@@ -1,4 +1,4 @@
-> Links: [[acesso]]
+> Links: [[auth]] · [[acesso]]
 
 # Frontend Kaneko
 
@@ -12,7 +12,8 @@ backend estiverem disponíveis.
 
 Aplicação React 18 + TypeScript + Vite, com Material UI, React Router, Axios e
 TanStack Query. A autenticação usa JWT e exige seleção de organização antes de
-abrir rotas tenant-aware.
+abrir rotas tenant-aware. O frontend é um repositório Git próprio dentro do
+projeto Java e preserva as telas legadas durante a adoção gradual de `/api/v1`.
 
 ## Fluxo (camadas da arquitetura)
 
@@ -51,15 +52,21 @@ automatizados configurado no repositório.
 - A navegação é filtrada pelas permissões retornadas pelo backend.
 - A tela de seleção troca o contexto emitindo novo JWT; IDs de tenant não são
   enviados por header.
+- O login continua emitindo JWT global compatível com as APIs legadas.
+- Usuário sem Membership conserva o fluxo legado. Uma única organização é
+  selecionada automaticamente; múltiplas exigem escolha explícita.
 - O bundle ainda é único e gera aviso acima de 500 kB; lazy loading permanece
   dívida técnica.
 
 ## Módulos relacionados
 
+- [[auth]]
 - [[acesso]]
 
 ## Histórico
 
 | Data | Ação |
 |---|---|
-| 2026-08-01 | Cria brain do frontend a partir do estado implementado. |
+| 2026-08-01 | Inicializa o brain do frontend e registra o contexto multiempresa. |
+| 2026-08-01 | Adiciona console operacional QR mobile-first para eventos. |
+| 2026-08-01 | Registra bloqueio operacional de credencial e dívida de bundle. |

@@ -1,9 +1,11 @@
 {
   "nodes": [
     {"id":"core","type":"file","file":"core.md","x":0,"y":0,"width":360,"height":220},
-    {"id":"acesso","type":"file","file":"acesso.md","x":480,"y":0,"width":360,"height":220}
+    {"id":"auth","type":"file","file":"auth.md","x":500,"y":0,"width":360,"height":220},
+    {"id":"acesso","type":"file","file":"acesso.md","x":1000,"y":0,"width":360,"height":220}
   ],
   "edges": [
-    {"id":"core-acesso","fromNode":"core","fromSide":"right","toNode":"acesso","toSide":"left","label":"JWT contextual + permissões"}
+    {"id":"core-auth","fromNode":"core","fromSide":"right","toNode":"auth","toSide":"left","label":"JWT contextual"},
+    {"id":"auth-acesso","fromNode":"auth","fromSide":"right","toNode":"acesso","toSide":"left","label":"permissões efetivas"}
   ]
 }
