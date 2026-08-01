@@ -54,8 +54,11 @@ npm run preview    # serve o build (porta 4173, com proxy /api)
   ativa por novo token contextual (token guardado no navegador; expiração tratada).
 - **Dashboard** com KPIs (pátio atual, faturamento do dia, receita recorrente, estoque baixo).
 - **Pátio**: registrar entrada/saída e ver os veículos no pátio em tempo real.
-- **Acesso de eventos**: check-in/check-out QR online, responsivo e protegido por
-  permissões efetivas, sem simular câmera ou cancela.
+- **Acesso de eventos**: validação sem consumo, check-in/check-out QR online e
+  bloqueio operacional, responsivos e protegidos por permissões efetivas, sem
+  simular câmera ou cancela.
+- **Auditoria de acesso**: feed tenant-aware paginado por cursor, com filtros de
+  evento, decisão e motivo, sem expor token ou hash QR.
 - **CRUD completo** de todos os cadastros (geografia, pessoas, RH, conveniência,
   fornecedores, pagamento), com **filtros**, paginação no servidor e validação.
 - **Fiscal**: notas de entrada/saída (com itens) e de serviço — confirmar, cancelar, emitir.
@@ -70,7 +73,7 @@ recurso é descrito por colunas, campos de formulário, filtros e ações. Um mo
 genérico (`src/components/crud/` + `src/components/form/`) renderiza a listagem
 (DataGrid), o formulário (incl. sub-itens como parcelas/itens de nota) e as ações
 customizadas (baixa, confirmação, etc.). Páginas sob medida: Login, Dashboard,
-Pátio e Relatórios.
+Pátio, Acesso de Eventos, Tentativas de Acesso e Relatórios.
 
 ```
 src/
@@ -79,7 +82,7 @@ src/
   components/   form/ (campos), crud/ (DataGrid + ações), common/ (chips, diálogos)
   context/      modo claro/escuro
   layout/       AppLayout (drawer + appbar) + navegação
-  pages/        Login, Dashboard, Pátio, Relatórios
+  pages/        Login, Dashboard, Pátio, Acesso de Eventos, Auditoria, Relatórios
   resources/    registry declarativo dos recursos (1 arquivo por domínio)
   types.ts      tipos do contrato da API (gerados a partir dos DTOs reais)
 ```

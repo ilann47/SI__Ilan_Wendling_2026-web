@@ -29,6 +29,7 @@ import PublicOutlinedIcon from '@mui/icons-material/PublicOutlined';
 import MapOutlinedIcon from '@mui/icons-material/MapOutlined';
 import LocationCityOutlinedIcon from '@mui/icons-material/LocationCityOutlined';
 import QrCodeScannerOutlinedIcon from '@mui/icons-material/QrCodeScannerOutlined';
+import FactCheckOutlinedIcon from '@mui/icons-material/FactCheckOutlined';
 
 export interface NavItem {
   label: string;
@@ -52,6 +53,12 @@ export const navGroups: NavGroup[] = [
         path: '/app/acesso-eventos',
         icon: <QrCodeScannerOutlinedIcon fontSize="small" />,
         permissions: ['access:validate', 'access:checkin', 'access:checkout', 'credentials:block'],
+      },
+      {
+        label: 'Tentativas de acesso',
+        path: '/app/tentativas-acesso',
+        icon: <FactCheckOutlinedIcon fontSize="small" />,
+        permissions: ['audit:read'],
       },
       { label: 'Pátio', path: '/app/patio', icon: <LocalParkingOutlinedIcon fontSize="small" /> },
       { label: 'Movimentações', path: '/app/movimentacoes', icon: <SwapHorizOutlinedIcon fontSize="small" /> },

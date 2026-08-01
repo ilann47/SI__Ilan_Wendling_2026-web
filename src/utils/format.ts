@@ -49,6 +49,7 @@ export function statusColor(
     case 'PAGA':
     case 'RECEBIDA':
     case 'FECHADO':
+    case 'AUTORIZADA':
       return 'success';
     case 'PENDENTE':
     case 'PARCIAL':
@@ -56,6 +57,7 @@ export function statusColor(
       return 'warning';
     case 'CANCELADA':
     case 'CANCELADO':
+    case 'RECUSADA':
       return 'error';
     case 'SUSPENSO':
       return 'info';

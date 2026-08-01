@@ -11,6 +11,7 @@ import { OrganizationSelectionPage } from './pages/OrganizationSelectionPage';
 import { useAuth } from './auth/AuthContext';
 import { Box, CircularProgress } from '@mui/material';
 import { EventAccessPage } from './pages/EventAccessPage';
+import { AccessAttemptsPage } from './pages/AccessAttemptsPage';
 
 function ContextualApp() {
   const { isContextLoading, requiresOrganizationSelection } = useAuth();
@@ -39,6 +40,7 @@ export function App() {
         <Route path="patio" element={<PatioPage />} />
         <Route path="relatorios" element={<RelatoriosPage />} />
         <Route path="acesso-eventos" element={<EventAccessPage />} />
+        <Route path="tentativas-acesso" element={<AccessAttemptsPage />} />
         {allConfigs.map((config) => (
           <Route key={config.key} path={config.key} element={<CrudResourcePage config={config} />} />
         ))}

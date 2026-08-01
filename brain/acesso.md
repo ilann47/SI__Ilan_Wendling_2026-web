@@ -25,6 +25,10 @@ Operador informa QR + evento + pátio + faixa
 Supervisor informa credencial + motivo
   -> POST /api/v1/credentials/{id}/blocking
   -> estado e ETag resultantes
+
+Administrador/Gestor filtra o feed por evento, decisão e motivo
+  -> GET /api/v1/access-attempts com cursor keyset
+  -> tentativas do tenant ativo sem token/hash QR
 ```
 
 ## Endpoints (se houver)
@@ -33,11 +37,13 @@ Supervisor informa credencial + motivo
 - `POST /api/v1/check-ins`
 - `POST /api/v1/check-outs`
 - `POST /api/v1/credentials/{credentialId}/blocking`
+- `GET /api/v1/access-attempts`
 
 ## Estrutura de Dados (DTOs, Entidades)
 
 `AccessResponse` modela decisão, motivo, tentativa, consumo, efeitos e ocupação.
 `CredentialResponse` modela o resultado mínimo do bloqueio.
+`AccessAttemptPage` representa a página keyset e nunca contém o segredo lido.
 
 ## Integrações externas (se houver)
 
@@ -64,6 +70,8 @@ erro e resultado em estados separados.
 - Bloqueio exige motivo localmente e continua protegido pelo RBAC do backend.
 - A navegação por permissão é somente UX; o backend permanece a barreira de
   segurança.
+- O feed aparece somente com `audit:read`, usa filtros aplicados explicitamente
+  e mantém o histórico local de cursores para navegação anterior/próxima.
 
 ## Módulos relacionados
 
@@ -77,3 +85,4 @@ erro e resultado em estados separados.
 | 2026-08-01 | Implementa operação QR online responsiva para entrada e saída. |
 | 2026-08-01 | Adiciona bloqueio operacional de credencial por Supervisor. |
 | 2026-08-01 | Adiciona validação QR auditável sem consumo ao console operacional. |
+| 2026-08-01 | Adiciona feed paginado e filtrável de tentativas para auditoria. |
