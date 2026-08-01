@@ -14,6 +14,7 @@ import {
 import LoginOutlinedIcon from '@mui/icons-material/LoginOutlined';
 import LogoutOutlinedIcon from '@mui/icons-material/LogoutOutlined';
 import BlockOutlinedIcon from '@mui/icons-material/BlockOutlined';
+import FactCheckOutlinedIcon from '@mui/icons-material/FactCheckOutlined';
 import RestartAltOutlinedIcon from '@mui/icons-material/RestartAltOutlined';
 import { api, describeError } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
@@ -29,10 +30,11 @@ interface AccessResponse {
   resultingOccupancy?: number;
   credentialStatus?: string;
   decidedAt: string;
-  barrierCommandRequested: boolean;
+  barrierCommandRequested?: boolean;
+  consumptionPerformed?: boolean;
 }
 
-type Direction = 'check-ins' | 'check-outs';
+type AccessOperation = 'access-validations' | 'check-ins' | 'check-outs';
 
 interface CredentialResponse {
   id: number;
@@ -48,7 +50,7 @@ export function EventAccessPage() {
   const [eventId, setEventId] = useState('');
   const [parkingFacilityId, setParkingFacilityId] = useState('');
   const [lane, setLane] = useState('PORTAO_PRINCIPAL');
-  const [loading, setLoading] = useState<Direction | null>(null);
+  const [loading, setLoading] = useState<AccessOperation | null>(null);
   const [result, setResult] = useState<AccessResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [credentialId, setCredentialId] = useState('');
@@ -60,25 +62,26 @@ export function EventAccessPage() {
 
   const canCheckin = permissions.includes('access:checkin');
   const canCheckout = permissions.includes('access:checkout');
+  const canValidate = permissions.includes('access:validate');
   const canBlockCredential = permissions.includes('credentials:block');
 
-  const submit = async (direction: Direction) => {
+  const submit = async (operation: AccessOperation) => {
     const payload = {
       qrToken: qrToken.trim(),
       eventId: Number(eventId),
       parkingFacilityId: Number(parkingFacilityId),
       lane: lane.trim(),
     };
-    const fingerprint = JSON.stringify({ direction, ...payload });
+    const fingerprint = JSON.stringify({ operation, ...payload });
     if (retry.current?.fingerprint !== fingerprint) {
       retry.current = { fingerprint, key: crypto.randomUUID() };
     }
     const idempotencyKey = retry.current.key;
-    setLoading(direction);
+    setLoading(operation);
     setError(null);
     setResult(null);
     try {
-      const { data } = await api.post<AccessResponse>(`/api/v1/${direction}`, payload, {
+      const { data } = await api.post<AccessResponse>(`/api/v1/${operation}`, payload, {
         headers: { 'Idempotency-Key': idempotencyKey },
       });
       setResult(data);
@@ -92,6 +95,7 @@ export function EventAccessPage() {
   const onSubmit = (event: FormEvent) => {
     event.preventDefault();
     if (canCheckin) void submit('check-ins');
+    else if (canValidate) void submit('access-validations');
   };
 
   const newReading = () => {
@@ -119,7 +123,7 @@ export function EventAccessPage() {
     }
   };
 
-  if (!canCheckin && !canCheckout && !canBlockCredential) {
+  if (!canValidate && !canCheckin && !canCheckout && !canBlockCredential) {
     return <Alert severity="warning">Seu contexto não possui permissão de acesso.</Alert>;
   }
 
@@ -171,6 +175,20 @@ export function EventAccessPage() {
                 required
               />
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
+                {canValidate && (
+                  <Button
+                    type={canCheckin ? 'button' : 'submit'}
+                    variant="outlined"
+                    onClick={canCheckin ? () => void submit('access-validations') : undefined}
+                    disabled={loading !== null || !qrToken || !eventId || !parkingFacilityId || !lane}
+                    startIcon={loading === 'access-validations'
+                      ? <CircularProgress size={18} color="inherit" />
+                      : <FactCheckOutlinedIcon />}
+                    fullWidth
+                  >
+                    Somente validar
+                  </Button>
+                )}
                 {canCheckin && (
                   <Button
                     type="submit"
@@ -226,9 +244,16 @@ export function EventAccessPage() {
               {result.credentialStatus && (
                 <Typography><strong>Credencial:</strong> {result.credentialStatus}</Typography>
               )}
-              <Typography variant="body2" color="text.secondary">
-                Comando de cancela: {result.barrierCommandRequested ? 'solicitado' : 'não solicitado'}
-              </Typography>
+              {result.consumptionPerformed !== undefined && (
+                <Typography variant="body2" color="text.secondary">
+                  Direito consumido: {result.consumptionPerformed ? 'sim' : 'não'}
+                </Typography>
+              )}
+              {result.barrierCommandRequested !== undefined && (
+                <Typography variant="body2" color="text.secondary">
+                  Comando de cancela: {result.barrierCommandRequested ? 'solicitado' : 'não solicitado'}
+                </Typography>
+              )}
               <Button
                 onClick={newReading}
                 startIcon={<RestartAltOutlinedIcon />}
