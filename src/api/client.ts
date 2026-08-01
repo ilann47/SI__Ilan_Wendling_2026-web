@@ -60,6 +60,7 @@ export function describeError(error: unknown): string {
     if (data.detail) return data.detail;
     if (data.title) return data.title;
   }
+  if (error instanceof Error && error.message) return error.message;
   if (ax?.response?.status) return `Erro ${ax.response.status}.`;
   return 'Nao foi possivel contatar o servidor. Verifique se o backend esta no ar.';
 }

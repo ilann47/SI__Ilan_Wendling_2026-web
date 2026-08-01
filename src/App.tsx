@@ -7,6 +7,20 @@ import { PatioPage } from './pages/PatioPage';
 import { RelatoriosPage } from './pages/RelatoriosPage';
 import { CrudResourcePage } from './components/crud/CrudResourcePage';
 import { allConfigs } from './resources';
+import { OrganizationSelectionPage } from './pages/OrganizationSelectionPage';
+import { useAuth } from './auth/AuthContext';
+import { Box, CircularProgress } from '@mui/material';
+
+function ContextualApp() {
+  const { isContextLoading, requiresOrganizationSelection } = useAuth();
+  if (isContextLoading) {
+    return <Box sx={{ minHeight: '100vh', display: 'grid', placeItems: 'center' }}>
+      <CircularProgress />
+    </Box>;
+  }
+  if (requiresOrganizationSelection) return <OrganizationSelectionPage />;
+  return <AppLayout />;
+}
 
 export function App() {
   return (
@@ -16,7 +30,7 @@ export function App() {
         path="/app"
         element={
           <ProtectedRoute>
-            <AppLayout />
+            <ContextualApp />
           </ProtectedRoute>
         }
       >

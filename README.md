@@ -50,7 +50,8 @@ npm run preview    # serve o build (porta 4173, com proxy /api)
 
 ## O que tem
 
-- **Login** com JWT (token guardado no navegador; expiração tratada).
+- **Login** com JWT, descoberta de Memberships e seleção segura da organização
+  ativa por novo token contextual (token guardado no navegador; expiração tratada).
 - **Dashboard** com KPIs (pátio atual, faturamento do dia, receita recorrente, estoque baixo).
 - **Pátio**: registrar entrada/saída e ver os veículos no pátio em tempo real.
 - **CRUD completo** de todos os cadastros (geografia, pessoas, RH, conveniência,

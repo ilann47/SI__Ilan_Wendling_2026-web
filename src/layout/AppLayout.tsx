@@ -36,7 +36,7 @@ export function AppLayout() {
   const isDesktop = useMediaQuery(theme.breakpoints.up('md'));
   const [mobileOpen, setMobileOpen] = useState(false);
   const [anchor, setAnchor] = useState<null | HTMLElement>(null);
-  const { user, logout } = useAuth();
+  const { user, activeOrganization, logout } = useAuth();
   const { mode, toggle } = useColorMode();
   const location = useLocation();
   const navigate = useNavigate();
@@ -98,7 +98,7 @@ export function AppLayout() {
             </IconButton>
           )}
           <Typography variant="h6" sx={{ flexGrow: 1, fontSize: { xs: 16, md: 20 } }}>
-            Estacionamento Kaneko
+            {activeOrganization?.tradeName || activeOrganization?.legalName || 'Estacionamento Kaneko'}
           </Typography>
           <Tooltip title={mode === 'light' ? 'Modo escuro' : 'Modo claro'}>
             <IconButton onClick={toggle} color="inherit">
