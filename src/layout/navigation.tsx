@@ -28,11 +28,13 @@ import ManageAccountsOutlinedIcon from '@mui/icons-material/ManageAccountsOutlin
 import PublicOutlinedIcon from '@mui/icons-material/PublicOutlined';
 import MapOutlinedIcon from '@mui/icons-material/MapOutlined';
 import LocationCityOutlinedIcon from '@mui/icons-material/LocationCityOutlined';
+import QrCodeScannerOutlinedIcon from '@mui/icons-material/QrCodeScannerOutlined';
 
 export interface NavItem {
   label: string;
   path: string;
   icon: ReactNode;
+  permissions?: string[];
 }
 
 export interface NavGroup {
@@ -45,6 +47,12 @@ export const navGroups: NavGroup[] = [
     label: 'Operação',
     items: [
       { label: 'Dashboard', path: '/app', icon: <SpaceDashboardOutlinedIcon fontSize="small" /> },
+      {
+        label: 'Acesso de eventos',
+        path: '/app/acesso-eventos',
+        icon: <QrCodeScannerOutlinedIcon fontSize="small" />,
+        permissions: ['access:checkin', 'access:checkout'],
+      },
       { label: 'Pátio', path: '/app/patio', icon: <LocalParkingOutlinedIcon fontSize="small" /> },
       { label: 'Movimentações', path: '/app/movimentacoes', icon: <SwapHorizOutlinedIcon fontSize="small" /> },
       { label: 'Mensalistas', path: '/app/mensalistas', icon: <CardMembershipOutlinedIcon fontSize="small" /> },

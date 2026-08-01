@@ -1,4 +1,4 @@
-> Links: [[auth]]
+> Links: [[auth]] · [[acesso]]
 
 # Core do Frontend
 
@@ -24,9 +24,11 @@ estado de servidor.
 ## Módulos relacionados
 
 - [[auth]]
+- [[acesso]]
 
 ## Histórico
 
 | Data | Ação |
 |---|---|
 | 2026-08-01 | Inicializa o brain do frontend e registra o contexto multiempresa. |
+| 2026-08-01 | Adiciona console operacional QR mobile-first para eventos. |

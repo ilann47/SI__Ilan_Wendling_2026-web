@@ -54,6 +54,8 @@ npm run preview    # serve o build (porta 4173, com proxy /api)
   ativa por novo token contextual (token guardado no navegador; expiração tratada).
 - **Dashboard** com KPIs (pátio atual, faturamento do dia, receita recorrente, estoque baixo).
 - **Pátio**: registrar entrada/saída e ver os veículos no pátio em tempo real.
+- **Acesso de eventos**: check-in/check-out QR online, responsivo e protegido por
+  permissões efetivas, sem simular câmera ou cancela.
 - **CRUD completo** de todos os cadastros (geografia, pessoas, RH, conveniência,
   fornecedores, pagamento), com **filtros**, paginação no servidor e validação.
 - **Fiscal**: notas de entrada/saída (com itens) e de serviço — confirmar, cancelar, emitir.

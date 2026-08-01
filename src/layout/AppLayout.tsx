@@ -36,7 +36,7 @@ export function AppLayout() {
   const isDesktop = useMediaQuery(theme.breakpoints.up('md'));
   const [mobileOpen, setMobileOpen] = useState(false);
   const [anchor, setAnchor] = useState<null | HTMLElement>(null);
-  const { user, activeOrganization, logout } = useAuth();
+  const { user, activeOrganization, permissions, logout } = useAuth();
   const { mode, toggle } = useColorMode();
   const location = useLocation();
   const navigate = useNavigate();
@@ -56,7 +56,11 @@ export function AppLayout() {
       </Toolbar>
       <Divider />
       <Box sx={{ overflowY: 'auto', flexGrow: 1, pb: 2 }}>
-        {navGroups.map((group) => (
+        {navGroups.map((group) => {
+          const items = group.items.filter((item) => !item.permissions
+            || item.permissions.some((permission) => permissions.includes(permission)));
+          if (items.length === 0) return null;
+          return (
           <List
             key={group.label}
             dense
@@ -69,7 +73,7 @@ export function AppLayout() {
               </ListSubheader>
             }
           >
-            {group.items.map((item) => (
+            {items.map((item) => (
               <ListItemButton
                 key={item.path}
                 component={RouterLink}
@@ -83,7 +87,8 @@ export function AppLayout() {
               </ListItemButton>
             ))}
           </List>
-        ))}
+          );
+        })}
       </Box>
     </Box>
   );

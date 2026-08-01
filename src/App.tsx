@@ -10,6 +10,7 @@ import { allConfigs } from './resources';
 import { OrganizationSelectionPage } from './pages/OrganizationSelectionPage';
 import { useAuth } from './auth/AuthContext';
 import { Box, CircularProgress } from '@mui/material';
+import { EventAccessPage } from './pages/EventAccessPage';
 
 function ContextualApp() {
   const { isContextLoading, requiresOrganizationSelection } = useAuth();
@@ -37,6 +38,7 @@ export function App() {
         <Route index element={<DashboardPage />} />
         <Route path="patio" element={<PatioPage />} />
         <Route path="relatorios" element={<RelatoriosPage />} />
+        <Route path="acesso-eventos" element={<EventAccessPage />} />
         {allConfigs.map((config) => (
           <Route key={config.key} path={config.key} element={<CrudResourcePage config={config} />} />
         ))}

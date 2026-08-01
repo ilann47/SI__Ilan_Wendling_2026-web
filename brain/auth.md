@@ -1,4 +1,4 @@
-> Links: [[core]]
+> Links: [[core]] · [[acesso]]
 
 # Autenticação e Contexto Organizacional
 
@@ -58,6 +58,7 @@ Validação disponível por `npm run typecheck` e `npm run build`.
 ## Módulos relacionados
 
 - [[core]]
+- [[acesso]]
 
 ## Histórico
 
