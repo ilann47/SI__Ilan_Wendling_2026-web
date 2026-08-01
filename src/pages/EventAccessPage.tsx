@@ -13,6 +13,7 @@ import {
 } from '@mui/material';
 import LoginOutlinedIcon from '@mui/icons-material/LoginOutlined';
 import LogoutOutlinedIcon from '@mui/icons-material/LogoutOutlined';
+import BlockOutlinedIcon from '@mui/icons-material/BlockOutlined';
 import RestartAltOutlinedIcon from '@mui/icons-material/RestartAltOutlined';
 import { api, describeError } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
@@ -33,6 +34,14 @@ interface AccessResponse {
 
 type Direction = 'check-ins' | 'check-outs';
 
+interface CredentialResponse {
+  id: number;
+  status: string;
+  version: number;
+  blockedAt?: string;
+  blockingReason?: string;
+}
+
 export function EventAccessPage() {
   const { permissions } = useAuth();
   const [qrToken, setQrToken] = useState('');
@@ -42,10 +51,16 @@ export function EventAccessPage() {
   const [loading, setLoading] = useState<Direction | null>(null);
   const [result, setResult] = useState<AccessResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [credentialId, setCredentialId] = useState('');
+  const [blockingReason, setBlockingReason] = useState('');
+  const [blocking, setBlocking] = useState(false);
+  const [blockingResult, setBlockingResult] = useState<CredentialResponse | null>(null);
+  const [blockingError, setBlockingError] = useState<string | null>(null);
   const retry = useRef<{ fingerprint: string; key: string } | null>(null);
 
   const canCheckin = permissions.includes('access:checkin');
   const canCheckout = permissions.includes('access:checkout');
+  const canBlockCredential = permissions.includes('credentials:block');
 
   const submit = async (direction: Direction) => {
     const payload = {
@@ -86,7 +101,25 @@ export function EventAccessPage() {
     retry.current = null;
   };
 
-  if (!canCheckin && !canCheckout) {
+  const blockCredential = async (event: FormEvent) => {
+    event.preventDefault();
+    setBlocking(true);
+    setBlockingError(null);
+    setBlockingResult(null);
+    try {
+      const { data } = await api.post<CredentialResponse>(
+        `/api/v1/credentials/${Number(credentialId)}/blocking`,
+        { reason: blockingReason.trim() },
+      );
+      setBlockingResult(data);
+    } catch (cause) {
+      setBlockingError(describeError(cause));
+    } finally {
+      setBlocking(false);
+    }
+  };
+
+  if (!canCheckin && !canCheckout && !canBlockCredential) {
     return <Alert severity="warning">Seu contexto não possui permissão de acesso.</Alert>;
   }
 
@@ -204,6 +237,57 @@ export function EventAccessPage() {
                 Nova leitura
               </Button>
             </Stack>
+          </CardContent>
+        </Card>
+      )}
+
+      {canBlockCredential && (
+        <Card sx={{ mt: 2 }}>
+          <CardContent>
+            <Box component="form" onSubmit={(event) => void blockCredential(event)}>
+              <Stack spacing={2}>
+                <Box>
+                  <Typography variant="h6">Bloqueio de credencial</Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    A credencial ativa será bloqueada e o QR vigente será revogado.
+                  </Typography>
+                </Box>
+                {blockingError && <Alert severity="error">{blockingError}</Alert>}
+                {blockingResult && (
+                  <Alert severity="success">
+                    Credencial {blockingResult.id} em {blockingResult.status}. ETag {blockingResult.version}.
+                  </Alert>
+                )}
+                <TextField
+                  label="ID da credencial"
+                  type="number"
+                  value={credentialId}
+                  onChange={(event) => setCredentialId(event.target.value)}
+                  inputProps={{ min: 1 }}
+                  required
+                />
+                <TextField
+                  label="Motivo do bloqueio"
+                  value={blockingReason}
+                  onChange={(event) => setBlockingReason(event.target.value)}
+                  inputProps={{ maxLength: 300 }}
+                  required
+                  multiline
+                  minRows={2}
+                />
+                <Button
+                  type="submit"
+                  variant="outlined"
+                  color="error"
+                  disabled={blocking || !credentialId || !blockingReason.trim()}
+                  startIcon={blocking
+                    ? <CircularProgress size={18} color="inherit" />
+                    : <BlockOutlinedIcon />}
+                >
+                  Bloquear credencial
+                </Button>
+              </Stack>
+            </Box>
           </CardContent>
         </Card>
       )}

@@ -51,7 +51,7 @@ export const navGroups: NavGroup[] = [
         label: 'Acesso de eventos',
         path: '/app/acesso-eventos',
         icon: <QrCodeScannerOutlinedIcon fontSize="small" />,
-        permissions: ['access:checkin', 'access:checkout'],
+        permissions: ['access:checkin', 'access:checkout', 'credentials:block'],
       },
       { label: 'Pátio', path: '/app/patio', icon: <LocalParkingOutlinedIcon fontSize="small" /> },
       { label: 'Movimentações', path: '/app/movimentacoes', icon: <SwapHorizOutlinedIcon fontSize="small" /> },

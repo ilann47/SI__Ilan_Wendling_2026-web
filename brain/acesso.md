@@ -1,63 +1,68 @@
-> Links: [[core]] · [[auth]]
+> Links: [[core]]
 
 # Acesso de Eventos
 
 ## Objetivo
 
-Executar check-in e check-out QR online em uma interface responsiva para o
-operador, consumindo exclusivamente os contratos canônicos do backend.
+Oferecer uma interface mobile-first para check-in, check-out e bloqueio
+operacional de credenciais de eventos.
 
 ## Contexto
 
-A tela é exibida quando o JWT contextual possui `access:checkin` ou
-`access:checkout`. O backend continua sendo a autoridade de autorização,
-ocupação, presença, sessão e política de reentrada.
+`EventAccessPage` é visível conforme `access:checkin`, `access:checkout` ou
+`credentials:block`. A tela não envia comando de cancela e não simula hardware.
 
 ## Fluxo (camadas da arquitetura)
 
 ```text
-QR + evento + pátio + faixa
-  -> POST /api/v1/check-ins ou /api/v1/check-outs
-  -> Idempotency-Key estável para retry do mesmo payload
-  -> decisão AUTORIZADA/RECUSADA + motivo + ocupação
+Operador informa QR + evento + pátio + faixa
+  -> POST /api/v1/check-ins ou /check-outs
+  -> Idempotency-Key estável durante retry do mesmo payload
+  -> decisão e ocupação resultante
+
+Supervisor informa credencial + motivo
+  -> POST /api/v1/credentials/{id}/blocking
+  -> estado e ETag resultantes
 ```
 
 ## Endpoints (se houver)
 
 - `POST /api/v1/check-ins`
 - `POST /api/v1/check-outs`
+- `POST /api/v1/credentials/{credentialId}/blocking`
 
 ## Estrutura de Dados (DTOs, Entidades)
 
-`AccessResponse` contém tentativa, decisão, motivo, efeitos, ocupação e estado
-resultante da credencial. O QR não é copiado para estado de resultado.
+`AccessResponse` modela decisão, motivo, tentativa, efeitos e ocupação.
+`CredentialResponse` modela o resultado mínimo do bloqueio.
 
 ## Integrações externas (se houver)
 
-Nenhuma. Câmera, cancela e leitores físicos não são simulados.
+Nenhuma integração física. A página consome exclusivamente a API central.
 
 ## Tratamento de Erros
 
-Problem Details é convertido em mensagem operacional. Recusa de negócio aparece
-como resultado terminal; erro HTTP permanece alerta e reutiliza a chave no retry.
+Falhas HTTP usam `describeError`; recusas de negócio de acesso são exibidas
+como decisões válidas. O bloqueio mantém erro e resultado em estados separados.
 
 ## Testes (curl ou equivalente)
 
-Validação disponível por `npm run typecheck` e `npm run build`.
+- `npm run typecheck`
+- `npm run build`
 
 ## Decisões Técnicas
 
-- A mesma direção e payload reutilizam `Idempotency-Key` até “Nova leitura”.
-- A navegação usa permissões efetivas somente para UX; a segurança real permanece
-  no backend.
+- O QR é campo de senha, não é persistido no navegador pela página.
+- Retry do mesmo acesso reutiliza a chave idempotente; mudança de payload cria
+  nova chave.
+- Bloqueio exige motivo localmente e continua protegido pelo RBAC do backend.
 
 ## Módulos relacionados
 
 - [[core]]
-- [[auth]]
 
 ## Histórico
 
 | Data | Ação |
 |---|---|
-| 2026-08-01 | Implementa operação QR online responsiva para entrada e saída. |
+| 2026-08-01 | Documenta check-in/check-out QR e bloqueio operacional por Supervisor. |
