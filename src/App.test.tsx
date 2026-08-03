@@ -12,6 +12,12 @@ vi.mock('./auth/OrganizationAccessBoundary', () => ({
   OrganizationAccessBoundary: ({ children }: { children: ReactNode }) => children,
 }));
 
+vi.mock('./auth/PermissionRoute', () => ({
+  PermissionRoute: ({ anyOf, children }: { anyOf: string[]; children: ReactNode }) => (
+    <section data-permissions={anyOf.join(',')}>{children}</section>
+  ),
+}));
+
 vi.mock('./layout/AppLayout', async () => {
   const { Outlet } = await vi.importActual<typeof import('react-router-dom')>('react-router-dom');
   return { AppLayout: () => <Outlet /> };
@@ -43,5 +49,15 @@ describe('App - compatibilidade legada', () => {
     render(<MemoryRouter initialEntries={[path]}><App /></MemoryRouter>);
 
     expect(await screen.findByRole('heading', { name: heading })).toBeInTheDocument();
+  });
+
+  it('protege a rota preservada de clientes com customers:read', async () => {
+    render(<MemoryRouter initialEntries={['/app/clientes']}><App /></MemoryRouter>);
+
+    const heading = await screen.findByRole('heading', { name: 'Clientes' });
+    expect(heading.closest('[data-permissions]')).toHaveAttribute(
+      'data-permissions',
+      'customers:read',
+    );
   });
 });

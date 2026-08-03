@@ -7,6 +7,8 @@ import { api } from '../../api/client';
 import type { ReferenceConfig } from './fieldConfig';
 import { useQuickCreate } from '../../context/quickCreateCore';
 import { ReferencePickerDialog, optionLabel, type RefOption } from './ReferencePickerDialog';
+import { useAuth } from '../../auth/AuthContext';
+import { resourceQueryKey } from '../crud/resourceConfig';
 
 interface Props {
   label: string;
@@ -25,7 +27,9 @@ interface Props {
  */
 export function ReferenceSelect({ label, value, onChange, reference, required, error, disabled }: Props) {
   const quick = useQuickCreate();
-  const singular = quick?.configFor(reference.basePath)?.singular ?? label;
+  const resourceConfig = quick?.configFor(reference.basePath);
+  const singular = resourceConfig?.singular ?? label;
+  const { activeOrganization } = useAuth();
   const [open, setOpen] = useState(false);
 
   // O valor pode chegar como '' (default do formulario); normaliza para id numerico ou null.
@@ -33,7 +37,15 @@ export function ReferenceSelect({ label, value, onChange, reference, required, e
   const id = parsed != null && Number.isFinite(parsed) ? parsed : null;
 
   const { data: selected } = useQuery({
-    queryKey: ['reference-one', reference.basePath, id],
+    queryKey: resourceConfig
+      ? resourceQueryKey(
+        resourceConfig,
+        activeOrganization?.organizationId,
+        'reference-one',
+        reference.basePath,
+        id,
+      )
+      : ['reference-one', reference.basePath, id],
     queryFn: () => api.get<RefOption>(`${reference.basePath}/${id}`).then((r) => r.data),
     enabled: id != null,
     staleTime: 60_000,

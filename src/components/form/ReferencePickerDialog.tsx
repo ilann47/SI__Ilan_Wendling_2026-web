@@ -21,6 +21,8 @@ import { api } from '../../api/client';
 import type { Page } from '../../api/resource';
 import type { ReferenceConfig } from './fieldConfig';
 import { useQuickCreate } from '../../context/quickCreateCore';
+import { useAuth } from '../../auth/AuthContext';
+import { hasResourceActionPermission, resourceQueryKey } from '../crud/resourceConfig';
 
 export interface RefOption {
   id: number;
@@ -57,7 +59,9 @@ interface Props {
 export function ReferencePickerDialog({ open, reference, singular, value, onSelect, onClose }: Props) {
   const quick = useQuickCreate();
   const createConfig = quick?.configFor(reference.basePath);
-  const canCreate = !!quick && !!createConfig && createConfig.canCreate !== false;
+  const { activeOrganization, permissions } = useAuth();
+  const canCreate = !!quick && !!createConfig && createConfig.canCreate !== false
+    && hasResourceActionPermission(createConfig, 'create', permissions);
 
   const [search, setSearch] = useState('');
   const [debounced, setDebounced] = useState('');
@@ -76,7 +80,16 @@ export function ReferencePickerDialog({ open, reference, singular, value, onSele
   }, [search]);
 
   const { data, isFetching } = useQuery({
-    queryKey: ['reference-picker', reference.basePath, debounced, reference.params],
+    queryKey: createConfig
+      ? resourceQueryKey(
+        createConfig,
+        activeOrganization?.organizationId,
+        'reference-picker',
+        reference.basePath,
+        debounced,
+        reference.params,
+      )
+      : ['reference-picker', reference.basePath, debounced, reference.params],
     queryFn: () =>
       api
         .get<Page<RefOption>>(reference.basePath, {

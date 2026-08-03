@@ -19,7 +19,14 @@ import { ConfirmDialog } from '../common/ConfirmDialog';
 import { PageHeader } from '../common/PageHeader';
 import { FilterBar } from './FilterBar';
 import { ActionRunner } from './ActionRunner';
-import { type FilterConfig, type ResourceConfig, type RowAction } from './resourceConfig';
+import {
+  hasResourceActionPermission,
+  resourceQueryKey,
+  type FilterConfig,
+  type ResourceConfig,
+  type RowAction,
+} from './resourceConfig';
+import { useAuth } from '../../auth/AuthContext';
 
 const gridLocale = ptBR.components.MuiDataGrid.defaultProps.localeText;
 
@@ -37,6 +44,7 @@ function pageUnica(row: any, size: number): Page<any> {
 export function CrudResourcePage({ config }: { config: ResourceConfig }) {
   const queryClient = useQueryClient();
   const { notify } = useSnackbar();
+  const { activeOrganization, permissions } = useAuth();
   const resource = useMemo(() => createResourceApi<any, any>(config.basePath), [config.basePath]);
 
   const [pagination, setPagination] = useState({ page: 0, pageSize: 10 });
@@ -46,9 +54,12 @@ export function CrudResourcePage({ config }: { config: ResourceConfig }) {
   const [deleting, setDeleting] = useState<Record<string, any> | null>(null);
   const [running, setRunning] = useState<{ action: RowAction; row: Record<string, any> } | null>(null);
 
-  const canCreate = config.canCreate !== false;
-  const canEdit = config.canEdit !== false;
-  const canDelete = config.canDelete !== false;
+  const canCreate = config.canCreate !== false
+    && hasResourceActionPermission(config, 'create', permissions);
+  const canEdit = config.canEdit !== false
+    && hasResourceActionPermission(config, 'update', permissions);
+  const canDelete = config.canDelete !== false
+    && hasResourceActionPermission(config, 'delete', permissions);
 
   const filtersWithId = useMemo<FilterConfig[]>(
     () => [idFilter, ...(config.filters ?? [])],
@@ -65,7 +76,14 @@ export function CrudResourcePage({ config }: { config: ResourceConfig }) {
   const buscaId = filters.id != null && `${filters.id}`.trim() !== '' ? `${filters.id}`.trim() : null;
 
   const { data, isFetching } = useQuery({
-    queryKey: ['list', config.basePath, pagination, filters],
+    queryKey: resourceQueryKey(
+      config,
+      activeOrganization?.organizationId,
+      'list',
+      config.basePath,
+      pagination,
+      filters,
+    ),
     queryFn: async (): Promise<Page<any>> => {
       // Busca por ID: retorna exatamente aquele registro (todo recurso tem GET /{id}).
       if (buscaId !== null) {
@@ -83,7 +101,14 @@ export function CrudResourcePage({ config }: { config: ResourceConfig }) {
     placeholderData: keepPreviousData,
   });
 
-  const invalidate = () => queryClient.invalidateQueries({ queryKey: ['list', config.basePath] });
+  const invalidate = () => queryClient.invalidateQueries({
+    queryKey: resourceQueryKey(
+      config,
+      activeOrganization?.organizationId,
+      'list',
+      config.basePath,
+    ),
+  });
 
   const saveMutation = useMutation({
     mutationFn: (values: Record<string, unknown>) =>

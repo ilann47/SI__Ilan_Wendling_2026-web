@@ -4,8 +4,13 @@ import { api, describeError } from '../api/client';
 import { useSnackbar } from '../components/SnackbarProvider';
 import { ResourceFormDialog } from '../components/form/ResourceFormDialog';
 import { allConfigs } from '../resources';
-import { type ResourceConfig } from '../components/crud/resourceConfig';
+import {
+  hasResourceActionPermission,
+  resourceQueryKey,
+  type ResourceConfig,
+} from '../components/crud/resourceConfig';
 import { QuickCreateContext } from './quickCreateCore';
+import { useAuth } from '../auth/AuthContext';
 
 /** Mapa endpoint -> config de cadastro, para "criar na hora" a partir de um select. */
 const configByBasePath = new Map(allConfigs.map((c) => [c.basePath, c]));
@@ -27,18 +32,23 @@ interface StackEntry {
 export function QuickCreateProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
   const { notify } = useSnackbar();
+  const { activeOrganization, permissions } = useAuth();
   const [stack, setStack] = useState<StackEntry[]>([]);
   const seq = useRef(0);
 
   const configFor = useCallback((basePath: string) => configByBasePath.get(basePath), []);
 
   const openCreate = useCallback(
-    (config: ResourceConfig) =>
-      new Promise<number | null>((resolve) => {
+    (config: ResourceConfig) => {
+      if (!hasResourceActionPermission(config, 'create', permissions)) {
+        return Promise.resolve(null);
+      }
+      return new Promise<number | null>((resolve) => {
         const key = (seq.current += 1);
         setStack((s) => [...s, { key, config, resolve, submitting: false }]);
-      }),
-    [],
+      });
+    },
+    [permissions],
   );
 
   const finish = useCallback((key: number, result: number | null) => {
@@ -56,7 +66,24 @@ export function QuickCreateProvider({ children }: { children: ReactNode }) {
           .post<{ id: number }>(entry.config.basePath, values)
           .then((r) => r.data);
         // atualiza as opções dos selects que apontam para esse recurso
-        queryClient.invalidateQueries({ queryKey: ['reference', entry.config.basePath] });
+        await Promise.all([
+          queryClient.invalidateQueries({
+            queryKey: resourceQueryKey(
+              entry.config,
+              activeOrganization?.organizationId,
+              'reference-picker',
+              entry.config.basePath,
+            ),
+          }),
+          queryClient.invalidateQueries({
+            queryKey: resourceQueryKey(
+              entry.config,
+              activeOrganization?.organizationId,
+              'reference-one',
+              entry.config.basePath,
+            ),
+          }),
+        ]);
         notify(`${entry.config.singular} cadastrado.`, 'success');
         finish(entry.key, created.id);
       } catch (err) {
@@ -64,7 +91,7 @@ export function QuickCreateProvider({ children }: { children: ReactNode }) {
         setStack((s) => s.map((e) => (e.key === entry.key ? { ...e, submitting: false } : e)));
       }
     },
-    [queryClient, notify, finish],
+    [activeOrganization?.organizationId, queryClient, notify, finish],
   );
 
   const value = useMemo(() => ({ configFor, openCreate }), [configFor, openCreate]);

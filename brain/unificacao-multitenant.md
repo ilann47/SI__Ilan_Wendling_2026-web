@@ -1,4 +1,4 @@
-> Links: [[core]] · [[auth]] · [[compatibilidade-legada]] · [[paridade-api]] · [[workspace]]
+> Links: [[core]] · [[auth]] · [[compatibilidade-legada]] · [[paridade-api]] · [[workspace]] · [[pagamentos]] · [[clientes]]
 
 # Unificação Multi-Tenant
 
@@ -10,9 +10,9 @@ remover capacidades históricas nem criar um segundo produto para eventos.
 ## Contexto
 
 O frontend já reuniu as rotas enterprise e legadas no mesmo shell. A paridade
-funcional foi restaurada, mas os CRUDs antigos ainda consomem endpoints globais.
-A migração será incremental e acompanhará a habilitação tenant-aware de cada
-módulo no backend.
+funcional foi restaurada. Pagamentos V38 e Clientes V40 são as primeiras fatias
+antigas adaptadas ao backend tenant-aware; os demais CRUDs ainda consomem
+endpoints globais. A migração continuará incremental por módulo.
 
 ## Fluxo (camadas da arquitetura)
 
@@ -69,9 +69,13 @@ permissão produz `403`; recurso inexistente ou pertencente a outro tenant produ
 - [[compatibilidade-legada]]
 - [[paridade-api]]
 - [[workspace]]
+- [[pagamentos]]
+- [[clientes]]
 
 ## Histórico (data + ação)
 
 | Data | Ação |
 |---|---|
 | 2026-08-03 | Registra a estratégia de convergência multi-tenant de todas as superfícies. |
+| 2026-08-03 | Registra pagamentos como primeira onda concluída do retrofit multiempresa. |
+| 2026-08-03 | Registra Clientes como segunda onda concluída do retrofit multiempresa. |

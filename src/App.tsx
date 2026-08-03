@@ -88,7 +88,11 @@ export function App() {
             <Route
               key={config.key}
               path={config.key}
-              element={<CrudResourcePage config={config} />}
+              element={config.permissions?.read?.length ? (
+                <PermissionRoute anyOf={config.permissions.read}>
+                  <CrudResourcePage config={config} />
+                </PermissionRoute>
+              ) : <CrudResourcePage config={config} />}
             />
           ))}
         </Route>

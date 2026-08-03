@@ -1,4 +1,4 @@
-> Links: [[core]] · [[auth]] · [[administracao]] · [[instalacoes]] · [[eventos]] · [[vendas]] · [[acesso]] · [[dashboard]] · [[bloqueios]]
+> Links: [[core]] · [[auth]] · [[administracao]] · [[instalacoes]] · [[eventos]] · [[vendas]] · [[pagamentos]] · [[clientes]] · [[acesso]] · [[dashboard]] · [[bloqueios]]
 
 # Paridade API Enterprise
 
@@ -12,10 +12,10 @@ enterprise executáveis expostos pelos controllers atuais.
 A matriz foi confrontada com os controllers Java e com as chamadas Axios do
 frontend. Ela cobre 46 operações: login e as 45 operações `/api/v1`. Os
 controllers legados `/api/*` permanecem acessíveis no shell por compatibilidade
-funcional com a aplicação anterior. Eles ainda não carregam escopo
-organizacional; portanto, a presença das telas não significa isolamento
-multiempresa. A matriz deve registrar separadamente cobertura funcional e
-cobertura tenant-aware durante a migração descrita em [[unificacao-multitenant]].
+funcional com a aplicação anterior. Pagamentos V38 e Clientes V40 já carregam
+escopo organizacional; os demais contratos legados ainda não. A matriz deve
+registrar separadamente cobertura funcional e cobertura tenant-aware durante a
+migração descrita em [[unificacao-multitenant]].
 
 ## Fluxo (camadas da arquitetura)
 
@@ -74,6 +74,14 @@ controller + PreAuthorize -> rota/comando da UI -> cliente HTTP -> resposta real
 | 45 | `POST /api/v1/check-outs` | `access:checkout` | Console de acesso | Integrada e idempotente |
 | 46 | `GET /api/v1/access-attempts` | `audit:read` | Tentativas e Dashboard | Integrada com cursor/filtros |
 
+## Retrofit tenant-aware dos contratos preservados
+
+| Contrato | Permissões | Superfície frontend | Situação |
+|---|---|---|---|
+| `/api/formas-pagamento` | `payments:read`, `payments:manage` | Cadastro/Formas de Pagamento | Integrada e isolada por organização |
+| `/api/condicoes-pagamento` | `payments:read`, `payments:manage` | Cadastro/Condições de Pagamento | Integrada e isolada por organização |
+| `/api/clientes` | `customers:read`, `customers:manage` | Cadastro/Clientes | Integrada e isolada por organização |
+
 ## Lacunas de leitura do contrato atual
 
 Não existem endpoints enterprise de listagem ou leitura individual para Venue,
@@ -123,6 +131,8 @@ críticas e granularidade de RBAC. A validação real local complementa esta mat
 - [[instalacoes]]
 - [[eventos]]
 - [[vendas]]
+- [[pagamentos]]
+- [[clientes]]
 - [[acesso]]
 - [[dashboard]]
 - [[bloqueios]]
@@ -134,3 +144,5 @@ críticas e granularidade de RBAC. A validação real local complementa esta mat
 | 2026-08-03 | Registra cobertura das 46 operações enterprise executáveis. |
 | 2026-08-03 | Registra a restauração das superfícies legadas sem declarar tenancy inexistente. |
 | 2026-08-03 | Separa paridade funcional de paridade tenant-aware para orientar o retrofit por ondas. |
+| 2026-08-03 | Registra formas e condições de pagamento como contratos tenant-aware do backend V38. |
+| 2026-08-03 | Registra Clientes como contrato tenant-aware do backend V40. |

@@ -95,12 +95,27 @@ export const navGroups: NavGroup[] = [
   {
     label: 'Cadastros',
     items: [
-      { label: 'Clientes', path: '/app/clientes', icon: <PeopleOutlinedIcon fontSize="small" /> },
+      {
+        label: 'Clientes',
+        path: '/app/clientes',
+        icon: <PeopleOutlinedIcon fontSize="small" />,
+        permissions: ['customers:read'],
+      },
       { label: 'Veículos', path: '/app/veiculos', icon: <DirectionsCarOutlinedIcon fontSize="small" /> },
       { label: 'Fornecedores', path: '/app/fornecedores', icon: <LocalShippingOutlinedIcon fontSize="small" /> },
       { label: 'Tarifas', path: '/app/tarifas', icon: <PriceChangeOutlinedIcon fontSize="small" /> },
-      { label: 'Condições de Pagamento', path: '/app/condicoes-pagamento', icon: <EventRepeatOutlinedIcon fontSize="small" /> },
-      { label: 'Formas de Pagamento', path: '/app/formas-pagamento', icon: <PaymentOutlinedIcon fontSize="small" /> },
+      {
+        label: 'Condições de Pagamento',
+        path: '/app/condicoes-pagamento',
+        icon: <EventRepeatOutlinedIcon fontSize="small" />,
+        permissions: ['payments:read'],
+      },
+      {
+        label: 'Formas de Pagamento',
+        path: '/app/formas-pagamento',
+        icon: <PaymentOutlinedIcon fontSize="small" />,
+        permissions: ['payments:read'],
+      },
     ],
   },
   {

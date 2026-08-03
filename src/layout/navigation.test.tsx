@@ -17,4 +17,21 @@ describe('navigation - compatibilidade legada', () => {
       'Contas a Pagar': '/app/contas-pagar',
     });
   });
+
+  it.each(['Formas de Pagamento', 'Condições de Pagamento'])(
+    'exige leitura contextual para %s',
+    (label) => {
+      const item = navGroups.flatMap((group) => group.items)
+        .find((candidate) => candidate.label === label);
+
+      expect(item?.permissions).toEqual(['payments:read']);
+    },
+  );
+
+  it('exige leitura contextual para Clientes', () => {
+    const item = navGroups.flatMap((group) => group.items)
+      .find((candidate) => candidate.label === 'Clientes');
+
+    expect(item?.permissions).toEqual(['customers:read']);
+  });
 });
