@@ -71,6 +71,19 @@ describe('App - compatibilidade legada', () => {
     );
   });
 
+  it.each([
+    ['/app/veiculos-frota', 'Veículos de Frota'],
+    ['/app/transportadora-veiculos', 'Frota das Transportadoras'],
+  ])('protege a rota preservada %s com logistics:read', async (path, title) => {
+    render(<MemoryRouter initialEntries={[path]}><App /></MemoryRouter>);
+
+    const heading = await screen.findByRole('heading', { name: title });
+    expect(heading.closest('[data-permissions]')).toHaveAttribute(
+      'data-permissions',
+      'logistics:read',
+    );
+  });
+
   it('protege a rota preservada de fornecedores com suppliers:read', async () => {
     render(<MemoryRouter initialEntries={['/app/fornecedores']}><App /></MemoryRouter>);
 

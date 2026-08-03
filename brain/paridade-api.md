@@ -13,10 +13,10 @@ A matriz foi confrontada com os controllers Java e com as chamadas Axios do
 frontend. Ela cobre 46 operações: login e as 45 operações `/api/v1`. Os
 controllers legados `/api/*` permanecem acessíveis no shell por compatibilidade
 funcional com a aplicação anterior. Pagamentos V38, Clientes V40,
-Transportadoras V41, Fornecedores V42, Cargos V43 e Funcionários já carregam
-escopo organizacional; os demais contratos legados ainda não. A matriz registra
-separadamente cobertura funcional e cobertura tenant-aware durante a migração
-descrita em [[unificacao-multitenant]].
+Transportadoras V41, Frota V48, Fornecedores V42, Cargos V43 e Funcionários já
+carregam escopo organizacional; os demais contratos legados ainda não. A matriz
+registra separadamente cobertura funcional e cobertura tenant-aware durante a
+migração descrita em [[unificacao-multitenant]].
 
 ## Fluxo (camadas da arquitetura)
 
@@ -83,6 +83,8 @@ controller + PreAuthorize -> rota/comando da UI -> cliente HTTP -> resposta real
 | `/api/condicoes-pagamento` | `payments:read`, `payments:manage` | Cadastro/Condições de Pagamento | Integrada e isolada por organização |
 | `/api/clientes` | `customers:read`, `customers:manage` | Cadastro/Clientes | Integrada e isolada por organização |
 | `/api/transportadoras` | `logistics:read`, `logistics:manage` | Logística/Transportadoras | Integrada e isolada por organização |
+| `/api/veiculos-frota` | `logistics:read`, `logistics:manage` | Logística/Veículos de Frota | Integrada e isolada por organização |
+| `/api/transportadora-veiculos` | `logistics:read`, `logistics:manage` | Logística/Frota das Transportadoras | Integrada e isolada por organização |
 | `/api/fornecedores` | `suppliers:read`, `suppliers:manage` | Cadastro/Fornecedores | Integrada e isolada por organização |
 | `/api/cargos` | `workforce:read`, `workforce:manage` | RH/Cargos | Integrada e isolada por organização |
 | `/api/funcionarios` | `workforce:read`, `workforce:manage` | RH/Funcionários | Integrada e isolada por organização |
@@ -155,6 +157,7 @@ críticas e granularidade de RBAC. A validação real local complementa esta mat
 | 2026-08-03 | Registra formas e condições de pagamento como contratos tenant-aware do backend V38. |
 | 2026-08-03 | Registra Clientes como contrato tenant-aware do backend V40. |
 | 2026-08-03 | Registra Transportadoras como contrato tenant-aware do backend V41. |
+| 2026-08-03 | Registra veículos e vínculos de frota como contratos tenant-aware V48. |
 | 2026-08-03 | Registra Fornecedores como contrato tenant-aware do backend V42. |
 | 2026-08-03 | Registra Cargos como contrato tenant-aware do backend V43. |
 | 2026-08-03 | Registra Funcionários como contrato tenant-aware com estado `ativo` real. |

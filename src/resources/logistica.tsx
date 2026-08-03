@@ -65,6 +65,13 @@ export const veiculosFrotaConfig: ResourceConfig = {
   basePath: '/api/veiculos-frota',
   singular: 'Veículo de Frota',
   plural: 'Veículos de Frota',
+  tenantAware: true,
+  permissions: {
+    read: ['logistics:read'],
+    create: ['logistics:manage'],
+    update: ['logistics:manage'],
+    delete: ['logistics:manage'],
+  },
   subtitle: 'Veículos de carga das transportadoras.',
   defaultSort: 'placa,asc',
   columns: [
@@ -97,6 +104,13 @@ export const transportadoraVeiculosConfig: ResourceConfig = {
   basePath: '/api/transportadora-veiculos',
   singular: 'Veículo da Transportadora',
   plural: 'Frota das Transportadoras',
+  tenantAware: true,
+  permissions: {
+    read: ['logistics:read'],
+    create: ['logistics:manage'],
+    update: ['logistics:manage'],
+    delete: ['logistics:manage'],
+  },
   subtitle: 'Vínculo entre transportadora e seus veículos de frota.',
   columns: [
     cols.id(),

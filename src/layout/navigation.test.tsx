@@ -42,6 +42,16 @@ describe('navigation - compatibilidade legada', () => {
     expect(item?.permissions).toEqual(['logistics:read']);
   });
 
+  it.each(['Veículos de Frota', 'Frota (Transp. x Veículo)'])(
+    'exige leitura contextual para %s',
+    (label) => {
+      const item = navGroups.flatMap((group) => group.items)
+        .find((candidate) => candidate.label === label);
+
+      expect(item?.permissions).toEqual(['logistics:read']);
+    },
+  );
+
   it('exige leitura contextual para Fornecedores', () => {
     const item = navGroups.flatMap((group) => group.items)
       .find((candidate) => candidate.label === 'Fornecedores');

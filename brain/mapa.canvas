@@ -46,7 +46,7 @@
     {"id":"unificacao-multitenant-clientes","fromNode":"unificacao-multitenant","fromSide":"right","toNode":"clientes","toSide":"left","label":"segunda fatia V40"},
     {"id":"auth-clientes","fromNode":"auth","fromSide":"bottom","toNode":"clientes","toSide":"top","label":"JWT e customers:*"},
     {"id":"clientes-paridade-api","fromNode":"clientes","fromSide":"right","toNode":"paridade-api","toSide":"left","label":"contrato tenant-aware"},
-    {"id":"unificacao-multitenant-logistica","fromNode":"unificacao-multitenant","fromSide":"right","toNode":"logistica","toSide":"left","label":"terceira fatia V41"},
+    {"id":"unificacao-multitenant-logistica","fromNode":"unificacao-multitenant","fromSide":"right","toNode":"logistica","toSide":"left","label":"transportadoras V41 e frota V48"},
     {"id":"auth-logistica","fromNode":"auth","fromSide":"bottom","toNode":"logistica","toSide":"top","label":"JWT e logistics:*"},
     {"id":"logistica-paridade-api","fromNode":"logistica","fromSide":"right","toNode":"paridade-api","toSide":"left","label":"contrato tenant-aware"},
     {"id":"pagamentos-logistica","fromNode":"pagamentos","fromSide":"right","toNode":"logistica","toSide":"left","label":"condicao de pagamento"},

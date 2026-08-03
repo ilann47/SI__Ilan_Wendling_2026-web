@@ -4,7 +4,11 @@ import {
   condicoesPagamentoConfig,
   formasPagamentoConfig,
 } from '../../resources/pessoasPagamento';
-import { transportadorasConfig } from '../../resources/logistica';
+import {
+  transportadorasConfig,
+  transportadoraVeiculosConfig,
+  veiculosFrotaConfig,
+} from '../../resources/logistica';
 import { fornecedoresConfig } from '../../resources/fornecedorConveniencia';
 import { cargosConfig, funcionariosConfig } from '../../resources/rhUsuario';
 import {
@@ -141,6 +145,89 @@ describe('ResourceConfig tenant-aware de transportadoras', () => {
       { page: 0 },
     ]);
     expect(organizationTwo).not.toEqual(organizationOne);
+  });
+});
+
+describe('ResourceConfig tenant-aware da frota', () => {
+  it.each([veiculosFrotaConfig, transportadoraVeiculosConfig])(
+    'separa leitura e manutencao de $plural',
+    (config) => {
+      expect(config.tenantAware).toBe(true);
+      expect(config.permissions).toEqual({
+        read: ['logistics:read'],
+        create: ['logistics:manage'],
+        update: ['logistics:manage'],
+        delete: ['logistics:manage'],
+      });
+
+      expect(hasResourceActionPermission(config, 'read', ['logistics:read'])).toBe(true);
+      expect(hasResourceActionPermission(config, 'create', ['logistics:read'])).toBe(false);
+      expect(hasResourceActionPermission(config, 'update', ['logistics:manage'])).toBe(true);
+      expect(hasResourceActionPermission(config, 'delete', [])).toBe(false);
+    },
+  );
+
+  it.each([veiculosFrotaConfig, transportadoraVeiculosConfig])(
+    'particiona consultas de $plural pela organizacao ativa',
+    (config) => {
+      const organizationOne = resourceQueryKey(config, 10, 'list', config.basePath, { page: 0 });
+      const organizationTwo = resourceQueryKey(config, 20, 'list', config.basePath, { page: 0 });
+
+      expect(organizationOne).toEqual([
+        'tenant',
+        10,
+        'list',
+        config.basePath,
+        { page: 0 },
+      ]);
+      expect(organizationTwo).not.toEqual(organizationOne);
+    },
+  );
+
+  it('particiona as duas referencias do vinculo e preserva seus payloads', () => {
+    const referenceFields = transportadoraVeiculosConfig.fields.filter(
+      (field) => field.type === 'reference' && field.reference,
+    );
+    const configsByPath = new Map([
+      [transportadorasConfig.basePath, transportadorasConfig],
+      [veiculosFrotaConfig.basePath, veiculosFrotaConfig],
+    ]);
+
+    expect(referenceFields.map((field) => field.name)).toEqual([
+      'transportadoraId',
+      'veiculoFrotaId',
+    ]);
+    for (const field of referenceFields) {
+      const referenceConfig = configsByPath.get(field.reference!.basePath);
+      expect(referenceConfig?.tenantAware).toBe(true);
+      expect(resourceQueryKey(
+        referenceConfig!,
+        10,
+        'reference-picker',
+        field.reference!.basePath,
+      )).toEqual([
+        'tenant',
+        10,
+        'reference-picker',
+        field.reference!.basePath,
+      ]);
+    }
+
+    const forbiddenTenantFields = ['organizationId', 'organizacaoId', 'organization_id', 'organizacao_id'];
+    expect(forbiddenTenantFields.some((name) => referenceFields.some((field) => field.name === name))).toBe(false);
+  });
+
+  it('preserva ativo real sem inventar status ou reativacao no vinculo', () => {
+    const vehicleFields = new Map(veiculosFrotaConfig.fields.map((field) => [field.name, field]));
+    const vehicleFilters = new Map((veiculosFrotaConfig.filters ?? []).map((filter) => [filter.name, filter]));
+    const linkFieldNames = transportadoraVeiculosConfig.fields.map((field) => field.name);
+
+    expect(vehicleFields.get('ativo')?.type).toBe('switch');
+    expect(vehicleFilters.get('ativo')?.type).toBe('boolean');
+    expect(transportadoraVeiculosConfig.columns.some((column) => column.field === 'ativo')).toBe(true);
+    expect(linkFieldNames).toEqual(['transportadoraId', 'veiculoFrotaId']);
+    expect(linkFieldNames).not.toContain('ativo');
+    expect(linkFieldNames).not.toContain('status');
   });
 });
 
