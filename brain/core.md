@@ -44,8 +44,9 @@ Problem Details em mensagens operacionais.
 
 ## Testes (curl ou equivalente)
 
-Validação atual: `npm run typecheck` e `npm run build`. Não há runner de testes
-automatizados configurado no repositório.
+Gates disponíveis: `npm run typecheck`, `npm run lint`, `npm test` e
+`npm run build`. Vitest executa testes unitários/de integração em jsdom com
+Testing Library; E2E contra o backend real será acrescentado no recorte próprio.
 
 ## Decisões Técnicas
 
@@ -57,6 +58,8 @@ automatizados configurado no repositório.
   selecionada automaticamente; múltiplas exigem escolha explícita.
 - O bundle ainda é único e gera aviso acima de 500 kB; lazy loading permanece
   dívida técnica.
+- Ferramentas de teste e lint são somente `devDependencies`; Vite 7 e Vitest 4
+  substituem versões vulneráveis sem alterar React, MUI ou o runtime do produto.
 
 ## Módulos relacionados
 
@@ -70,3 +73,4 @@ automatizados configurado no repositório.
 | 2026-08-01 | Inicializa o brain do frontend e registra o contexto multiempresa. |
 | 2026-08-01 | Adiciona console operacional QR mobile-first para eventos. |
 | 2026-08-01 | Registra bloqueio operacional de credencial e dívida de bundle. |
+| 2026-08-02 | Adiciona gates de lint, testes jsdom e build sobre a linha segura do Vite. |
