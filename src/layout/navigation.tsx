@@ -5,6 +5,7 @@ import AdminPanelSettingsOutlinedIcon from '@mui/icons-material/AdminPanelSettin
 import ApartmentOutlinedIcon from '@mui/icons-material/ApartmentOutlined';
 import EventOutlinedIcon from '@mui/icons-material/EventOutlined';
 import ShoppingBagOutlinedIcon from '@mui/icons-material/ShoppingBagOutlined';
+import BlockOutlinedIcon from '@mui/icons-material/BlockOutlined';
 import type { ReactNode } from 'react';
 
 export interface NavItem {
@@ -63,6 +64,17 @@ export const navGroups: NavGroup[] = [
         path: '/app/vendas',
         icon: <ShoppingBagOutlinedIcon fontSize="small" />,
         permissions: ['inventory:hold', 'orders:create', 'orders:read', 'orders:manual-confirm', 'orders:cancel', 'credentials:issue'],
+      },
+    ],
+  },
+  {
+    label: 'Sistema',
+    items: [
+      {
+        label: 'Bloqueios',
+        path: '/app/bloqueios',
+        icon: <BlockOutlinedIcon fontSize="small" />,
+        permissions: ['organizations:admin', 'audit:read'],
       },
     ],
   },

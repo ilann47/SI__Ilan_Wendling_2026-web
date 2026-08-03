@@ -21,6 +21,8 @@ const EventsPage = lazy(() => import('./pages/EventsPage')
   .then((module) => ({ default: module.EventsPage })));
 const SalesPage = lazy(() => import('./pages/SalesPage')
   .then((module) => ({ default: module.SalesPage })));
+const BlockersPage = lazy(() => import('./pages/BlockersPage')
+  .then((module) => ({ default: module.BlockersPage })));
 
 function LoadingPage() {
   return (
@@ -66,6 +68,11 @@ export function App() {
           <Route path="vendas" element={
             <PermissionRoute anyOf={['inventory:hold', 'orders:create', 'orders:read', 'orders:manual-confirm', 'orders:cancel', 'credentials:issue']}>
               <SalesPage />
+            </PermissionRoute>
+          } />
+          <Route path="bloqueios" element={
+            <PermissionRoute anyOf={['organizations:admin', 'audit:read']}>
+              <BlockersPage />
             </PermissionRoute>
           } />
         </Route>
