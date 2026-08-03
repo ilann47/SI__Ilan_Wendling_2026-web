@@ -5,6 +5,7 @@ import {
   formasPagamentoConfig,
 } from '../../resources/pessoasPagamento';
 import { transportadorasConfig } from '../../resources/logistica';
+import { fornecedoresConfig } from '../../resources/fornecedorConveniencia';
 import {
   hasResourceActionPermission,
   resourceQueryKey,
@@ -136,6 +137,49 @@ describe('ResourceConfig tenant-aware de transportadoras', () => {
       10,
       'list',
       '/api/transportadoras',
+      { page: 0 },
+    ]);
+    expect(organizationTwo).not.toEqual(organizationOne);
+  });
+});
+
+describe('ResourceConfig tenant-aware de fornecedores', () => {
+  it('separa leitura e manutencao do cadastro', () => {
+    expect(fornecedoresConfig.tenantAware).toBe(true);
+    expect(fornecedoresConfig.permissions).toEqual({
+      read: ['suppliers:read'],
+      create: ['suppliers:manage'],
+      update: ['suppliers:manage'],
+      delete: ['suppliers:manage'],
+    });
+
+    expect(hasResourceActionPermission(fornecedoresConfig, 'read', ['suppliers:read'])).toBe(true);
+    expect(hasResourceActionPermission(fornecedoresConfig, 'create', ['suppliers:read'])).toBe(false);
+    expect(hasResourceActionPermission(fornecedoresConfig, 'update', ['suppliers:manage'])).toBe(true);
+    expect(hasResourceActionPermission(fornecedoresConfig, 'delete', [])).toBe(false);
+  });
+
+  it('particiona consultas pela organizacao ativa', () => {
+    const organizationOne = resourceQueryKey(
+      fornecedoresConfig,
+      10,
+      'list',
+      fornecedoresConfig.basePath,
+      { page: 0 },
+    );
+    const organizationTwo = resourceQueryKey(
+      fornecedoresConfig,
+      20,
+      'list',
+      fornecedoresConfig.basePath,
+      { page: 0 },
+    );
+
+    expect(organizationOne).toEqual([
+      'tenant',
+      10,
+      'list',
+      '/api/fornecedores',
       { page: 0 },
     ]);
     expect(organizationTwo).not.toEqual(organizationOne);

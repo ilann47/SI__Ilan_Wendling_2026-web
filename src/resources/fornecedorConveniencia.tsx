@@ -20,6 +20,13 @@ export const fornecedoresConfig: ResourceConfig = {
   basePath: '/api/fornecedores',
   singular: 'Fornecedor',
   plural: 'Fornecedores',
+  tenantAware: true,
+  permissions: {
+    read: ['suppliers:read'],
+    create: ['suppliers:manage'],
+    update: ['suppliers:manage'],
+    delete: ['suppliers:manage'],
+  },
   subtitle: 'Fornecedores de produtos e serviços.',
   defaultSort: 'nome,asc',
   columns: [

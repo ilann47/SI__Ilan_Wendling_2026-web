@@ -70,4 +70,14 @@ describe('App - compatibilidade legada', () => {
       'logistics:read',
     );
   });
+
+  it('protege a rota preservada de fornecedores com suppliers:read', async () => {
+    render(<MemoryRouter initialEntries={['/app/fornecedores']}><App /></MemoryRouter>);
+
+    const heading = await screen.findByRole('heading', { name: 'Fornecedores' });
+    expect(heading.closest('[data-permissions]')).toHaveAttribute(
+      'data-permissions',
+      'suppliers:read',
+    );
+  });
 });

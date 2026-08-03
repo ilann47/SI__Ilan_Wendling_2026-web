@@ -1,4 +1,4 @@
-> Links: [[core]] · [[auth]] · [[compatibilidade-legada]] · [[paridade-api]] · [[workspace]] · [[pagamentos]] · [[clientes]] · [[logistica]]
+> Links: [[core]] · [[auth]] · [[compatibilidade-legada]] · [[paridade-api]] · [[workspace]] · [[pagamentos]] · [[clientes]] · [[logistica]] · [[fornecedores]]
 
 # Unificação Multi-Tenant
 
@@ -10,9 +10,10 @@ remover capacidades históricas nem criar um segundo produto para eventos.
 ## Contexto
 
 O frontend já reuniu as rotas enterprise e legadas no mesmo shell. A paridade
-funcional foi restaurada. Pagamentos V38, Clientes V40 e Transportadoras V41 são
-as primeiras fatias antigas adaptadas ao backend tenant-aware; os demais CRUDs
-ainda consomem endpoints globais. A migração continuará incremental por módulo.
+funcional foi restaurada. Pagamentos V38, Clientes V40, Transportadoras V41 e
+Fornecedores V42 são as primeiras fatias antigas adaptadas ao backend
+tenant-aware; os demais CRUDs ainda consomem endpoints globais. A migração
+continuará incremental por módulo.
 
 ## Fluxo (camadas da arquitetura)
 
@@ -72,6 +73,7 @@ permissão produz `403`; recurso inexistente ou pertencente a outro tenant produ
 - [[pagamentos]]
 - [[clientes]]
 - [[logistica]]
+- [[fornecedores]]
 
 ## Histórico (data + ação)
 
@@ -81,3 +83,4 @@ permissão produz `403`; recurso inexistente ou pertencente a outro tenant produ
 | 2026-08-03 | Registra pagamentos como primeira onda concluída do retrofit multiempresa. |
 | 2026-08-03 | Registra Clientes como segunda onda concluída do retrofit multiempresa. |
 | 2026-08-03 | Registra Transportadoras como terceira onda concluída do retrofit multiempresa. |
+| 2026-08-03 | Registra Fornecedores como quarta onda concluída do retrofit multiempresa. |

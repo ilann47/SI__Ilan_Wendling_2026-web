@@ -15,7 +15,8 @@
     {"id":"unificacao-multitenant","type":"file","file":"unificacao-multitenant.md","x":1000,"y":600,"width":360,"height":220},
     {"id":"pagamentos","type":"file","file":"pagamentos.md","x":1500,"y":600,"width":360,"height":220},
     {"id":"clientes","type":"file","file":"clientes.md","x":2000,"y":600,"width":360,"height":220},
-    {"id":"logistica","type":"file","file":"logistica.md","x":2500,"y":600,"width":360,"height":220}
+    {"id":"logistica","type":"file","file":"logistica.md","x":2500,"y":600,"width":360,"height":220},
+    {"id":"fornecedores","type":"file","file":"fornecedores.md","x":3000,"y":600,"width":360,"height":220}
   ],
   "edges": [
     {"id":"core-auth","fromNode":"core","fromSide":"right","toNode":"auth","toSide":"left","label":"JWT contextual"},
@@ -47,6 +48,11 @@
     {"id":"unificacao-multitenant-logistica","fromNode":"unificacao-multitenant","fromSide":"right","toNode":"logistica","toSide":"left","label":"terceira fatia V41"},
     {"id":"auth-logistica","fromNode":"auth","fromSide":"bottom","toNode":"logistica","toSide":"top","label":"JWT e logistics:*"},
     {"id":"logistica-paridade-api","fromNode":"logistica","fromSide":"right","toNode":"paridade-api","toSide":"left","label":"contrato tenant-aware"},
-    {"id":"pagamentos-logistica","fromNode":"pagamentos","fromSide":"right","toNode":"logistica","toSide":"left","label":"condicao de pagamento"}
+    {"id":"pagamentos-logistica","fromNode":"pagamentos","fromSide":"right","toNode":"logistica","toSide":"left","label":"condicao de pagamento"},
+    {"id":"unificacao-multitenant-fornecedores","fromNode":"unificacao-multitenant","fromSide":"right","toNode":"fornecedores","toSide":"left","label":"quarta fatia V42"},
+    {"id":"auth-fornecedores","fromNode":"auth","fromSide":"bottom","toNode":"fornecedores","toSide":"top","label":"JWT e suppliers:*"},
+    {"id":"fornecedores-paridade-api","fromNode":"fornecedores","fromSide":"right","toNode":"paridade-api","toSide":"left","label":"contrato tenant-aware"},
+    {"id":"pagamentos-fornecedores","fromNode":"pagamentos","fromSide":"right","toNode":"fornecedores","toSide":"left","label":"condicao de pagamento"},
+    {"id":"logistica-fornecedores","fromNode":"logistica","fromSide":"right","toNode":"fornecedores","toSide":"left","label":"transportadora"}
   ]
 }

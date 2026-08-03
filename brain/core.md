@@ -1,4 +1,4 @@
-> Links: [[auth]] · [[acesso]] · [[administracao]] · [[workspace]] · [[instalacoes]] · [[eventos]] · [[vendas]] · [[pagamentos]] · [[clientes]] · [[logistica]] · [[dashboard]] · [[bloqueios]] · [[paridade-api]] · [[compatibilidade-legada]] · [[unificacao-multitenant]]
+> Links: [[auth]] · [[acesso]] · [[administracao]] · [[workspace]] · [[instalacoes]] · [[eventos]] · [[vendas]] · [[pagamentos]] · [[clientes]] · [[logistica]] · [[fornecedores]] · [[dashboard]] · [[bloqueios]] · [[paridade-api]] · [[compatibilidade-legada]] · [[unificacao-multitenant]]
 
 # Frontend Kaneko
 
@@ -69,8 +69,8 @@ Testing Library; E2E contra o backend real será acrescentado no recorte própri
 - O shell contextual reúne o fluxo enterprise de eventos e as superfícies
   legadas preservadas. As rotas antigas são identificadas como compatibilidade;
   suas APIs ainda não garantem isolamento organizacional, exceto Pagamentos V38,
-  Clientes V40 e Transportadoras V41 documentados em [[pagamentos]], [[clientes]]
-  e [[logistica]].
+  Clientes V40, Transportadoras V41 e Fornecedores V42 documentados em
+  [[pagamentos]], [[clientes]], [[logistica]] e [[fornecedores]].
 - O shell possui skip link, foco visível, rótulos acessíveis e respeita redução
   de movimento. A fonte externa foi removida para não depender de rede na operação.
 - A cobertura controller por controller está registrada em [[paridade-api]].
@@ -86,6 +86,7 @@ Testing Library; E2E contra o backend real será acrescentado no recorte própri
 - [[pagamentos]]
 - [[clientes]]
 - [[logistica]]
+- [[fornecedores]]
 
 ## Histórico
 
@@ -109,3 +110,4 @@ Testing Library; E2E contra o backend real será acrescentado no recorte própri
 | 2026-08-03 | Integra formas e condições de pagamento ao contexto organizacional do backend V38. |
 | 2026-08-03 | Integra Clientes ao contexto organizacional do backend V40. |
 | 2026-08-03 | Integra Transportadoras ao contexto organizacional do backend V41. |
+| 2026-08-03 | Integra Fornecedores ao contexto organizacional do backend V42. |
