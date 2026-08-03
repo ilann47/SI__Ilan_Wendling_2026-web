@@ -25,9 +25,12 @@ import DarkModeOutlinedIcon from '@mui/icons-material/DarkModeOutlined';
 import LightModeOutlinedIcon from '@mui/icons-material/LightModeOutlined';
 import LogoutIcon from '@mui/icons-material/Logout';
 import LocalParkingIcon from '@mui/icons-material/LocalParking';
+import BusinessOutlinedIcon from '@mui/icons-material/BusinessOutlined';
 import { navGroups } from './navigation';
 import { useAuth } from '../auth/AuthContext';
 import { useColorMode } from '../context/ColorModeContext';
+import { useSnackbar } from '../components/SnackbarProvider';
+import { describeError } from '../api/client';
 
 const DRAWER_WIDTH = 268;
 
@@ -36,8 +39,10 @@ export function AppLayout() {
   const isDesktop = useMediaQuery(theme.breakpoints.up('md'));
   const [mobileOpen, setMobileOpen] = useState(false);
   const [anchor, setAnchor] = useState<null | HTMLElement>(null);
-  const { user, activeOrganization, permissions, logout } = useAuth();
+  const [switchingOrganizationId, setSwitchingOrganizationId] = useState<number | null>(null);
+  const { user, activeOrganization, organizations, permissions, logout, selectOrganization } = useAuth();
   const { mode, toggle } = useColorMode();
+  const { notify } = useSnackbar();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -111,7 +116,7 @@ export function AppLayout() {
             </IconButton>
           </Tooltip>
           <Tooltip title="Conta">
-            <IconButton onClick={(e) => setAnchor(e.currentTarget)} sx={{ ml: 0.5 }}>
+            <IconButton aria-label="Conta" onClick={(e) => setAnchor(e.currentTarget)} sx={{ ml: 0.5 }}>
               <Avatar sx={{ width: 32, height: 32, bgcolor: 'primary.main', fontSize: 15 }}>
                 {user?.login?.[0]?.toUpperCase() ?? '?'}
               </Avatar>
@@ -125,6 +130,37 @@ export function AppLayout() {
               </Typography>
             </Box>
             <Divider />
+            {organizations.length > 1 && (
+              <>
+                <Typography variant="overline" color="text.secondary" sx={{ px: 2, pt: 1, display: 'block' }}>
+                  Trocar organizacao
+                </Typography>
+                {organizations
+                  .filter((organization) => organization.organizationId !== activeOrganization?.organizationId)
+                  .map((organization) => (
+                    <MenuItem
+                      key={organization.organizationId}
+                      disabled={switchingOrganizationId !== null}
+                      onClick={async () => {
+                        setSwitchingOrganizationId(organization.organizationId);
+                        try {
+                          await selectOrganization(organization.organizationId);
+                          setAnchor(null);
+                          navigate('/app');
+                        } catch (cause) {
+                          notify(describeError(cause), 'error');
+                        } finally {
+                          setSwitchingOrganizationId(null);
+                        }
+                      }}
+                    >
+                      <ListItemIcon><BusinessOutlinedIcon fontSize="small" /></ListItemIcon>
+                      {organization.tradeName || organization.legalName}
+                    </MenuItem>
+                  ))}
+                <Divider />
+              </>
+            )}
             <MenuItem
               onClick={() => {
                 setAnchor(null);

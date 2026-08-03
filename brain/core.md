@@ -56,10 +56,13 @@ Testing Library; E2E contra o backend real será acrescentado no recorte própri
 - O login continua emitindo JWT global compatível com as APIs legadas.
 - Usuário sem Membership conserva o fluxo legado. Uma única organização é
   selecionada automaticamente; múltiplas exigem escolha explícita.
-- O bundle ainda é único e gera aviso acima de 500 kB; lazy loading permanece
-  dívida técnica.
+- O vendor compartilhado ainda gera aviso acima de 500 kB; páginas operacionais
+  agora são carregadas em chunks independentes.
 - Ferramentas de teste e lint são somente `devDependencies`; Vite 7 e Vitest 4
   substituem versões vulneráveis sem alterar React, MUI ou o runtime do produto.
+- O shell contextual registra somente o fluxo enterprise de eventos. Módulos
+  legados continuam no código para compatibilidade, mas não são roteados dentro
+  de um tenant porque suas APIs não garantem isolamento organizacional.
 
 ## Módulos relacionados
 
@@ -74,3 +77,4 @@ Testing Library; E2E contra o backend real será acrescentado no recorte própri
 | 2026-08-01 | Adiciona console operacional QR mobile-first para eventos. |
 | 2026-08-01 | Registra bloqueio operacional de credencial e dívida de bundle. |
 | 2026-08-02 | Adiciona gates de lint, testes jsdom e build sobre a linha segura do Vite. |
+| 2026-08-02 | Separa o shell enterprise dos cadastros legados e ativa lazy loading por página. |

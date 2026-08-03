@@ -33,6 +33,7 @@ interface AuthContextValue {
   activeOrganization: AccessibleOrganization | null;
   permissions: string[];
   requiresOrganizationSelection: boolean;
+  hasNoOrganizationAccess: boolean;
   login: (login: string, senha: string) => Promise<void>;
   selectOrganization: (organizationId: number) => Promise<void>;
   logout: () => void;
@@ -121,9 +122,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         '/api/v1/me/active-organization',
         { organizationId },
       );
+      const permissionResponse = await api.get<PermissionsResponse>('/api/v1/me/permissions', {
+        headers: { Authorization: `Bearer ${data.token}` },
+      });
+      await queryClient.cancelQueries();
       queryClient.clear();
       setToken(data.token);
-      const permissionResponse = await api.get<PermissionsResponse>('/api/v1/me/permissions');
       setPermissions(permissionResponse.data.permissions);
       setActiveOrganization(organization);
     } finally {
@@ -149,10 +153,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           '/api/v1/me/active-organization',
           { organizationId: data[0].organizationId },
         );
+        const permissionResponse = await api.get<PermissionsResponse>('/api/v1/me/permissions', {
+          headers: { Authorization: `Bearer ${context.token}` },
+        });
+        await queryClient.cancelQueries();
+        queryClient.clear();
         setToken(context.token);
-        setActiveOrganization(data[0]);
-        const permissionResponse = await api.get<PermissionsResponse>('/api/v1/me/permissions');
         setPermissions(permissionResponse.data.permissions);
+        setActiveOrganization(data[0]);
       } else {
         setActiveOrganization(null);
         setPermissions([]);
@@ -160,7 +168,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       setContextLoading(false);
     }
-  }, []);
+  }, [queryClient]);
 
   useEffect(() => {
     setUnauthorizedHandler(logout);
@@ -199,6 +207,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       activeOrganization,
       permissions,
       requiresOrganizationSelection: organizations.length > 0 && !activeOrganization,
+      hasNoOrganizationAccess: !!user && !isContextLoading && organizations.length === 0,
       login,
       selectOrganization,
       logout,
