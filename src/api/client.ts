@@ -26,7 +26,7 @@ api.interceptors.request.use((config) => {
 });
 
 let unauthorizedHandler: (() => void) | null = null;
-export function setUnauthorizedHandler(fn: () => void): void {
+export function setUnauthorizedHandler(fn: (() => void) | null): void {
   unauthorizedHandler = fn;
 }
 

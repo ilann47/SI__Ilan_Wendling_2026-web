@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from 'react';
 import { api, getToken, setToken, setUnauthorizedHandler } from '../api/client';
+import { useQueryClient } from '@tanstack/react-query';
 
 export type Perfil = 'ADMIN' | 'OPERADOR';
 
@@ -92,6 +93,7 @@ interface PermissionsResponse {
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const queryClient = useQueryClient();
   const hydrationStarted = useRef(false);
   const [user, setUser] = useState<AuthUser | null>(() => userFromToken(getToken()));
   const [isContextLoading, setContextLoading] = useState(() => !!getToken());
@@ -101,31 +103,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [permissions, setPermissions] = useState<string[]>([]);
 
   const logout = useCallback(() => {
+    queryClient.clear();
     setToken(null);
     setUser(null);
     setOrganizations([]);
     setActiveOrganization(null);
     setPermissions([]);
     setContextLoading(false);
-  }, []);
+  }, [queryClient]);
 
   const selectOrganization = useCallback(async (organizationId: number) => {
+    const organization = organizations.find((item) => item.organizationId === organizationId);
+    if (!organization) throw new Error('A organização selecionada não está disponível.');
     setContextLoading(true);
     try {
       const { data } = await api.post<ActiveOrganizationResponse>(
         '/api/v1/me/active-organization',
         { organizationId },
       );
+      queryClient.clear();
       setToken(data.token);
-      const organization = organizations.find((item) => item.organizationId === organizationId);
-      if (!organization) throw new Error('A organização selecionada não está disponível.');
       const permissionResponse = await api.get<PermissionsResponse>('/api/v1/me/permissions');
       setPermissions(permissionResponse.data.permissions);
       setActiveOrganization(organization);
     } finally {
       setContextLoading(false);
     }
-  }, [organizations]);
+  }, [organizations, queryClient]);
 
   const loadOrganizations = useCallback(async () => {
     setContextLoading(true);
@@ -160,6 +164,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     setUnauthorizedHandler(logout);
+    return () => setUnauthorizedHandler(null);
   }, [logout]);
 
   useEffect(() => {

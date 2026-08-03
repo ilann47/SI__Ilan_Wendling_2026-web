@@ -45,6 +45,9 @@ Nenhuma.
 Resposta 401 limpa toda a sessão. Falha de seleção permanece na tela e permite
 nova tentativa sem assumir outro tenant.
 
+Logout e troca de organização limpam também o cache remoto. O handler global de
+401 é removido quando o provider desmonta, evitando referência de sessão antiga.
+
 ## Testes (curl ou equivalente)
 
 Validação disponível por `npm run typecheck` e `npm run build`.
@@ -54,6 +57,9 @@ Validação disponível por `npm run typecheck` e `npm run build`.
 - O cliente envia somente `organizationId`; Membership e versão vêm do servidor.
 - A organização ativa é inferida da claim `org_id` apenas para reconstruir a UI;
   o backend continua sendo a autoridade de escopo.
+- O ID selecionado é validado contra a projeção acessível antes de substituir o
+  JWT. Após resposta válida, o cache anterior é descartado antes de carregar as
+  permissões do novo contexto.
 
 ## Módulos relacionados
 
@@ -65,3 +71,4 @@ Validação disponível por `npm run typecheck` e `npm run build`.
 | Data | Ação |
 |---|---|
 | 2026-08-01 | Implementa descoberta e seleção de organização com JWT contextual. |
+| 2026-08-02 | Isola o cache remoto no logout e na troca de organização. |
