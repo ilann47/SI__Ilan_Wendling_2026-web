@@ -4,6 +4,7 @@ import SpaceDashboardOutlinedIcon from '@mui/icons-material/SpaceDashboardOutlin
 import AdminPanelSettingsOutlinedIcon from '@mui/icons-material/AdminPanelSettingsOutlined';
 import ApartmentOutlinedIcon from '@mui/icons-material/ApartmentOutlined';
 import EventOutlinedIcon from '@mui/icons-material/EventOutlined';
+import ShoppingBagOutlinedIcon from '@mui/icons-material/ShoppingBagOutlined';
 import type { ReactNode } from 'react';
 
 export interface NavItem {
@@ -57,6 +58,12 @@ export const navGroups: NavGroup[] = [
         path: '/app/eventos',
         icon: <EventOutlinedIcon fontSize="small" />,
         permissions: ['events:create', 'events:publish', 'inventory:manage', 'pricing:manage'],
+      },
+      {
+        label: 'Vendas e credenciais',
+        path: '/app/vendas',
+        icon: <ShoppingBagOutlinedIcon fontSize="small" />,
+        permissions: ['inventory:hold', 'orders:create', 'orders:read', 'orders:manual-confirm', 'orders:cancel', 'credentials:issue'],
       },
     ],
   },

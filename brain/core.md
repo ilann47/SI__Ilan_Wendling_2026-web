@@ -1,4 +1,4 @@
-> Links: [[auth]] · [[acesso]] · [[administracao]] · [[workspace]] · [[instalacoes]] · [[eventos]]
+> Links: [[auth]] · [[acesso]] · [[administracao]] · [[workspace]] · [[instalacoes]] · [[eventos]] · [[vendas]]
 
 # Frontend Kaneko
 
@@ -86,3 +86,4 @@ Testing Library; E2E contra o backend real será acrescentado no recorte própri
 | 2026-08-03 | Adiciona workspace de referencias reais e administracao enterprise. |
 | 2026-08-03 | Adiciona cadastro encadeado de locais, patios, setores e vagas. |
 | 2026-08-03 | Adiciona configuracao e ciclo operacional completo de eventos e ofertas. |
+| 2026-08-03 | Adiciona funil de holds, pedidos, cancelamento e credenciais. |

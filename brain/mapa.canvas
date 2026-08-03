@@ -6,7 +6,8 @@
     {"id":"workspace","type":"file","file":"workspace.md","x":1000,"y":260,"width":360,"height":220},
     {"id":"instalacoes","type":"file","file":"instalacoes.md","x":1500,"y":-300,"width":360,"height":220},
     {"id":"eventos","type":"file","file":"eventos.md","x":2000,"y":-300,"width":360,"height":220},
-    {"id":"acesso","type":"file","file":"acesso.md","x":2000,"y":100,"width":360,"height":220}
+    {"id":"vendas","type":"file","file":"vendas.md","x":2500,"y":-300,"width":360,"height":220},
+    {"id":"acesso","type":"file","file":"acesso.md","x":2500,"y":100,"width":360,"height":220}
   ],
   "edges": [
     {"id":"core-auth","fromNode":"core","fromSide":"right","toNode":"auth","toSide":"left","label":"JWT contextual"},
@@ -15,7 +16,8 @@
     {"id":"administracao-workspace","fromNode":"administracao","fromSide":"bottom","toNode":"workspace","toSide":"top","label":"IDs reais"},
     {"id":"workspace-instalacoes","fromNode":"workspace","fromSide":"right","toNode":"instalacoes","toSide":"left","label":"IDs fisicos"},
     {"id":"instalacoes-eventos","fromNode":"instalacoes","fromSide":"right","toNode":"eventos","toSide":"left","label":"venue e patio"},
-    {"id":"eventos-acesso","fromNode":"eventos","fromSide":"bottom","toNode":"acesso","toSide":"top","label":"operacao"},
+    {"id":"eventos-vendas","fromNode":"eventos","fromSide":"right","toNode":"vendas","toSide":"left","label":"produto disponivel"},
+    {"id":"vendas-acesso","fromNode":"vendas","fromSide":"bottom","toNode":"acesso","toSide":"top","label":"credencial"},
     {"id":"workspace-acesso","fromNode":"workspace","fromSide":"right","toNode":"acesso","toSide":"left","label":"referencias operacionais"}
   ]
 }
