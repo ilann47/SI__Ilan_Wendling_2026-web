@@ -3,6 +3,7 @@ import QrCodeScannerOutlinedIcon from '@mui/icons-material/QrCodeScannerOutlined
 import SpaceDashboardOutlinedIcon from '@mui/icons-material/SpaceDashboardOutlined';
 import AdminPanelSettingsOutlinedIcon from '@mui/icons-material/AdminPanelSettingsOutlined';
 import ApartmentOutlinedIcon from '@mui/icons-material/ApartmentOutlined';
+import EventOutlinedIcon from '@mui/icons-material/EventOutlined';
 import type { ReactNode } from 'react';
 
 export interface NavItem {
@@ -50,6 +51,12 @@ export const navGroups: NavGroup[] = [
         path: '/app/instalacoes',
         icon: <ApartmentOutlinedIcon fontSize="small" />,
         permissions: ['facilities:manage', 'organizations:admin'],
+      },
+      {
+        label: 'Eventos e ofertas',
+        path: '/app/eventos',
+        icon: <EventOutlinedIcon fontSize="small" />,
+        permissions: ['events:create', 'events:publish', 'inventory:manage', 'pricing:manage'],
       },
     ],
   },
