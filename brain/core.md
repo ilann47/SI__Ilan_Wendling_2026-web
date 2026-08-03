@@ -1,4 +1,4 @@
-> Links: [[auth]] · [[acesso]] · [[administracao]] · [[workspace]] · [[instalacoes]] · [[eventos]] · [[vendas]] · [[pagamentos]] · [[clientes]] · [[dashboard]] · [[bloqueios]] · [[paridade-api]] · [[compatibilidade-legada]] · [[unificacao-multitenant]]
+> Links: [[auth]] · [[acesso]] · [[administracao]] · [[workspace]] · [[instalacoes]] · [[eventos]] · [[vendas]] · [[pagamentos]] · [[clientes]] · [[logistica]] · [[dashboard]] · [[bloqueios]] · [[paridade-api]] · [[compatibilidade-legada]] · [[unificacao-multitenant]]
 
 # Frontend Kaneko
 
@@ -68,8 +68,9 @@ Testing Library; E2E contra o backend real será acrescentado no recorte própri
   substituem versões vulneráveis sem alterar React, MUI ou o runtime do produto.
 - O shell contextual reúne o fluxo enterprise de eventos e as superfícies
   legadas preservadas. As rotas antigas são identificadas como compatibilidade;
-  suas APIs ainda não garantem isolamento organizacional, exceto os catálogos de
-  pagamento V38 e Clientes V40 documentados em [[pagamentos]] e [[clientes]].
+  suas APIs ainda não garantem isolamento organizacional, exceto Pagamentos V38,
+  Clientes V40 e Transportadoras V41 documentados em [[pagamentos]], [[clientes]]
+  e [[logistica]].
 - O shell possui skip link, foco visível, rótulos acessíveis e respeita redução
   de movimento. A fonte externa foi removida para não depender de rede na operação.
 - A cobertura controller por controller está registrada em [[paridade-api]].
@@ -84,6 +85,7 @@ Testing Library; E2E contra o backend real será acrescentado no recorte própri
 - [[acesso]]
 - [[pagamentos]]
 - [[clientes]]
+- [[logistica]]
 
 ## Histórico
 
@@ -106,3 +108,4 @@ Testing Library; E2E contra o backend real será acrescentado no recorte própri
 | 2026-08-03 | Consolida a meta de unificação: nenhum módulo legado será descartado e todos migrarão para tenancy real. |
 | 2026-08-03 | Integra formas e condições de pagamento ao contexto organizacional do backend V38. |
 | 2026-08-03 | Integra Clientes ao contexto organizacional do backend V40. |
+| 2026-08-03 | Integra Transportadoras ao contexto organizacional do backend V41. |

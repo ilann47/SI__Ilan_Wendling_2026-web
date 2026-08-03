@@ -34,4 +34,11 @@ describe('navigation - compatibilidade legada', () => {
 
     expect(item?.permissions).toEqual(['customers:read']);
   });
+
+  it('exige leitura contextual para Transportadoras', () => {
+    const item = navGroups.flatMap((group) => group.items)
+      .find((candidate) => candidate.label === 'Transportadoras');
+
+    expect(item?.permissions).toEqual(['logistics:read']);
+  });
 });

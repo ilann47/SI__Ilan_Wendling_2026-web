@@ -7,6 +7,13 @@ export const transportadorasConfig: ResourceConfig = {
   basePath: '/api/transportadoras',
   singular: 'Transportadora',
   plural: 'Transportadoras',
+  tenantAware: true,
+  permissions: {
+    read: ['logistics:read'],
+    create: ['logistics:manage'],
+    update: ['logistics:manage'],
+    delete: ['logistics:manage'],
+  },
   subtitle: 'Empresas que fazem o frete das compras.',
   defaultSort: 'nome,asc',
   columns: [

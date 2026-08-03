@@ -60,4 +60,14 @@ describe('App - compatibilidade legada', () => {
       'customers:read',
     );
   });
+
+  it('protege a rota preservada de transportadoras com logistics:read', async () => {
+    render(<MemoryRouter initialEntries={['/app/transportadoras']}><App /></MemoryRouter>);
+
+    const heading = await screen.findByRole('heading', { name: 'Transportadoras' });
+    expect(heading.closest('[data-permissions]')).toHaveAttribute(
+      'data-permissions',
+      'logistics:read',
+    );
+  });
 });

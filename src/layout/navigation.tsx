@@ -132,7 +132,12 @@ export const navGroups: NavGroup[] = [
   {
     label: 'Logística',
     items: [
-      { label: 'Transportadoras', path: '/app/transportadoras', icon: <LocalShippingOutlinedIcon fontSize="small" /> },
+      {
+        label: 'Transportadoras',
+        path: '/app/transportadoras',
+        icon: <LocalShippingOutlinedIcon fontSize="small" />,
+        permissions: ['logistics:read'],
+      },
       { label: 'Veículos de Frota', path: '/app/veiculos-frota', icon: <DirectionsCarOutlinedIcon fontSize="small" /> },
       { label: 'Frota (Transp. x Veículo)', path: '/app/transportadora-veiculos', icon: <LinkOutlinedIcon fontSize="small" /> },
     ],

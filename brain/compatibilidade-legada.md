@@ -1,4 +1,4 @@
-> Links: [[core]] · [[auth]] · [[paridade-api]] · [[eventos]] · [[pagamentos]] · [[clientes]]
+> Links: [[core]] · [[auth]] · [[paridade-api]] · [[eventos]] · [[pagamentos]] · [[clientes]] · [[logistica]]
 
 # Compatibilidade Legada
 
@@ -45,8 +45,8 @@ Nenhuma nova integração. As telas chamam somente o backend existente.
 ## Tratamento de Erros
 
 Permanece centralizado em `api/client` e nos componentes CRUD. As APIs legadas,
-exceto pagamentos V38 e Clientes V40, ainda não possuem escopo por organização;
-esse risco não é ocultado nem corrigido no frontend.
+exceto Pagamentos V38, Clientes V40 e Transportadoras V41, ainda não possuem
+escopo por organização; esse risco não é ocultado nem corrigido no frontend.
 
 ## Testes (curl ou equivalente)
 
@@ -72,6 +72,7 @@ esse risco não é ocultado nem corrigido no frontend.
 - [[eventos]]
 - [[pagamentos]]
 - [[clientes]]
+- [[logistica]]
 
 ## Histórico (data + ação)
 
@@ -81,3 +82,4 @@ esse risco não é ocultado nem corrigido no frontend.
 | 2026-08-03 | Torna permanente a integração dos módulos legados e registra o retrofit multi-tenant obrigatório. |
 | 2026-08-03 | Registra pagamentos como primeira fatia legada adaptada ao JWT contextual V38. |
 | 2026-08-03 | Registra Clientes como segunda fatia legada adaptada ao JWT contextual V40. |
+| 2026-08-03 | Registra Transportadoras como terceira fatia adaptada ao JWT contextual V41. |
