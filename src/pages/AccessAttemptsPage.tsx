@@ -22,6 +22,7 @@ import ArrowBackOutlinedIcon from '@mui/icons-material/ArrowBackOutlined';
 import ArrowForwardOutlinedIcon from '@mui/icons-material/ArrowForwardOutlined';
 import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined';
 import { api, describeError } from '../api/client';
+import { tenantQueryKey } from '../api/queryKeys';
 import { useAuth } from '../auth/AuthContext';
 import { PageHeader } from '../components/common/PageHeader';
 import { StatusChip } from '../components/common/StatusChip';
@@ -72,7 +73,7 @@ const reasons = [
 const emptyFilters: Filters = { eventId: '', decision: '', reason: '' };
 
 export function AccessAttemptsPage() {
-  const { permissions } = useAuth();
+  const { activeOrganization, permissions } = useAuth();
   const [draft, setDraft] = useState<Filters>(emptyFilters);
   const [filters, setFilters] = useState<Filters>(emptyFilters);
   const [cursorHistory, setCursorHistory] = useState<(number | null)[]>([null]);
@@ -80,8 +81,8 @@ export function AccessAttemptsPage() {
   const canRead = permissions.includes('audit:read');
 
   const query = useQuery({
-    queryKey: ['access-attempts', cursor, filters],
-    enabled: canRead,
+    queryKey: tenantQueryKey(activeOrganization?.organizationId, 'access-attempts', cursor, filters),
+    enabled: canRead && !!activeOrganization,
     queryFn: () => api.get<AccessAttemptPage>('/api/v1/access-attempts', {
       params: {
         cursor: cursor ?? undefined,

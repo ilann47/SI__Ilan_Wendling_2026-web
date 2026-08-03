@@ -42,6 +42,10 @@ Somente o backend configurado por `VITE_API_URL` ou `/api` no mesmo host.
 O interceptor Axios preserva o token contextual e `describeError` converte
 Problem Details em mensagens operacionais.
 
+O cliente HTTP possui timeout de 15 segundos, preserva `Authorization` explícita
+na validação de JWT candidato e centraliza o formato estrito de `If-Match`. Chaves
+de consultas enterprise começam por `['tenant', organizationId]`.
+
 ## Testes (curl ou equivalente)
 
 Gates disponíveis: `npm run typecheck`, `npm run lint`, `npm test` e
@@ -78,3 +82,4 @@ Testing Library; E2E contra o backend real será acrescentado no recorte própri
 | 2026-08-01 | Registra bloqueio operacional de credencial e dívida de bundle. |
 | 2026-08-02 | Adiciona gates de lint, testes jsdom e build sobre a linha segura do Vite. |
 | 2026-08-02 | Separa o shell enterprise dos cadastros legados e ativa lazy loading por página. |
+| 2026-08-02 | Padroniza timeout, ETag e chaves de cache tenant-aware no cliente HTTP. |

@@ -14,6 +14,7 @@ export function setToken(token: string | null): void {
 /** Cliente axios. baseURL vazio => mesma origem (o dev server faz proxy de /api). */
 export const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL ?? '',
+  timeout: 15_000,
 });
 
 api.interceptors.request.use((config) => {
@@ -47,6 +48,21 @@ export interface ApiProblem {
   detail?: string;
   erros?: Record<string, string>;
   traceId?: string;
+}
+
+export function ifMatchHeaders(version: number): Record<'If-Match', string> {
+  if (!Number.isSafeInteger(version) || version < 0) {
+    throw new Error('Versao de agregado invalida.');
+  }
+  return { 'If-Match': `"${version}"` };
+}
+
+export function parseEtagVersion(etag: string | null | undefined): number | null {
+  if (!etag) return null;
+  const match = /^"(\d+)"$/.exec(etag);
+  if (!match) return null;
+  const version = Number(match[1]);
+  return Number.isSafeInteger(version) ? version : null;
 }
 
 /** Normaliza qualquer erro de chamada em uma mensagem amigavel. */
