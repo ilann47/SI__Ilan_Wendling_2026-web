@@ -59,6 +59,16 @@ describe('navigation - compatibilidade legada', () => {
     expect(item?.permissions).toEqual(['suppliers:read']);
   });
 
+  it.each(['Produtos', 'Serviços', 'Categorias', 'Marcas', 'Unidades de Medida'])(
+    'exige leitura contextual do catalogo para %s',
+    (label) => {
+      const item = navGroups.flatMap((group) => group.items)
+        .find((candidate) => candidate.label === label);
+
+      expect(item?.permissions).toEqual(['catalog:read']);
+    },
+  );
+
   it('exige leitura contextual para Cargos', () => {
     const item = navGroups.flatMap((group) => group.items)
       .find((candidate) => candidate.label === 'Cargos');

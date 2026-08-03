@@ -9,7 +9,16 @@ import {
   transportadoraVeiculosConfig,
   veiculosFrotaConfig,
 } from '../../resources/logistica';
-import { fornecedoresConfig } from '../../resources/fornecedorConveniencia';
+import {
+  categoriasConfig,
+  fornecedoresConfig,
+  marcasConfig,
+  produtoFornecedoresConfig,
+  produtosConfig,
+  servicosConfig,
+  unidadesMedidaConfig,
+} from '../../resources/fornecedorConveniencia';
+import { notaEntradaConfig, notaSaidaConfig } from '../../resources/fiscal';
 import { cargosConfig, funcionariosConfig } from '../../resources/rhUsuario';
 import {
   hasResourceActionPermission,
@@ -271,6 +280,75 @@ describe('ResourceConfig tenant-aware de fornecedores', () => {
       { page: 0 },
     ]);
     expect(organizationTwo).not.toEqual(organizationOne);
+  });
+});
+
+describe('ResourceConfig tenant-aware do catalogo de conveniencia', () => {
+  const catalogConfigs = [
+    categoriasConfig,
+    marcasConfig,
+    unidadesMedidaConfig,
+    produtosConfig,
+    servicosConfig,
+  ];
+
+  it.each(catalogConfigs)('protege $plural com catalog:read/manage e ETag', (config) => {
+    expect(config.tenantAware).toBe(true);
+    expect(config.optimisticLocking).toBe(true);
+    expect(config.permissions).toEqual({
+      read: ['catalog:read'],
+      create: ['catalog:manage'],
+      update: ['catalog:manage'],
+      delete: ['catalog:manage'],
+    });
+
+    expect(hasResourceActionPermission(config, 'read', ['catalog:read'])).toBe(true);
+    expect(hasResourceActionPermission(config, 'create', ['catalog:read'])).toBe(false);
+    expect(hasResourceActionPermission(config, 'update', ['catalog:manage'])).toBe(true);
+    expect(hasResourceActionPermission(config, 'delete', [])).toBe(false);
+  });
+
+  it.each(catalogConfigs)('particiona $plural pela organizacao ativa', (config) => {
+    const organizationOne = resourceQueryKey(config, 10, 'list', config.basePath);
+    const organizationTwo = resourceQueryKey(config, 20, 'list', config.basePath);
+
+    expect(organizationOne).toEqual(['tenant', 10, 'list', config.basePath]);
+    expect(organizationTwo).not.toEqual(organizationOne);
+  });
+
+  it('mantem as referencias de Produto dentro do catalogo tenant-aware', () => {
+    const targetByPath = new Map([
+      [categoriasConfig.basePath, categoriasConfig],
+      [marcasConfig.basePath, marcasConfig],
+      [unidadesMedidaConfig.basePath, unidadesMedidaConfig],
+    ]);
+    const references = produtosConfig.fields.filter((field) => field.type === 'reference');
+
+    expect(references.map((field) => field.name)).toEqual([
+      'marcaId',
+      'unidadeMedidaId',
+      'categoriaId',
+    ]);
+    for (const field of references) {
+      expect(targetByPath.get(field.reference!.basePath)?.tenantAware).toBe(true);
+    }
+  });
+
+  it('preserva ativo e identifica as projecoes disabled de Produto', () => {
+    const productFields = new Map(produtosConfig.fields.map((field) => [field.name, field]));
+    const disabled = produtosConfig.fields.filter((field) => field.disabled).map((field) => field.name);
+    const forbiddenTenantFields = ['organizationId', 'organizacaoId', 'organization_id', 'organizacao_id'];
+
+    expect(productFields.get('ativo')?.type).toBe('switch');
+    expect(disabled).toEqual(['valorCompra', 'custo', 'percentualLucro', 'quantidade']);
+    expect(forbiddenTenantFields.some((field) => productFields.has(field))).toBe(false);
+    expect(productFields.has('status')).toBe(false);
+  });
+
+  it('nao antecipa consumers ainda globais', () => {
+    expect(produtoFornecedoresConfig.tenantAware).not.toBe(true);
+    expect(notaEntradaConfig.tenantAware).not.toBe(true);
+    expect(notaSaidaConfig.tenantAware).not.toBe(true);
   });
 });
 

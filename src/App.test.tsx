@@ -94,6 +94,22 @@ describe('App - compatibilidade legada', () => {
     );
   });
 
+  it.each([
+    ['/app/produtos', 'Produtos'],
+    ['/app/servicos', 'Serviços'],
+    ['/app/categorias', 'Categorias'],
+    ['/app/marcas', 'Marcas'],
+    ['/app/unidades-medida', 'Unidades de Medida'],
+  ])('protege a rota preservada %s com catalog:read', async (path, title) => {
+    render(<MemoryRouter initialEntries={[path]}><App /></MemoryRouter>);
+
+    const heading = await screen.findByRole('heading', { name: title });
+    expect(heading.closest('[data-permissions]')).toHaveAttribute(
+      'data-permissions',
+      'catalog:read',
+    );
+  });
+
   it('protege a rota preservada de cargos com workforce:read', async () => {
     render(<MemoryRouter initialEntries={['/app/cargos']}><App /></MemoryRouter>);
 

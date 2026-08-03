@@ -12,7 +12,12 @@ import {
 import { ptBR } from '@mui/x-data-grid/locales';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { describeError } from '../../api/client';
-import { createResourceApi, type Page, type PageParams } from '../../api/resource';
+import {
+  createResourceApi,
+  isResourcePreconditionConflict,
+  type Page,
+  type PageParams,
+} from '../../api/resource';
 import { useSnackbar } from '../SnackbarProvider';
 import { ResourceFormDialog } from '../form/ResourceFormDialog';
 import { ConfirmDialog } from '../common/ConfirmDialog';
@@ -51,7 +56,13 @@ export function CrudResourcePage({ config }: { config: ResourceConfig }) {
   const [filters, setFilters] = useState<Record<string, unknown>>({});
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Record<string, any> | null>(null);
+  const [editingVersion, setEditingVersion] = useState<number | null>(null);
+  const [editConflict, setEditConflict] = useState<string | null>(null);
+  const [formRevision, setFormRevision] = useState(0);
+  const [reloadingEdit, setReloadingEdit] = useState(false);
   const [deleting, setDeleting] = useState<Record<string, any> | null>(null);
+  const [deletingVersion, setDeletingVersion] = useState<number | null>(null);
+  const [deleteConflict, setDeleteConflict] = useState(false);
   const [running, setRunning] = useState<{ action: RowAction; row: Record<string, any> } | null>(null);
 
   const canCreate = config.canCreate !== false
@@ -110,32 +121,131 @@ export function CrudResourcePage({ config }: { config: ResourceConfig }) {
     ),
   });
 
+  const expectedVersion = (version: number | null) => {
+    if (version === null) throw new Error('A versao esperada do recurso nao esta disponivel.');
+    return version;
+  };
+
+  const loadEditing = async (row: Record<string, any>) => {
+    if (!config.optimisticLocking) {
+      setEditing(row);
+      setEditingVersion(null);
+      setEditConflict(null);
+      setFormOpen(true);
+      return;
+    }
+    try {
+      const current = await resource.getVersioned(row.id);
+      setEditing(current.data);
+      setEditingVersion(current.version);
+      setEditConflict(null);
+      setFormRevision((revision) => revision + 1);
+      setFormOpen(true);
+    } catch (error) {
+      notify(describeError(error), 'error');
+    }
+  };
+
+  const reloadEditing = async () => {
+    if (!editing) return;
+    setReloadingEdit(true);
+    try {
+      const current = await resource.getVersioned(editing.id);
+      setEditing(current.data);
+      setEditingVersion(current.version);
+      setEditConflict(null);
+      setFormRevision((revision) => revision + 1);
+    } catch (error) {
+      notify(describeError(error), 'error');
+    } finally {
+      setReloadingEdit(false);
+    }
+  };
+
+  const loadDeleting = async (row: Record<string, any>) => {
+    if (!config.optimisticLocking) {
+      setDeleting(row);
+      setDeletingVersion(null);
+      setDeleteConflict(false);
+      return;
+    }
+    try {
+      const current = await resource.getVersioned(row.id);
+      setDeleting(current.data);
+      setDeletingVersion(current.version);
+      setDeleteConflict(false);
+    } catch (error) {
+      notify(describeError(error), 'error');
+    }
+  };
+
   const saveMutation = useMutation({
-    mutationFn: (values: Record<string, unknown>) =>
-      editing ? resource.update(editing.id, values) : resource.create(values),
+    mutationFn: (values: Record<string, unknown>) => {
+      if (editing) {
+        return config.optimisticLocking
+          ? resource.updateVersioned(editing.id, values, expectedVersion(editingVersion))
+          : resource.update(editing.id, values);
+      }
+      return config.optimisticLocking
+        ? resource.createVersioned(values)
+        : resource.create(values);
+    },
     onSuccess: () => {
       notify(`${config.singular} salvo com sucesso.`, 'success');
       setFormOpen(false);
       setEditing(null);
+      setEditingVersion(null);
+      setEditConflict(null);
       invalidate();
     },
-    onError: (e) => notify(describeError(e), 'error'),
+    onError: (error) => {
+      if (config.optimisticLocking && editing && isResourcePreconditionConflict(error)) {
+        setEditConflict(
+          'Este registro foi alterado desde que voce abriu o formulario. Recarregue os dados antes de tentar novamente.',
+        );
+        void invalidate();
+        return;
+      }
+      notify(describeError(error), 'error');
+    },
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (row: Record<string, any>) => resource.remove(row.id),
+    mutationFn: (row: Record<string, any>) => config.optimisticLocking
+      ? resource.removeVersioned(row.id, expectedVersion(deletingVersion))
+      : resource.remove(row.id),
     onSuccess: () => {
       notify(`${config.singular} excluído.`, 'success');
       setDeleting(null);
+      setDeletingVersion(null);
+      setDeleteConflict(false);
       invalidate();
     },
-    onError: (e) => {
-      notify(describeError(e), 'error');
+    onError: async (error) => {
+      if (config.optimisticLocking && deleting && isResourcePreconditionConflict(error)) {
+        notify(describeError(error), 'warning');
+        try {
+          const current = await resource.getVersioned(deleting.id);
+          setDeleting(current.data);
+          setDeletingVersion(current.version);
+          setDeleteConflict(true);
+          void invalidate();
+        } catch (reloadError) {
+          notify(describeError(reloadError), 'error');
+          setDeleting(null);
+          setDeletingVersion(null);
+          setDeleteConflict(false);
+        }
+        return;
+      }
+      notify(describeError(error), 'error');
       setDeleting(null);
+      setDeletingVersion(null);
+      setDeleteConflict(false);
     },
   });
 
-  const columns = useMemo<GridColDef[]>(() => {
+  const columns: GridColDef[] = (() => {
     const actionCount = (config.rowActions?.length ?? 0) + (canEdit ? 1 : 0) + (canDelete ? 1 : 0);
     const actionsCol: GridColDef = {
       field: '__actions',
@@ -150,10 +260,7 @@ export function CrudResourcePage({ config }: { config: ResourceConfig }) {
               key="edit"
               icon={<EditOutlinedIcon />}
               label="Editar"
-              onClick={() => {
-                setEditing(p.row);
-                setFormOpen(true);
-              }}
+              onClick={() => void loadEditing(p.row)}
             />,
           );
         }
@@ -176,7 +283,7 @@ export function CrudResourcePage({ config }: { config: ResourceConfig }) {
               icon={<DeleteOutlineIcon />}
               label="Excluir"
               showInMenu
-              onClick={() => setDeleting(p.row)}
+              onClick={() => void loadDeleting(p.row)}
             />,
           );
         }
@@ -188,7 +295,7 @@ export function CrudResourcePage({ config }: { config: ResourceConfig }) {
       ? config.columns
       : [{ field: 'id', headerName: 'ID', width: 80 } as GridColDef, ...config.columns];
     return [...colunas, actionsCol];
-  }, [config, canEdit, canDelete]);
+  })();
 
   const initialValues = editing ? (config.toFormValues ? config.toFormValues(editing) : editing) : null;
 
@@ -204,6 +311,8 @@ export function CrudResourcePage({ config }: { config: ResourceConfig }) {
               startIcon={<AddIcon />}
               onClick={() => {
                 setEditing(null);
+                setEditingVersion(null);
+                setEditConflict(null);
                 setFormOpen(true);
               }}
             >
@@ -244,9 +353,15 @@ export function CrudResourcePage({ config }: { config: ResourceConfig }) {
         fields={config.fields}
         initialValues={initialValues}
         submitting={saveMutation.isPending}
+        conflictMessage={editConflict}
+        onReload={config.optimisticLocking && editing ? () => void reloadEditing() : undefined}
+        reloading={reloadingEdit}
+        resetKey={formRevision}
         onClose={() => {
           setFormOpen(false);
           setEditing(null);
+          setEditingVersion(null);
+          setEditConflict(null);
         }}
         onSubmit={(values) => saveMutation.mutate(values)}
       />
@@ -254,12 +369,18 @@ export function CrudResourcePage({ config }: { config: ResourceConfig }) {
       <ConfirmDialog
         open={!!deleting}
         title={`Excluir ${config.singular}`}
-        message={`Tem certeza que deseja excluir este registro? Esta ação não pode ser desfeita.`}
-        confirmLabel="Excluir"
+        message={deleteConflict
+          ? 'Este registro foi alterado. A versao atual foi recarregada; revise e confirme novamente a exclusao.'
+          : `Tem certeza que deseja excluir este registro? Esta ação não pode ser desfeita.`}
+        confirmLabel={deleteConflict ? 'Tentar novamente' : 'Excluir'}
         confirmColor="error"
         loading={deleteMutation.isPending}
         onConfirm={() => deleting && deleteMutation.mutate(deleting)}
-        onClose={() => setDeleting(null)}
+        onClose={() => {
+          setDeleting(null);
+          setDeletingVersion(null);
+          setDeleteConflict(false);
+        }}
       />
 
       {running && (

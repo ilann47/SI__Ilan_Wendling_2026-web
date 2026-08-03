@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { api, describeError } from '../api/client';
+import { describeError } from '../api/client';
+import { createResourceApi } from '../api/resource';
 import { useSnackbar } from '../components/SnackbarProvider';
 import { ResourceFormDialog } from '../components/form/ResourceFormDialog';
 import { allConfigs } from '../resources';
@@ -62,9 +63,12 @@ export function QuickCreateProvider({ children }: { children: ReactNode }) {
     async (entry: StackEntry, values: Record<string, unknown>) => {
       setStack((s) => s.map((e) => (e.key === entry.key ? { ...e, submitting: true } : e)));
       try {
-        const created = await api
-          .post<{ id: number }>(entry.config.basePath, values)
-          .then((r) => r.data);
+        const resource = createResourceApi<{ id: number }, Record<string, unknown>>(
+          entry.config.basePath,
+        );
+        const created = entry.config.optimisticLocking
+          ? (await resource.createVersioned(values)).data
+          : await resource.create(values);
         // atualiza as opções dos selects que apontam para esse recurso
         await Promise.all([
           queryClient.invalidateQueries({

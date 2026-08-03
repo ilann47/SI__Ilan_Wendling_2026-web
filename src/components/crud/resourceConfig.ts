@@ -45,6 +45,8 @@ export interface ResourceConfig {
   rowActions?: RowAction[];
   /** O backend resolve o proprietario exclusivamente pelo JWT contextual. */
   tenantAware?: boolean;
+  /** PUT/DELETE exigem a versao forte obtida por ETag no detalhe. */
+  optimisticLocking?: boolean;
   /** Permissoes efetivas exigidas por acao; ausencia preserva o contrato legado. */
   permissions?: ResourcePermissions;
   canCreate?: boolean;

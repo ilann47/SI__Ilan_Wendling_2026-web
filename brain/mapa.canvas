@@ -17,7 +17,8 @@
     {"id":"clientes","type":"file","file":"clientes.md","x":2000,"y":600,"width":360,"height":220},
     {"id":"logistica","type":"file","file":"logistica.md","x":2500,"y":600,"width":360,"height":220},
     {"id":"fornecedores","type":"file","file":"fornecedores.md","x":3000,"y":600,"width":360,"height":220},
-    {"id":"rh","type":"file","file":"rh.md","x":3500,"y":600,"width":360,"height":220}
+    {"id":"rh","type":"file","file":"rh.md","x":3500,"y":600,"width":360,"height":220},
+    {"id":"conveniencia","type":"file","file":"conveniencia.md","x":4000,"y":600,"width":360,"height":220}
   ],
   "edges": [
     {"id":"core-auth","fromNode":"core","fromSide":"right","toNode":"auth","toSide":"left","label":"JWT contextual"},
@@ -57,6 +58,10 @@
     {"id":"logistica-fornecedores","fromNode":"logistica","fromSide":"right","toNode":"fornecedores","toSide":"left","label":"transportadora"},
     {"id":"unificacao-multitenant-rh","fromNode":"unificacao-multitenant","fromSide":"right","toNode":"rh","toSide":"left","label":"cargos e funcionarios"},
     {"id":"auth-rh","fromNode":"auth","fromSide":"bottom","toNode":"rh","toSide":"top","label":"JWT e workforce:*"},
-    {"id":"rh-paridade-api","fromNode":"rh","fromSide":"top","toNode":"paridade-api","toSide":"bottom","label":"contrato tenant-aware"}
+    {"id":"rh-paridade-api","fromNode":"rh","fromSide":"top","toNode":"paridade-api","toSide":"bottom","label":"contrato tenant-aware"},
+    {"id":"unificacao-multitenant-conveniencia","fromNode":"unificacao-multitenant","fromSide":"right","toNode":"conveniencia","toSide":"left","label":"catalogos V50-V52"},
+    {"id":"auth-conveniencia","fromNode":"auth","fromSide":"bottom","toNode":"conveniencia","toSide":"top","label":"JWT e catalog:*"},
+    {"id":"conveniencia-paridade-api","fromNode":"conveniencia","fromSide":"top","toNode":"paridade-api","toSide":"bottom","label":"contratos tenant-aware"},
+    {"id":"fornecedores-conveniencia","fromNode":"fornecedores","fromSide":"right","toNode":"conveniencia","toSide":"left","label":"consumer futuro"}
   ]
 }

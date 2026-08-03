@@ -15,6 +15,17 @@ const telefoneSubFields: FieldConfig[] = [
   { name: 'principal', label: 'Principal', type: 'switch', cols: 3 },
 ];
 
+const catalogTenantConfig = {
+  tenantAware: true,
+  optimisticLocking: true,
+  permissions: {
+    read: ['catalog:read'],
+    create: ['catalog:manage'],
+    update: ['catalog:manage'],
+    delete: ['catalog:manage'],
+  },
+} satisfies Pick<ResourceConfig, 'tenantAware' | 'optimisticLocking' | 'permissions'>;
+
 export const fornecedoresConfig: ResourceConfig = {
   key: 'fornecedores',
   basePath: '/api/fornecedores',
@@ -100,6 +111,7 @@ export const categoriasConfig: ResourceConfig = {
   basePath: '/api/categorias',
   singular: 'Categoria',
   plural: 'Categorias',
+  ...catalogTenantConfig,
   subtitle: 'Categorias de produtos.',
   defaultSort: 'nome,asc',
   columns: [
@@ -124,6 +136,7 @@ export const marcasConfig: ResourceConfig = {
   basePath: '/api/marcas',
   singular: 'Marca',
   plural: 'Marcas',
+  ...catalogTenantConfig,
   subtitle: 'Marcas de produtos.',
   defaultSort: 'nome,asc',
   columns: [
@@ -146,6 +159,7 @@ export const unidadesMedidaConfig: ResourceConfig = {
   basePath: '/api/unidades-medida',
   singular: 'Unidade de Medida',
   plural: 'Unidades de Medida',
+  ...catalogTenantConfig,
   subtitle: 'Unidades de medida de produtos.',
   defaultSort: 'nome,asc',
   columns: [
@@ -170,6 +184,7 @@ export const servicosConfig: ResourceConfig = {
   basePath: '/api/servicos',
   singular: 'Serviço',
   plural: 'Serviços',
+  ...catalogTenantConfig,
   subtitle: 'Serviços prestados.',
   defaultSort: 'nome,asc',
   columns: [
@@ -196,6 +211,7 @@ export const produtosConfig: ResourceConfig = {
   basePath: '/api/produtos',
   singular: 'Produto',
   plural: 'Produtos',
+  ...catalogTenantConfig,
   subtitle: 'Produtos de conveniência e estoque.',
   defaultSort: 'nome,asc',
   columns: [

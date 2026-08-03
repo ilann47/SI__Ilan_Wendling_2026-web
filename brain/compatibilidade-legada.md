@@ -1,4 +1,4 @@
-> Links: [[core]] · [[auth]] · [[paridade-api]] · [[eventos]] · [[pagamentos]] · [[clientes]] · [[logistica]] · [[fornecedores]] · [[rh]]
+> Links: [[core]] · [[auth]] · [[paridade-api]] · [[eventos]] · [[pagamentos]] · [[clientes]] · [[logistica]] · [[fornecedores]] · [[rh]] · [[conveniencia]]
 
 # Compatibilidade Legada
 
@@ -90,3 +90,4 @@ organização; esse risco não é ocultado nem corrigido no frontend.
 | 2026-08-03 | Registra Fornecedores como quarta fatia adaptada ao JWT contextual V42. |
 | 2026-08-03 | Registra Cargos como quinta fatia adaptada ao JWT contextual V43. |
 | 2026-08-03 | Registra Funcionários como extensão tenant-aware da fatia de RH. |
+| 2026-08-03 | Registra a compatibilidade temporária de ProdutoFornecedor, notas, estoque e relatórios fora da onda V50-V52. |

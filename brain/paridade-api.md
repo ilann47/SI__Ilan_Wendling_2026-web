@@ -1,4 +1,4 @@
-> Links: [[core]] · [[auth]] · [[administracao]] · [[instalacoes]] · [[eventos]] · [[vendas]] · [[pagamentos]] · [[clientes]] · [[logistica]] · [[fornecedores]] · [[rh]] · [[acesso]] · [[dashboard]] · [[bloqueios]]
+> Links: [[core]] · [[auth]] · [[administracao]] · [[instalacoes]] · [[eventos]] · [[vendas]] · [[pagamentos]] · [[clientes]] · [[logistica]] · [[fornecedores]] · [[rh]] · [[conveniencia]] · [[acesso]] · [[dashboard]] · [[bloqueios]]
 
 # Paridade API Enterprise
 
@@ -161,3 +161,4 @@ críticas e granularidade de RBAC. A validação real local complementa esta mat
 | 2026-08-03 | Registra Fornecedores como contrato tenant-aware do backend V42. |
 | 2026-08-03 | Registra Cargos como contrato tenant-aware do backend V43. |
 | 2026-08-03 | Registra Funcionários como contrato tenant-aware com estado `ativo` real. |
+| 2026-08-03 | Registra os catálogos de conveniência V50-V52 com `catalog:*`, cache por organização e `If-Match`. |

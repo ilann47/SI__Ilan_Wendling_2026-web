@@ -1,7 +1,9 @@
 import { useEffect } from 'react';
 import {
+  Alert,
   Box,
   Button,
+  CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,
@@ -17,6 +19,10 @@ interface Props {
   fields: FieldConfig[];
   initialValues?: Record<string, unknown> | null;
   submitting?: boolean;
+  conflictMessage?: string | null;
+  onReload?: () => void;
+  reloading?: boolean;
+  resetKey?: number;
   onClose: () => void;
   onSubmit: (values: Record<string, unknown>) => void;
 }
@@ -30,11 +36,16 @@ function buildDefaults(fields: FieldConfig[], initial?: Record<string, unknown> 
   return out;
 }
 
-function clean(values: Record<string, unknown>): Record<string, unknown> {
+export function buildResourcePayload(
+  fields: FieldConfig[],
+  values: Record<string, unknown>,
+): Record<string, unknown> {
   const out: Record<string, unknown> = {};
-  for (const [k, v] of Object.entries(values)) {
+  for (const field of fields) {
+    if (field.disabled) continue;
+    const v = values[field.name];
     if (v === '' || v === undefined) continue;
-    out[k] = v;
+    out[field.name] = v;
   }
   return out;
 }
@@ -45,6 +56,10 @@ export function ResourceFormDialog({
   fields,
   initialValues,
   submitting,
+  conflictMessage,
+  onReload,
+  reloading,
+  resetKey,
   onClose,
   onSubmit,
 }: Props) {
@@ -53,9 +68,9 @@ export function ResourceFormDialog({
   useEffect(() => {
     if (open) methods.reset(buildDefaults(fields, initialValues));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
+  }, [open, resetKey]);
 
-  const submit = methods.handleSubmit((values) => onSubmit(clean(values)));
+  const submit = methods.handleSubmit((values) => onSubmit(buildResourcePayload(fields, values)));
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
@@ -63,6 +78,19 @@ export function ResourceFormDialog({
         <Box component="form" onSubmit={submit} noValidate>
           <DialogTitle>{title}</DialogTitle>
           <DialogContent dividers>
+            {conflictMessage && (
+              <Alert
+                severity="warning"
+                sx={{ mb: 2 }}
+                action={onReload ? (
+                  <Button color="inherit" size="small" onClick={onReload} disabled={reloading}>
+                    {reloading ? <CircularProgress size={16} color="inherit" /> : 'Recarregar dados'}
+                  </Button>
+                ) : undefined}
+              >
+                {conflictMessage}
+              </Alert>
+            )}
             <Box
               sx={{
                 display: 'grid',

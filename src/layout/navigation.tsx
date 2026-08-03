@@ -126,12 +126,37 @@ export const navGroups: NavGroup[] = [
   {
     label: 'Conveniência',
     items: [
-      { label: 'Produtos', path: '/app/produtos', icon: <Inventory2OutlinedIcon fontSize="small" /> },
-      { label: 'Serviços', path: '/app/servicos', icon: <BuildOutlinedIcon fontSize="small" /> },
+      {
+        label: 'Produtos',
+        path: '/app/produtos',
+        icon: <Inventory2OutlinedIcon fontSize="small" />,
+        permissions: ['catalog:read'],
+      },
+      {
+        label: 'Serviços',
+        path: '/app/servicos',
+        icon: <BuildOutlinedIcon fontSize="small" />,
+        permissions: ['catalog:read'],
+      },
       { label: 'Produto x Fornecedor', path: '/app/produto-fornecedores', icon: <LinkOutlinedIcon fontSize="small" /> },
-      { label: 'Categorias', path: '/app/categorias', icon: <CategoryOutlinedIcon fontSize="small" /> },
-      { label: 'Marcas', path: '/app/marcas', icon: <SellOutlinedIcon fontSize="small" /> },
-      { label: 'Unidades de Medida', path: '/app/unidades-medida', icon: <StraightenOutlinedIcon fontSize="small" /> },
+      {
+        label: 'Categorias',
+        path: '/app/categorias',
+        icon: <CategoryOutlinedIcon fontSize="small" />,
+        permissions: ['catalog:read'],
+      },
+      {
+        label: 'Marcas',
+        path: '/app/marcas',
+        icon: <SellOutlinedIcon fontSize="small" />,
+        permissions: ['catalog:read'],
+      },
+      {
+        label: 'Unidades de Medida',
+        path: '/app/unidades-medida',
+        icon: <StraightenOutlinedIcon fontSize="small" />,
+        permissions: ['catalog:read'],
+      },
     ],
   },
   {
