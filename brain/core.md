@@ -1,4 +1,4 @@
-> Links: [[auth]] · [[acesso]]
+> Links: [[auth]] · [[acesso]] · [[administracao]] · [[workspace]]
 
 # Frontend Kaneko
 
@@ -83,3 +83,4 @@ Testing Library; E2E contra o backend real será acrescentado no recorte própri
 | 2026-08-02 | Adiciona gates de lint, testes jsdom e build sobre a linha segura do Vite. |
 | 2026-08-02 | Separa o shell enterprise dos cadastros legados e ativa lazy loading por página. |
 | 2026-08-02 | Padroniza timeout, ETag e chaves de cache tenant-aware no cliente HTTP. |
+| 2026-08-03 | Adiciona workspace de referencias reais e administracao enterprise. |

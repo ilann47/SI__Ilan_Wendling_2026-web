@@ -2,10 +2,15 @@
   "nodes": [
     {"id":"core","type":"file","file":"core.md","x":0,"y":0,"width":360,"height":220},
     {"id":"auth","type":"file","file":"auth.md","x":500,"y":0,"width":360,"height":220},
-    {"id":"acesso","type":"file","file":"acesso.md","x":1000,"y":0,"width":360,"height":220}
+    {"id":"administracao","type":"file","file":"administracao.md","x":1000,"y":-260,"width":360,"height":220},
+    {"id":"workspace","type":"file","file":"workspace.md","x":1000,"y":260,"width":360,"height":220},
+    {"id":"acesso","type":"file","file":"acesso.md","x":1500,"y":0,"width":360,"height":220}
   ],
   "edges": [
     {"id":"core-auth","fromNode":"core","fromSide":"right","toNode":"auth","toSide":"left","label":"JWT contextual"},
-    {"id":"auth-acesso","fromNode":"auth","fromSide":"right","toNode":"acesso","toSide":"left","label":"permissões efetivas"}
+    {"id":"auth-administracao","fromNode":"auth","fromSide":"right","toNode":"administracao","toSide":"left","label":"tenant e permissoes"},
+    {"id":"auth-workspace","fromNode":"auth","fromSide":"right","toNode":"workspace","toSide":"left","label":"isolamento por org"},
+    {"id":"administracao-workspace","fromNode":"administracao","fromSide":"bottom","toNode":"workspace","toSide":"top","label":"IDs reais"},
+    {"id":"workspace-acesso","fromNode":"workspace","fromSide":"right","toNode":"acesso","toSide":"left","label":"referencias operacionais"}
   ]
 }

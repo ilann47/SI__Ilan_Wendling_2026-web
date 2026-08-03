@@ -36,6 +36,7 @@ interface AuthContextValue {
   hasNoOrganizationAccess: boolean;
   login: (login: string, senha: string) => Promise<void>;
   selectOrganization: (organizationId: number) => Promise<void>;
+  refreshOrganizations: () => Promise<void>;
   logout: () => void;
 }
 
@@ -210,6 +211,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       hasNoOrganizationAccess: !!user && !isContextLoading && organizations.length === 0,
       login,
       selectOrganization,
+      refreshOrganizations: loadOrganizations,
       logout,
     }}>
       {children}

@@ -1,6 +1,7 @@
 import FactCheckOutlinedIcon from '@mui/icons-material/FactCheckOutlined';
 import QrCodeScannerOutlinedIcon from '@mui/icons-material/QrCodeScannerOutlined';
 import SpaceDashboardOutlinedIcon from '@mui/icons-material/SpaceDashboardOutlined';
+import AdminPanelSettingsOutlinedIcon from '@mui/icons-material/AdminPanelSettingsOutlined';
 import type { ReactNode } from 'react';
 
 export interface NavItem {
@@ -31,6 +32,17 @@ export const navGroups: NavGroup[] = [
         path: '/app/tentativas-acesso',
         icon: <FactCheckOutlinedIcon fontSize="small" />,
         permissions: ['audit:read'],
+      },
+    ],
+  },
+  {
+    label: 'Gestao',
+    items: [
+      {
+        label: 'Administracao',
+        path: '/app/administracao',
+        icon: <AdminPanelSettingsOutlinedIcon fontSize="small" />,
+        permissions: ['organizations:admin', 'users:invite', 'roles:grant', 'roles:revoke'],
       },
     ],
   },

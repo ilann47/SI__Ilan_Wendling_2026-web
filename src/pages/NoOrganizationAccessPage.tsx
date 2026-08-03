@@ -2,6 +2,7 @@ import BusinessOutlinedIcon from '@mui/icons-material/BusinessOutlined';
 import LogoutOutlinedIcon from '@mui/icons-material/LogoutOutlined';
 import { Alert, Box, Button, Stack, Typography } from '@mui/material';
 import { useAuth } from '../auth/AuthContext';
+import { OrganizationProvisioningCard } from '../features/organizations/OrganizationProvisioningCard';
 
 export function NoOrganizationAccessPage() {
   const { logout, user } = useAuth();
@@ -20,6 +21,7 @@ export function NoOrganizationAccessPage() {
           Solicite a um administrador que crie ou reative sua Membership. A aplicacao nao
           exibira dados globais ou de outra empresa enquanto o vinculo nao existir.
         </Alert>
+        {user?.perfil === 'ADMIN' && <OrganizationProvisioningCard />}
         <Button startIcon={<LogoutOutlinedIcon />} onClick={logout} sx={{ alignSelf: 'flex-start' }}>
           Sair
         </Button>

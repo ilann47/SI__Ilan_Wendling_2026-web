@@ -13,6 +13,8 @@ const EventAccessPage = lazy(() => import('./pages/EventAccessPage')
   .then((module) => ({ default: module.EventAccessPage })));
 const AccessAttemptsPage = lazy(() => import('./pages/AccessAttemptsPage')
   .then((module) => ({ default: module.AccessAttemptsPage })));
+const AdministrationPage = lazy(() => import('./pages/AdministrationPage')
+  .then((module) => ({ default: module.AdministrationPage })));
 
 function LoadingPage() {
   return (
@@ -43,6 +45,11 @@ export function App() {
           } />
           <Route path="tentativas-acesso" element={
             <PermissionRoute anyOf={['audit:read']}><AccessAttemptsPage /></PermissionRoute>
+          } />
+          <Route path="administracao" element={
+            <PermissionRoute anyOf={['organizations:admin', 'users:invite', 'roles:grant', 'roles:revoke']}>
+              <AdministrationPage />
+            </PermissionRoute>
           } />
         </Route>
         <Route path="/" element={<Navigate to="/app" replace />} />
