@@ -27,6 +27,9 @@ import { useAuth } from '../auth/AuthContext';
 import { PageHeader } from '../components/common/PageHeader';
 import { StatusChip } from '../components/common/StatusChip';
 import { formatDateTime } from '../utils/format';
+import { ResourceIdField } from '../components/enterprise/ResourceIdField';
+import { useOperationalWorkspace } from '../workspace/OperationalWorkspaceContext';
+import { accessReasonLabel } from '../features/access/accessLabels';
 
 interface AccessAttempt {
   id: number;
@@ -74,6 +77,7 @@ const emptyFilters: Filters = { eventId: '', decision: '', reason: '' };
 
 export function AccessAttemptsPage() {
   const { activeOrganization, permissions } = useAuth();
+  const { recent } = useOperationalWorkspace();
   const [draft, setDraft] = useState<Filters>(emptyFilters);
   const [filters, setFilters] = useState<Filters>(emptyFilters);
   const [cursorHistory, setCursorHistory] = useState<(number | null)[]>([null]);
@@ -115,14 +119,7 @@ export function AccessAttemptsPage() {
         <CardContent>
           <Box component="form" onSubmit={applyFilters}>
             <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
-              <TextField
-                label="ID do evento"
-                type="number"
-                value={draft.eventId}
-                onChange={(event) => setDraft({ ...draft, eventId: event.target.value })}
-                inputProps={{ min: 1 }}
-                fullWidth
-              />
+              <ResourceIdField label="ID do evento" value={draft.eventId} onChange={(eventId) => setDraft({ ...draft, eventId })} recent={recent('event')} required={false} />
               <TextField
                 select
                 label="Decisão"
@@ -179,7 +176,7 @@ export function AccessAttemptsPage() {
                     <TableCell>{attempt.id}</TableCell>
                     <TableCell><StatusChip status={attempt.decision} /></TableCell>
                     <TableCell>{attempt.operation}</TableCell>
-                    <TableCell>{attempt.reasonCode}</TableCell>
+                    <TableCell>{accessReasonLabel(attempt.reasonCode)}</TableCell>
                     <TableCell>{attempt.eventId} / {attempt.parkingFacilityId}</TableCell>
                     <TableCell>{attempt.lane}</TableCell>
                     <TableCell>{attempt.credentialId ?? '—'}</TableCell>

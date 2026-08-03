@@ -1,4 +1,4 @@
-> Links: [[core]] · [[auth]]
+> Links: [[core]] · [[auth]] · [[workspace]] · [[eventos]] · [[vendas]]
 
 # Acesso de Eventos
 
@@ -17,7 +17,7 @@ comando de cancela e não simula hardware.
 ## Fluxo (camadas da arquitetura)
 
 ```text
-Operador informa QR + evento + pátio + faixa
+Operador le QR pela camera (quando suportado) ou informa token + evento + patio + faixa
   -> POST /api/v1/access-validations, /check-ins ou /check-outs
   -> Idempotency-Key estável durante retry do mesmo payload
   -> decisão sem consumo ou ocupação resultante
@@ -53,16 +53,20 @@ Nenhuma integração física. A página consome exclusivamente a API central.
 
 Falhas HTTP usam `describeError`; recusas de negócio de acesso são exibidas
 como decisões válidas e o retry reutiliza a chave idempotente. O bloqueio mantém
-erro e resultado em estados separados.
+erro e resultado em estados separados e exige confirmacao destrutiva. Codigos de
+motivo sao traduzidos sem perder o valor tecnico no contrato.
 
 ## Testes (curl ou equivalente)
 
+- `npm test -- src/pages/EventAccessPage.test.tsx`
 - `npm run typecheck`
 - `npm run build`
 
 ## Decisões Técnicas
 
 - O QR é campo de senha, não é persistido no navegador pela página.
+- A camera usa `BarcodeDetector` e `getUserMedia` nativos; navegadores sem suporte
+  mantem entrada manual, sem upload de imagem ou integracao externa.
 - Retry do mesmo acesso reutiliza a chave idempotente; mudança de payload cria
   nova chave.
 - A validação usa o mesmo formulário e deixa explícito que não consome o
@@ -72,11 +76,15 @@ erro e resultado em estados separados.
   segurança.
 - O feed aparece somente com `audit:read`, usa filtros aplicados explicitamente
   e mantém o histórico local de cursores para navegação anterior/próxima.
+- O console mantem as ultimas dez decisoes somente em memoria durante a sessao.
 
 ## Módulos relacionados
 
 - [[core]]
 - [[auth]]
+- [[workspace]]
+- [[eventos]]
+- [[vendas]]
 
 ## Histórico
 
@@ -86,3 +94,4 @@ erro e resultado em estados separados.
 | 2026-08-01 | Adiciona bloqueio operacional de credencial por Supervisor. |
 | 2026-08-01 | Adiciona validação QR auditável sem consumo ao console operacional. |
 | 2026-08-01 | Adiciona feed paginado e filtrável de tentativas para auditoria. |
+| 2026-08-03 | Adiciona leitura nativa por camera, referencias recentes, confirmacao e historico da sessao. |
