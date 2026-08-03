@@ -12,9 +12,10 @@ enterprise executáveis expostos pelos controllers atuais.
 A matriz foi confrontada com os controllers Java e com as chamadas Axios do
 frontend. Ela cobre 46 operações: login e as 45 operações `/api/v1`. Os
 controllers legados `/api/*` permanecem acessíveis no shell por compatibilidade
-funcional com a aplicação anterior. Eles não carregam escopo organizacional;
-portanto, a presença das telas não significa isolamento multiempresa e essa
-limitação permanece registrada em [[compatibilidade-legada]].
+funcional com a aplicação anterior. Eles ainda não carregam escopo
+organizacional; portanto, a presença das telas não significa isolamento
+multiempresa. A matriz deve registrar separadamente cobertura funcional e
+cobertura tenant-aware durante a migração descrita em [[unificacao-multitenant]].
 
 ## Fluxo (camadas da arquitetura)
 
@@ -108,9 +109,11 @@ críticas e granularidade de RBAC. A validação real local complementa esta mat
 - Paridade significa interface para todo contrato enterprise executável, não
   fabricação de listagens ausentes.
 - APIs legadas permanecem agrupadas separadamente na navegação e conservam seus
-  contratos anteriores. A migração para tenancy exige trabalho de backend e não
-  é simulada pelo frontend.
+  contratos anteriores durante a compatibilidade. A migração para tenancy é
+  obrigatória, exige trabalho de backend e não é simulada pelo frontend.
 - Esta matriz deve mudar junto de qualquer novo controller `/api/v1`.
+- Cada onda do retrofit deve também particionar chaves do React Query, seletores
+  e autorizações pela organização ativa antes de receber status tenant-aware.
 
 ## Módulos relacionados
 
@@ -130,3 +133,4 @@ críticas e granularidade de RBAC. A validação real local complementa esta mat
 |---|---|
 | 2026-08-03 | Registra cobertura das 46 operações enterprise executáveis. |
 | 2026-08-03 | Registra a restauração das superfícies legadas sem declarar tenancy inexistente. |
+| 2026-08-03 | Separa paridade funcional de paridade tenant-aware para orientar o retrofit por ondas. |

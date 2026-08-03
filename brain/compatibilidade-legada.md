@@ -4,14 +4,16 @@
 
 ## Objetivo
 
-Preservar no frontend as funcionalidades anteriores enquanto os módulos de
-eventos são incorporados ao mesmo produto.
+Preservar integralmente as funcionalidades anteriores e conduzi-las, módulo a
+módulo, ao mesmo contrato multiempresa adotado pelas capacidades enterprise.
 
 ## Contexto
 
 O shell multiempresa havia substituído a tabela de rotas e o menu anteriores,
 embora páginas, configurações CRUD, tipos e APIs legadas continuassem presentes.
-A compatibilidade restaura essas superfícies sem remover os fluxos enterprise.
+A restauração corrigiu a regressão funcional. A etapa seguinte não é uma
+descontinuação: é o retrofit tenant-aware dos contratos `/api/*`, preservando
+URLs quando possível e proibindo seleção de organização por payload ou header.
 
 ## Fluxo (camadas da arquitetura)
 
@@ -56,7 +58,11 @@ frontend.
 - Os módulos antigos e enterprise coexistem no mesmo shell.
 - Nenhum contrato legado foi reimplementado ou substituído por mock.
 - A compatibilidade não concede semântica tenant-aware a endpoints que não a têm.
-- A futura migração do legado para organização exige alteração explícita no backend.
+- A migração do legado para organização é parte obrigatória do produto e exige
+  alteração explícita no backend antes de qualquer tela ser declarada isolada.
+- Paridade funcional e paridade tenant-aware são critérios independentes.
+- Dados históricos sem proprietário continuam visíveis apenas pelo fluxo de
+  reconciliação autorizado; o frontend não atribui tenant implicitamente.
 
 ## Módulos relacionados
 
@@ -70,3 +76,4 @@ frontend.
 | Data | Ação |
 |---|---|
 | 2026-08-03 | Restaura rotas e navegação legadas ao lado dos módulos de eventos. |
+| 2026-08-03 | Torna permanente a integração dos módulos legados e registra o retrofit multi-tenant obrigatório. |

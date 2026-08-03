@@ -1,12 +1,13 @@
-> Links: [[auth]] · [[acesso]] · [[administracao]] · [[workspace]] · [[instalacoes]] · [[eventos]] · [[vendas]] · [[dashboard]] · [[bloqueios]] · [[paridade-api]] · [[compatibilidade-legada]]
+> Links: [[auth]] · [[acesso]] · [[administracao]] · [[workspace]] · [[instalacoes]] · [[eventos]] · [[vendas]] · [[dashboard]] · [[bloqueios]] · [[paridade-api]] · [[compatibilidade-legada]] · [[unificacao-multitenant]]
 
 # Frontend Kaneko
 
 ## Objetivo
 
-Fornecer a interface React do Estacionamento Kaneko, preservando os cadastros
-legados e adicionando superfícies enterprise somente quando os contratos do
-backend estiverem disponíveis.
+Fornecer uma única interface React para toda a plataforma Estacionamento Kaneko.
+Os módulos operacionais, administrativos, fiscais, financeiros, de conveniência
+e de eventos são capacidades permanentes do mesmo produto e devem convergir para
+o mesmo contexto multiempresa.
 
 ## Contexto
 
@@ -72,6 +73,10 @@ Testing Library; E2E contra o backend real será acrescentado no recorte própri
 - O shell possui skip link, foco visível, rótulos acessíveis e respeita redução
   de movimento. A fonte externa foi removida para não depender de rede na operação.
 - A cobertura controller por controller está registrada em [[paridade-api]].
+- A restauração das telas antigas concluiu a paridade funcional, mas não a
+  paridade de isolamento. Cada módulo legado só será declarado tenant-aware após
+  o respectivo contrato do backend validar o JWT contextual e particionar cache,
+  referências e permissões pela organização ativa.
 
 ## Módulos relacionados
 
@@ -96,3 +101,4 @@ Testing Library; E2E contra o backend real será acrescentado no recorte própri
 | 2026-08-03 | Reforça acessibilidade, seleção de tenant e permissões por ação. |
 | 2026-08-03 | Consolida a matriz de paridade das APIs enterprise. |
 | 2026-08-03 | Restaura no shell as rotas legadas removidas durante a adoção multiempresa. |
+| 2026-08-03 | Consolida a meta de unificação: nenhum módulo legado será descartado e todos migrarão para tenancy real. |
