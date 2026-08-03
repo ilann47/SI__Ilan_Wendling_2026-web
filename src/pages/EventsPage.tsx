@@ -21,14 +21,14 @@ import { OperationCard } from '../components/enterprise/OperationCard';
 import { ResourceIdField } from '../components/enterprise/ResourceIdField';
 import { ResourceSnapshot } from '../components/enterprise/ResourceSnapshot';
 import { facilityCategories } from '../features/facilities/spaceImport';
-import { fromNowLocalInput, toApiDateTime } from '../utils/dateTime';
+import { fromApiDateTime, fromNowLocalInput, toApiDateTime } from '../utils/dateTime';
 import { useOperationalWorkspace } from '../workspace/OperationalWorkspaceContext';
 import type { WorkspaceResource } from '../workspace/workspaceStore';
 import { useAuth } from '../auth/AuthContext';
 
 interface EventResponse {
   id: number; venueId: number; name: string; startsAt: string; endsAt: string; timeZone: string;
-  status: string; reentryPolicy: string; externalId?: string | null; version: number;
+  status: string; reentryPolicy: string | null; externalId?: string | null; version: number;
   configurationChecklist?: Record<string, boolean>;
 }
 interface AllocationResponse {
@@ -88,7 +88,7 @@ function EventSetup() {
   const accept = (data: EventResponse) => {
     setResult(data);
     setEventRef({ id: String(data.id), version: String(data.version), status: data.status, name: data.name });
-    setReentryPolicy(data.reentryPolicy);
+    setReentryPolicy(data.reentryPolicy ?? 'ENTRADA_UNICA');
     remember('event', { id: data.id, label: data.name, version: data.version, snapshot: { ...data } });
   };
 
@@ -254,6 +254,7 @@ function AllocationSetup() {
 function ProductSetup() {
   const { recent, remember } = useOperationalWorkspace();
   const products = recent('product');
+  const allocations = recent('allocation');
   const [eventId, setEventId] = useState('');
   const [form, setForm] = useState({ name: '', category: 'COMUM', allocationId: '', accessStartsAt: fromNowLocalInput(23 * 60), accessEndsAt: fromNowLocalInput(28 * 60), quota: '50', benefits: '', restrictions: '' });
   const [productRef, setProductRef] = useState({ id: '', version: '0' });
@@ -288,12 +289,23 @@ function ProductSetup() {
     setProductRef((current) => ({ ...current, id }));
     const snapshot = recentSnapshot<ProductResponse>(products, id); if (snapshot) accept(snapshot);
   };
+  const chooseAllocation = (allocationId: string) => {
+    const allocation = recentSnapshot<AllocationResponse>(allocations, allocationId);
+    setForm((current) => allocation ? {
+      ...current,
+      allocationId,
+      accessStartsAt: fromApiDateTime(allocation.startsAt),
+      accessEndsAt: fromApiDateTime(allocation.endsAt),
+      quota: String(allocation.sellableCapacity),
+    } : { ...current, allocationId });
+    if (allocation) setEventId(String(allocation.eventId));
+  };
   return (
     <OperationCard title="Produto de estacionamento" description="A quota pertence a uma unica alocacao de patio e o direito da Fase 1 e estacionamento de evento." error={error} result={result ? <ResourceSnapshot data={{ id: result.id, eventId: result.eventId, name: result.name, category: result.category, quota: result.quota, status: result.status, version: result.version }} /> : undefined}>
       <Stack component="form" spacing={2} onSubmit={(event) => void create(event)}>
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
           <ResourceIdField label="ID do evento" value={eventId} onChange={setEventId} recent={recent('event')} />
-          <ResourceIdField label="ID da alocacao" value={form.allocationId} onChange={(allocationId) => setForm((current) => ({ ...current, allocationId }))} recent={recent('allocation')} />
+          <ResourceIdField label="ID da alocacao" value={form.allocationId} onChange={chooseAllocation} recent={allocations} />
         </Stack>
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
           <TextField label="Nome" value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} required fullWidth />

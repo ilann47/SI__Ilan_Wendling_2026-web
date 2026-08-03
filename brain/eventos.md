@@ -63,6 +63,10 @@ Vitest cobre conversao temporal e criacao idempotente de evento.
 - A consulta de disponibilidade permanece visivel a qualquer Membership ativa;
   configuracao, publicacao, precificacao, inventario e operacao aparecem somente
   quando a permissao contextual correspondente esta presente.
+- Selecionar uma alocacao real preenche evento, janela de acesso e quota vendavel
+  do produto a partir da resposta da API, evitando divergencia temporal local.
+- Evento legado sem politica explicita e carregado com `ENTRADA_UNICA` como
+  proposta visivel; o valor somente passa a valer depois do PATCH confirmado.
 
 ## Modulos relacionados
 
@@ -78,3 +82,5 @@ Vitest cobre conversao temporal e criacao idempotente de evento.
 |---|---|
 | 2026-08-03 | Implementa configuracao, ciclo de vida, oferta e disponibilidade. |
 | 2026-08-03 | Alinha abas e acoes as permissoes contextuais do backend. |
+| 2026-08-03 | Herda periodo e quota da alocacao ao configurar produto. |
+| 2026-08-03 | Impede envio nulo ao definir politica em evento legado. |
