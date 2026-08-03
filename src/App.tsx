@@ -6,6 +6,7 @@ import { PermissionRoute } from './auth/PermissionRoute';
 import { ProtectedRoute } from './auth/ProtectedRoute';
 import { AppLayout } from './layout/AppLayout';
 import { LoginPage } from './pages/LoginPage';
+import { allConfigs } from './resources';
 
 const DashboardPage = lazy(() => import('./pages/DashboardPage')
   .then((module) => ({ default: module.DashboardPage })));
@@ -23,6 +24,12 @@ const SalesPage = lazy(() => import('./pages/SalesPage')
   .then((module) => ({ default: module.SalesPage })));
 const BlockersPage = lazy(() => import('./pages/BlockersPage')
   .then((module) => ({ default: module.BlockersPage })));
+const PatioPage = lazy(() => import('./pages/PatioPage')
+  .then((module) => ({ default: module.PatioPage })));
+const RelatoriosPage = lazy(() => import('./pages/RelatoriosPage')
+  .then((module) => ({ default: module.RelatoriosPage })));
+const CrudResourcePage = lazy(() => import('./components/crud/CrudResourcePage')
+  .then((module) => ({ default: module.CrudResourcePage })));
 
 function LoadingPage() {
   return (
@@ -75,6 +82,15 @@ export function App() {
               <BlockersPage />
             </PermissionRoute>
           } />
+          <Route path="patio" element={<PatioPage />} />
+          <Route path="relatorios" element={<RelatoriosPage />} />
+          {allConfigs.map((config) => (
+            <Route
+              key={config.key}
+              path={config.key}
+              element={<CrudResourcePage config={config} />}
+            />
+          ))}
         </Route>
         <Route path="/" element={<Navigate to="/app" replace />} />
         <Route path="*" element={<Navigate to="/app" replace />} />

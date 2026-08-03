@@ -1,4 +1,4 @@
-> Links: [[auth]] · [[acesso]] · [[administracao]] · [[workspace]] · [[instalacoes]] · [[eventos]] · [[vendas]] · [[dashboard]] · [[bloqueios]] · [[paridade-api]]
+> Links: [[auth]] · [[acesso]] · [[administracao]] · [[workspace]] · [[instalacoes]] · [[eventos]] · [[vendas]] · [[dashboard]] · [[bloqueios]] · [[paridade-api]] · [[compatibilidade-legada]]
 
 # Frontend Kaneko
 
@@ -65,9 +65,10 @@ Testing Library; E2E contra o backend real será acrescentado no recorte própri
   agora são carregadas em chunks independentes.
 - Ferramentas de teste e lint são somente `devDependencies`; Vite 7 e Vitest 4
   substituem versões vulneráveis sem alterar React, MUI ou o runtime do produto.
-- O shell contextual registra somente o fluxo enterprise de eventos. Módulos
-  legados continuam no código para compatibilidade, mas não são roteados dentro
-  de um tenant porque suas APIs não garantem isolamento organizacional.
+- O shell contextual reúne o fluxo enterprise de eventos e as superfícies
+  legadas preservadas. As rotas antigas são identificadas como compatibilidade;
+  suas APIs ainda não garantem isolamento organizacional e não devem ser
+  interpretadas como tenant-aware.
 - O shell possui skip link, foco visível, rótulos acessíveis e respeita redução
   de movimento. A fonte externa foi removida para não depender de rede na operação.
 - A cobertura controller por controller está registrada em [[paridade-api]].
@@ -94,3 +95,4 @@ Testing Library; E2E contra o backend real será acrescentado no recorte própri
 | 2026-08-03 | Adiciona dashboard de disponibilidade e decisoes de acesso reais. |
 | 2026-08-03 | Reforça acessibilidade, seleção de tenant e permissões por ação. |
 | 2026-08-03 | Consolida a matriz de paridade das APIs enterprise. |
+| 2026-08-03 | Restaura no shell as rotas legadas removidas durante a adoção multiempresa. |

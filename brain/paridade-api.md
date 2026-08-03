@@ -11,9 +11,10 @@ enterprise executáveis expostos pelos controllers atuais.
 
 A matriz foi confrontada com os controllers Java e com as chamadas Axios do
 frontend. Ela cobre 46 operações: login e as 45 operações `/api/v1`. Os
-controllers legados `/api/*` ficam fora do shell tenant-aware porque não carregam
-escopo organizacional; expô-los violaria o isolamento multiempresa. Eles
-permanecem no código somente para compatibilidade.
+controllers legados `/api/*` permanecem acessíveis no shell por compatibilidade
+funcional com a aplicação anterior. Eles não carregam escopo organizacional;
+portanto, a presença das telas não significa isolamento multiempresa e essa
+limitação permanece registrada em [[compatibilidade-legada]].
 
 ## Fluxo (camadas da arquitetura)
 
@@ -106,8 +107,9 @@ críticas e granularidade de RBAC. A validação real local complementa esta mat
 
 - Paridade significa interface para todo contrato enterprise executável, não
   fabricação de listagens ausentes.
-- APIs legadas continuam fora da navegação contextual até possuírem tenancy e
-  decisão explícita de entrada no produto de eventos.
+- APIs legadas permanecem agrupadas separadamente na navegação e conservam seus
+  contratos anteriores. A migração para tenancy exige trabalho de backend e não
+  é simulada pelo frontend.
 - Esta matriz deve mudar junto de qualquer novo controller `/api/v1`.
 
 ## Módulos relacionados
@@ -127,3 +129,4 @@ críticas e granularidade de RBAC. A validação real local complementa esta mat
 | Data | Ação |
 |---|---|
 | 2026-08-03 | Registra cobertura das 46 operações enterprise executáveis. |
+| 2026-08-03 | Registra a restauração das superfícies legadas sem declarar tenancy inexistente. |

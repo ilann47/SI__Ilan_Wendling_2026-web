@@ -10,7 +10,8 @@
     {"id":"acesso","type":"file","file":"acesso.md","x":2500,"y":100,"width":360,"height":220},
     {"id":"dashboard","type":"file","file":"dashboard.md","x":3000,"y":100,"width":360,"height":220},
     {"id":"bloqueios","type":"file","file":"bloqueios.md","x":3000,"y":-300,"width":360,"height":220},
-    {"id":"paridade-api","type":"file","file":"paridade-api.md","x":3500,"y":-100,"width":360,"height":220}
+    {"id":"paridade-api","type":"file","file":"paridade-api.md","x":3500,"y":-100,"width":360,"height":220},
+    {"id":"compatibilidade-legada","type":"file","file":"compatibilidade-legada.md","x":500,"y":400,"width":360,"height":220}
   ],
   "edges": [
     {"id":"core-auth","fromNode":"core","fromSide":"right","toNode":"auth","toSide":"left","label":"JWT contextual"},
@@ -27,6 +28,8 @@
     {"id":"eventos-bloqueios","fromNode":"eventos","fromSide":"right","toNode":"bloqueios","toSide":"left","label":"capacidades pendentes"},
     {"id":"vendas-bloqueios","fromNode":"vendas","fromSide":"right","toNode":"bloqueios","toSide":"left","label":"pagamento e reembolso"},
     {"id":"core-paridade-api","fromNode":"core","fromSide":"right","toNode":"paridade-api","toSide":"left","label":"contratos cobertos"},
-    {"id":"dashboard-paridade-api","fromNode":"dashboard","fromSide":"right","toNode":"paridade-api","toSide":"left","label":"consultas reais"}
+    {"id":"dashboard-paridade-api","fromNode":"dashboard","fromSide":"right","toNode":"paridade-api","toSide":"left","label":"consultas reais"},
+    {"id":"core-compatibilidade-legada","fromNode":"core","fromSide":"bottom","toNode":"compatibilidade-legada","toSide":"top","label":"funcoes preservadas"},
+    {"id":"compatibilidade-legada-paridade-api","fromNode":"compatibilidade-legada","fromSide":"right","toNode":"paridade-api","toSide":"left","label":"contratos /api"}
   ]
 }
