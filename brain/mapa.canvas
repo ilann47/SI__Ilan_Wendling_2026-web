@@ -55,7 +55,7 @@
     {"id":"fornecedores-paridade-api","fromNode":"fornecedores","fromSide":"right","toNode":"paridade-api","toSide":"left","label":"contrato tenant-aware"},
     {"id":"pagamentos-fornecedores","fromNode":"pagamentos","fromSide":"right","toNode":"fornecedores","toSide":"left","label":"condicao de pagamento"},
     {"id":"logistica-fornecedores","fromNode":"logistica","fromSide":"right","toNode":"fornecedores","toSide":"left","label":"transportadora"},
-    {"id":"unificacao-multitenant-rh","fromNode":"unificacao-multitenant","fromSide":"right","toNode":"rh","toSide":"left","label":"quinta fatia V43"},
+    {"id":"unificacao-multitenant-rh","fromNode":"unificacao-multitenant","fromSide":"right","toNode":"rh","toSide":"left","label":"cargos e funcionarios"},
     {"id":"auth-rh","fromNode":"auth","fromSide":"bottom","toNode":"rh","toSide":"top","label":"JWT e workforce:*"},
     {"id":"rh-paridade-api","fromNode":"rh","fromSide":"top","toNode":"paridade-api","toSide":"bottom","label":"contrato tenant-aware"}
   ]

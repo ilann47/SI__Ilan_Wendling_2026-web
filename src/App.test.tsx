@@ -90,4 +90,14 @@ describe('App - compatibilidade legada', () => {
       'workforce:read',
     );
   });
+
+  it('protege a rota preservada de funcionarios com workforce:read', async () => {
+    render(<MemoryRouter initialEntries={['/app/funcionarios']}><App /></MemoryRouter>);
+
+    const heading = await screen.findByRole('heading', { name: 'Funcionários' });
+    expect(heading.closest('[data-permissions]')).toHaveAttribute(
+      'data-permissions',
+      'workforce:read',
+    );
+  });
 });

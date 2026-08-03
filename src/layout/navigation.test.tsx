@@ -55,4 +55,11 @@ describe('navigation - compatibilidade legada', () => {
 
     expect(item?.permissions).toEqual(['workforce:read']);
   });
+
+  it('exige leitura contextual para Funcionários', () => {
+    const item = navGroups.flatMap((group) => group.items)
+      .find((candidate) => candidate.label === 'Funcionários');
+
+    expect(item?.permissions).toEqual(['workforce:read']);
+  });
 });

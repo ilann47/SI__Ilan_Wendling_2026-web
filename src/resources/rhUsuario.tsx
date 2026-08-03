@@ -42,6 +42,13 @@ export const funcionariosConfig: ResourceConfig = {
   basePath: '/api/funcionarios',
   singular: 'Funcionário',
   plural: 'Funcionários',
+  tenantAware: true,
+  permissions: {
+    read: ['workforce:read'],
+    create: ['workforce:manage'],
+    update: ['workforce:manage'],
+    delete: ['workforce:manage'],
+  },
   defaultSort: 'nome,asc',
   columns: [
     cols.id(),

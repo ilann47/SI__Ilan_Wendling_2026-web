@@ -11,9 +11,9 @@ remover capacidades históricas nem criar um segundo produto para eventos.
 
 O frontend já reuniu as rotas enterprise e legadas no mesmo shell. A paridade
 funcional foi restaurada. Pagamentos V38, Clientes V40, Transportadoras V41,
-Fornecedores V42 e Cargos V43 são as primeiras fatias antigas adaptadas ao
-backend tenant-aware; os demais CRUDs ainda consomem endpoints globais. A
-migração continuará incremental por módulo.
+Fornecedores V42, Cargos V43 e Funcionários são as primeiras fatias antigas
+adaptadas ao backend tenant-aware; os demais CRUDs ainda consomem endpoints
+globais. A migração continuará incremental por módulo.
 
 ## Fluxo (camadas da arquitetura)
 
@@ -86,3 +86,4 @@ permissão produz `403`; recurso inexistente ou pertencente a outro tenant produ
 | 2026-08-03 | Registra Transportadoras como terceira onda concluída do retrofit multiempresa. |
 | 2026-08-03 | Registra Fornecedores como quarta onda concluída do retrofit multiempresa. |
 | 2026-08-03 | Registra Cargos como quinta onda concluída do retrofit multiempresa. |
+| 2026-08-03 | Amplia a onda de RH com Funcionários tenant-aware. |

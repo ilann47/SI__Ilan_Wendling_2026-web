@@ -6,7 +6,7 @@ import {
 } from '../../resources/pessoasPagamento';
 import { transportadorasConfig } from '../../resources/logistica';
 import { fornecedoresConfig } from '../../resources/fornecedorConveniencia';
-import { cargosConfig } from '../../resources/rhUsuario';
+import { cargosConfig, funcionariosConfig } from '../../resources/rhUsuario';
 import {
   hasResourceActionPermission,
   resourceQueryKey,
@@ -227,5 +227,59 @@ describe('ResourceConfig tenant-aware de cargos', () => {
       { page: 0 },
     ]);
     expect(organizationTwo).not.toEqual(organizationOne);
+  });
+});
+
+describe('ResourceConfig tenant-aware de funcionarios', () => {
+  it('separa leitura e manutencao do cadastro', () => {
+    expect(funcionariosConfig.tenantAware).toBe(true);
+    expect(funcionariosConfig.permissions).toEqual({
+      read: ['workforce:read'],
+      create: ['workforce:manage'],
+      update: ['workforce:manage'],
+      delete: ['workforce:manage'],
+    });
+
+    expect(hasResourceActionPermission(funcionariosConfig, 'read', ['workforce:read'])).toBe(true);
+    expect(hasResourceActionPermission(funcionariosConfig, 'create', ['workforce:read'])).toBe(false);
+    expect(hasResourceActionPermission(funcionariosConfig, 'update', ['workforce:manage'])).toBe(true);
+    expect(hasResourceActionPermission(funcionariosConfig, 'delete', [])).toBe(false);
+  });
+
+  it('particiona consultas pela organizacao ativa', () => {
+    const organizationOne = resourceQueryKey(
+      funcionariosConfig,
+      10,
+      'list',
+      funcionariosConfig.basePath,
+      { page: 0 },
+    );
+    const organizationTwo = resourceQueryKey(
+      funcionariosConfig,
+      20,
+      'list',
+      funcionariosConfig.basePath,
+      { page: 0 },
+    );
+
+    expect(organizationOne).toEqual([
+      'tenant',
+      10,
+      'list',
+      '/api/funcionarios',
+      { page: 0 },
+    ]);
+    expect(organizationTwo).not.toEqual(organizationOne);
+  });
+
+  it('usa o estado booleano real e nao expoe seletor de tenant no payload', () => {
+    const fieldsByName = new Map(funcionariosConfig.fields.map((field) => [field.name, field]));
+    const filtersByName = new Map((funcionariosConfig.filters ?? []).map((filter) => [filter.name, filter]));
+    const forbiddenTenantFields = ['organizationId', 'organizacaoId', 'organization_id', 'organizacao_id'];
+
+    expect(fieldsByName.get('ativo')?.type).toBe('switch');
+    expect(filtersByName.get('ativo')?.type).toBe('boolean');
+    expect(fieldsByName.has('status')).toBe(false);
+    expect(forbiddenTenantFields.some((field) => fieldsByName.has(field))).toBe(false);
   });
 });

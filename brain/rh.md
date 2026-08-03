@@ -4,15 +4,15 @@
 
 ## Objetivo
 
-Administrar o catálogo de cargos da organização ativa, preservando a tela e o
-contrato histórico do Kaneko.
+Administrar cargos e funcionários da organização ativa, preservando as telas e
+os contratos históricos do Kaneko.
 
 ## Contexto
 
-O backend V43 tornou `/api/cargos` tenant-aware sem alterar sua URL pública. O
-frontend mantém `/app/cargos` e o formulário existente, agora exigindo JWT
-contextual, permissões por ação e cache isolado pela organização ativa.
-Funcionários ainda não fazem parte desta fatia e permanecem no contrato legado.
+O backend V43 tornou `/api/cargos` tenant-aware e a história seguinte aplicou o
+mesmo isolamento a `/api/funcionarios`, sem alterar as URLs públicas. O frontend
+mantém `/app/cargos` e `/app/funcionarios`, exigindo JWT contextual, permissões
+por ação e cache isolado pela organização ativa.
 
 ## Fluxo (camadas da arquitetura)
 
@@ -20,6 +20,10 @@ Funcionários ainda não fazem parte desta fatia e permanecem no contrato legado
 rota /app/cargos -> PermissionRoute workforce:read -> CrudResourcePage
   -> cargosConfig tenant-aware -> React Query [tenant, organizationId, ...]
   -> /api/cargos -> organização resolvida pelo JWT contextual
+
+rota /app/funcionarios -> PermissionRoute workforce:read -> CrudResourcePage
+  -> funcionariosConfig tenant-aware -> React Query [tenant, organizationId, ...]
+  -> /api/funcionarios -> organização resolvida pelo JWT contextual
 ```
 
 ## Endpoints (se houver)
@@ -30,6 +34,10 @@ rota /app/cargos -> PermissionRoute workforce:read -> CrudResourcePage
 | POST | `/api/cargos` | `workforce:manage` |
 | PUT | `/api/cargos/{id}` | `workforce:manage` |
 | DELETE | `/api/cargos/{id}` | `workforce:manage` |
+| GET | `/api/funcionarios` e `/{id}` | `workforce:read` |
+| POST | `/api/funcionarios` | `workforce:manage` |
+| PUT | `/api/funcionarios/{id}` | `workforce:manage` |
+| DELETE | `/api/funcionarios/{id}` | `workforce:manage` |
 
 A organização não é enviada por header, query ou payload. URLs, payloads e
 respostas permanecem compatíveis com a tela anterior.
@@ -37,7 +45,11 @@ respostas permanecem compatíveis com a tela anterior.
 ## Estrutura de Dados (DTOs, Entidades)
 
 `cargosConfig` conserva nome, descrição, salário-base, carga horária, exigência
-de CNH e atividade. O formulário não recebe campo `organizationId`.
+de CNH e atividade. `funcionariosConfig` conserva identificação, documentos,
+contatos, endereço, Cargo, CNH, admissão, demissão, salário, observação e o estado
+booleano `ativo` retornado pela API. Não foi inventado campo `status`. Os
+formulários não recebem nem enviam `organizationId` ou variantes; o tenant vem
+somente do JWT contextual.
 
 ## Integrações externas (se houver)
 
@@ -59,12 +71,14 @@ de outra organização retorna `404` e conflitos de integridade permanecem `409`
 
 ## Decisões Técnicas
 
-- A rota `/app/cargos` e a tela CRUD genérica foram preservadas.
+- As rotas `/app/cargos` e `/app/funcionarios` e suas telas CRUD foram preservadas.
 - Navegação, rota e leitura exigem `workforce:read`.
 - Criar, editar e excluir exigem `workforce:manage`.
 - Listagens e referências usam chaves React Query iniciadas por
   `['tenant', organizationId]`.
-- `funcionariosConfig` e `usuariosConfig` não foram alterados.
+- Cargo continua obrigatório no formulário de Funcionário e usa a referência
+  tenant-aware `/api/cargos`.
+- `usuariosConfig` não foi alterado.
 
 ## Módulos relacionados
 
@@ -79,3 +93,4 @@ de outra organização retorna `404` e conflitos de integridade permanecem `409`
 | Data | Ação |
 |---|---|
 | 2026-08-03 | Adapta exclusivamente Cargos ao contrato multiempresa V43. |
+| 2026-08-03 | Adapta Funcionários ao contexto multiempresa preservando estado e payload reais. |

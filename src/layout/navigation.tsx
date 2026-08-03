@@ -164,7 +164,12 @@ export const navGroups: NavGroup[] = [
         icon: <BadgeOutlinedIcon fontSize="small" />,
         permissions: ['workforce:read'],
       },
-      { label: 'Funcionários', path: '/app/funcionarios', icon: <WorkOutlineIcon fontSize="small" /> },
+      {
+        label: 'Funcionários',
+        path: '/app/funcionarios',
+        icon: <WorkOutlineIcon fontSize="small" />,
+        permissions: ['workforce:read'],
+      },
       { label: 'Usuários', path: '/app/usuarios', icon: <ManageAccountsOutlinedIcon fontSize="small" /> },
     ],
   },

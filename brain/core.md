@@ -69,8 +69,9 @@ Testing Library; E2E contra o backend real será acrescentado no recorte própri
 - O shell contextual reúne o fluxo enterprise de eventos e as superfícies
   legadas preservadas. As rotas antigas são identificadas como compatibilidade;
   suas APIs ainda não garantem isolamento organizacional, exceto Pagamentos V38,
-  Clientes V40, Transportadoras V41, Fornecedores V42 e Cargos V43 documentados
-  em [[pagamentos]], [[clientes]], [[logistica]], [[fornecedores]] e [[rh]].
+  Clientes V40, Transportadoras V41, Fornecedores V42, Cargos V43 e Funcionários
+  documentados em [[pagamentos]], [[clientes]], [[logistica]], [[fornecedores]] e
+  [[rh]].
 - O shell possui skip link, foco visível, rótulos acessíveis e respeita redução
   de movimento. A fonte externa foi removida para não depender de rede na operação.
 - A cobertura controller por controller está registrada em [[paridade-api]].
@@ -113,3 +114,4 @@ Testing Library; E2E contra o backend real será acrescentado no recorte própri
 | 2026-08-03 | Integra Transportadoras ao contexto organizacional do backend V41. |
 | 2026-08-03 | Integra Fornecedores ao contexto organizacional do backend V42. |
 | 2026-08-03 | Integra Cargos ao contexto organizacional do backend V43. |
+| 2026-08-03 | Integra Funcionários ao contexto organizacional preservando `/api/funcionarios`. |

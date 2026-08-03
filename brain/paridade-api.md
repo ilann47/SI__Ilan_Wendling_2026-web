@@ -13,8 +13,8 @@ A matriz foi confrontada com os controllers Java e com as chamadas Axios do
 frontend. Ela cobre 46 operações: login e as 45 operações `/api/v1`. Os
 controllers legados `/api/*` permanecem acessíveis no shell por compatibilidade
 funcional com a aplicação anterior. Pagamentos V38, Clientes V40,
-Transportadoras V41, Fornecedores V42 e Cargos V43 já carregam escopo
-organizacional; os demais contratos legados ainda não. A matriz registra
+Transportadoras V41, Fornecedores V42, Cargos V43 e Funcionários já carregam
+escopo organizacional; os demais contratos legados ainda não. A matriz registra
 separadamente cobertura funcional e cobertura tenant-aware durante a migração
 descrita em [[unificacao-multitenant]].
 
@@ -85,6 +85,7 @@ controller + PreAuthorize -> rota/comando da UI -> cliente HTTP -> resposta real
 | `/api/transportadoras` | `logistics:read`, `logistics:manage` | Logística/Transportadoras | Integrada e isolada por organização |
 | `/api/fornecedores` | `suppliers:read`, `suppliers:manage` | Cadastro/Fornecedores | Integrada e isolada por organização |
 | `/api/cargos` | `workforce:read`, `workforce:manage` | RH/Cargos | Integrada e isolada por organização |
+| `/api/funcionarios` | `workforce:read`, `workforce:manage` | RH/Funcionários | Integrada e isolada por organização |
 
 ## Lacunas de leitura do contrato atual
 
@@ -156,3 +157,4 @@ críticas e granularidade de RBAC. A validação real local complementa esta mat
 | 2026-08-03 | Registra Transportadoras como contrato tenant-aware do backend V41. |
 | 2026-08-03 | Registra Fornecedores como contrato tenant-aware do backend V42. |
 | 2026-08-03 | Registra Cargos como contrato tenant-aware do backend V43. |
+| 2026-08-03 | Registra Funcionários como contrato tenant-aware com estado `ativo` real. |
