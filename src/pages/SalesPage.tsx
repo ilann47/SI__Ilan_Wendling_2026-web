@@ -18,7 +18,7 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import { api, describeError, ifMatchHeaders } from '../api/client';
 import { tenantQueryKey } from '../api/queryKeys';
 import { useAuth } from '../auth/AuthContext';
@@ -286,13 +286,23 @@ function CredentialPanel() {
 }
 
 export function SalesPage() {
+  const { permissions } = useAuth();
   const [tab, setTab] = useState(0);
-  const panels = [<HoldPanel />, <OrderPanel />, <CredentialPanel />];
+  const hasOrders = ['orders:create', 'orders:read', 'orders:manual-confirm', 'orders:cancel']
+    .some((permission) => permissions.includes(permission));
+  const panels = [
+    permissions.includes('inventory:hold') && { label: 'Holds', content: <HoldPanel /> },
+    hasOrders && { label: 'Pedidos', content: <OrderPanel /> },
+    permissions.includes('credentials:issue') && { label: 'Credenciais', content: <CredentialPanel /> },
+  ].filter(Boolean) as { label: string; content: ReactNode }[];
+  useEffect(() => {
+    if (tab >= panels.length) setTab(0);
+  }, [panels.length, tab]);
   return (
     <Box>
       <PageHeader title="Vendas e credenciais" subtitle="Do bloqueio temporario de inventario ate a credencial pronta para acesso." />
-      <Tabs value={tab} onChange={(_, value) => setTab(value)} variant="scrollable" sx={{ mb: 2 }}><Tab label="Holds" /><Tab label="Pedidos" /><Tab label="Credenciais" /></Tabs>
-      {panels[tab]}
+      <Tabs value={tab} onChange={(_, value) => setTab(value)} variant="scrollable" sx={{ mb: 2 }}>{panels.map((panel) => <Tab key={panel.label} label={panel.label} />)}</Tabs>
+      {panels[tab]?.content ?? <Alert severity="warning">Nenhuma operacao comercial disponivel.</Alert>}
     </Box>
   );
 }

@@ -51,13 +51,12 @@ export const navGroups: NavGroup[] = [
         label: 'Instalacoes',
         path: '/app/instalacoes',
         icon: <ApartmentOutlinedIcon fontSize="small" />,
-        permissions: ['facilities:manage', 'organizations:admin'],
+        permissions: ['facilities:manage'],
       },
       {
         label: 'Eventos e ofertas',
         path: '/app/eventos',
         icon: <EventOutlinedIcon fontSize="small" />,
-        permissions: ['events:create', 'events:publish', 'inventory:manage', 'pricing:manage'],
       },
       {
         label: 'Vendas e credenciais',

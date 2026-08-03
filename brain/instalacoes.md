@@ -50,6 +50,8 @@ Vitest cobre conversao do lote e rejeicao de categorias fora do catalogo.
 - Capacidades fisica e operacional permanecem campos distintos.
 - Categorias seguem exatamente o enum do backend.
 - Nenhuma listagem inexistente e simulada.
+- A rota e a navegacao exigem exclusivamente `facilities:manage`, conforme o
+  contrato do backend; administracao organizacional nao concede acesso implicito.
 
 ## Modulos relacionados
 
@@ -63,3 +65,4 @@ Vitest cobre conversao do lote e rejeicao de categorias fora do catalogo.
 | Data | Acao |
 |---|---|
 | 2026-08-03 | Implementa fluxo completo de criacao da estrutura fisica. |
+| 2026-08-03 | Alinha acesso da interface a permissao `facilities:manage`. |

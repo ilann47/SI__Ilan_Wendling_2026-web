@@ -58,15 +58,11 @@ export function App() {
             </PermissionRoute>
           } />
           <Route path="instalacoes" element={
-            <PermissionRoute anyOf={['facilities:manage', 'organizations:admin']}>
+            <PermissionRoute anyOf={['facilities:manage']}>
               <FacilitiesPage />
             </PermissionRoute>
           } />
-          <Route path="eventos" element={
-            <PermissionRoute anyOf={['events:create', 'events:publish', 'inventory:manage', 'pricing:manage']}>
-              <EventsPage />
-            </PermissionRoute>
-          } />
+          <Route path="eventos" element={<EventsPage />} />
           <Route path="vendas" element={
             <PermissionRoute anyOf={['inventory:hold', 'orders:create', 'orders:read', 'orders:manual-confirm', 'orders:cancel', 'credentials:issue']}>
               <SalesPage />

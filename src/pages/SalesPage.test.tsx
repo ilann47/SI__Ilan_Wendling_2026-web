@@ -3,17 +3,33 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { api } from '../api/client';
 import { useOperationalWorkspace } from '../workspace/OperationalWorkspaceContext';
+import { useAuth } from '../auth/AuthContext';
 import { SalesPage } from './SalesPage';
 
 vi.mock('../workspace/OperationalWorkspaceContext', () => ({
   useOperationalWorkspace: vi.fn(),
 }));
+vi.mock('../auth/AuthContext', () => ({ useAuth: vi.fn() }));
 
 afterEach(() => vi.restoreAllMocks());
 
 describe('SalesPage', () => {
+  it('exibe somente a area autorizada pelo tenant', () => {
+    vi.mocked(useAuth).mockReturnValue({ permissions: ['credentials:issue'] } as unknown as ReturnType<typeof useAuth>);
+    vi.mocked(useOperationalWorkspace).mockReturnValue({
+      recent: () => [], remember: vi.fn(),
+    } as unknown as ReturnType<typeof useOperationalWorkspace>);
+
+    render(<SalesPage />);
+
+    expect(screen.getByRole('tab', { name: 'Credenciais' })).toBeInTheDocument();
+    expect(screen.queryByRole('tab', { name: 'Holds' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('tab', { name: 'Pedidos' })).not.toBeInTheDocument();
+  });
+
   it('cria hold idempotente a partir de produto real', async () => {
     const remember = vi.fn();
+    vi.mocked(useAuth).mockReturnValue({ permissions: ['inventory:hold'] } as unknown as ReturnType<typeof useAuth>);
     vi.mocked(useOperationalWorkspace).mockReturnValue({
       recent: () => [], remember,
     } as unknown as ReturnType<typeof useOperationalWorkspace>);

@@ -60,6 +60,9 @@ Vitest cobre conversao temporal e criacao idempotente de evento.
 - Disponibilidade nao e apresentada como garantia; somente hold garante estoque.
 - Encerramento operacional reconhece explicitamente a pendencia financeira externa.
 - Direito da fase atual e somente `ESTACIONAMENTO_EVENTO`.
+- A consulta de disponibilidade permanece visivel a qualquer Membership ativa;
+  configuracao, publicacao, precificacao, inventario e operacao aparecem somente
+  quando a permissao contextual correspondente esta presente.
 
 ## Modulos relacionados
 
@@ -74,3 +77,4 @@ Vitest cobre conversao temporal e criacao idempotente de evento.
 | Data | Acao |
 |---|---|
 | 2026-08-03 | Implementa configuracao, ciclo de vida, oferta e disponibilidade. |
+| 2026-08-03 | Alinha abas e acoes as permissoes contextuais do backend. |

@@ -14,7 +14,7 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import { api, describeError, ifMatchHeaders } from '../api/client';
 import { PageHeader } from '../components/common/PageHeader';
 import { OperationCard } from '../components/enterprise/OperationCard';
@@ -24,6 +24,7 @@ import { facilityCategories } from '../features/facilities/spaceImport';
 import { fromNowLocalInput, toApiDateTime } from '../utils/dateTime';
 import { useOperationalWorkspace } from '../workspace/OperationalWorkspaceContext';
 import type { WorkspaceResource } from '../workspace/workspaceStore';
+import { useAuth } from '../auth/AuthContext';
 
 interface EventResponse {
   id: number; venueId: number; name: string; startsAt: string; endsAt: string; timeZone: string;
@@ -58,7 +59,19 @@ function recentSnapshot<T>(items: WorkspaceResource[], id: string): T | null {
 }
 
 function EventSetup() {
+  const { permissions } = useAuth();
   const { recent, remember } = useOperationalWorkspace();
+  const canCreate = permissions.includes('events:create');
+  const canPublish = permissions.includes('events:publish');
+  const canOperate = permissions.includes('access:operate');
+  const allowedActions = [
+    canCreate && { value: 'update', label: 'Alterar politica de reentrada' },
+    canPublish && { value: 'publication', label: 'Publicar evento' },
+    canPublish && { value: 'sales-opening', label: 'Abrir vendas' },
+    canPublish && { value: 'sales-closing', label: 'Encerrar vendas' },
+    canOperate && { value: 'operation-start', label: 'Iniciar operacao' },
+    canOperate && { value: 'operation-closing', label: 'Encerrar operacao' },
+  ].filter(Boolean) as { value: string; label: string }[];
   const events = recent('event');
   const [form, setForm] = useState({
     name: '', venueId: '', startsAt: fromNowLocalInput(24 * 60), endsAt: fromNowLocalInput(27 * 60),
@@ -66,7 +79,7 @@ function EventSetup() {
   });
   const [eventRef, setEventRef] = useState({ id: '', version: '0', status: 'RASCUNHO', name: '' });
   const [reentryPolicy, setReentryPolicy] = useState('ENTRADA_UNICA');
-  const [action, setAction] = useState('update');
+  const [action, setAction] = useState(() => allowedActions[0]?.value ?? '');
   const [salesStartsAt, setSalesStartsAt] = useState('');
   const [result, setResult] = useState<EventResponse | null>(null);
   const [loading, setLoading] = useState(false);
@@ -129,7 +142,7 @@ function EventSetup() {
 
   return (
     <Stack spacing={2}>
-      <OperationCard title="Criar evento" description="A chave idempotente e gerada por tentativa de criacao." error={error}>
+      {canCreate && <OperationCard title="Criar evento" description="A chave idempotente e gerada por tentativa de criacao." error={error}>
         <Stack component="form" spacing={2} onSubmit={(event) => void create(event)}>
           <TextField label="Nome do evento" value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} required />
           <ResourceIdField label="ID do local (Venue)" value={form.venueId} onChange={(venueId) => setForm((current) => ({ ...current, venueId }))} recent={recent('venue')} />
@@ -143,8 +156,8 @@ function EventSetup() {
           </Stack>
           <Button type="submit" variant="contained" disabled={loading} startIcon={loading ? <CircularProgress size={18} color="inherit" /> : <EventAvailableOutlinedIcon />} sx={{ alignSelf: 'flex-start' }}>Criar evento</Button>
         </Stack>
-      </OperationCard>
-      <OperationCard
+      </OperationCard>}
+      {allowedActions.length > 0 && <OperationCard
         title="Ciclo de vida"
         description="Como nao existe GET de evento, selecione uma resposta recente ou informe ID, versao e estado conhecidos."
         error={error}
@@ -157,19 +170,14 @@ function EventSetup() {
         </Stack>
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
           <TextField select label="Operacao" value={action} onChange={(event) => setAction(event.target.value)} fullWidth>
-            <MenuItem value="update">Alterar politica de reentrada</MenuItem>
-            <MenuItem value="publication">Publicar evento</MenuItem>
-            <MenuItem value="sales-opening">Abrir vendas</MenuItem>
-            <MenuItem value="sales-closing">Encerrar vendas</MenuItem>
-            <MenuItem value="operation-start">Iniciar operacao</MenuItem>
-            <MenuItem value="operation-closing">Encerrar operacao</MenuItem>
+            {allowedActions.map((item) => <MenuItem key={item.value} value={item.value}>{item.label}</MenuItem>)}
           </TextField>
           {action === 'update' && <TextField select label="Politica de reentrada" value={reentryPolicy} onChange={(event) => setReentryPolicy(event.target.value)} fullWidth><MenuItem value="ENTRADA_UNICA">Entrada unica</MenuItem><MenuItem value="REENTRADA_PERMITIDA">Reentrada permitida</MenuItem></TextField>}
           {action === 'sales-opening' && <TextField label="Inicio das vendas (opcional)" type="datetime-local" value={salesStartsAt} onChange={(event) => setSalesStartsAt(event.target.value)} InputLabelProps={{ shrink: true }} fullWidth />}
         </Stack>
         {action === 'operation-closing' && <Alert severity="warning">O backend exige confirmacao explicita de que a pendencia financeira externa foi reconhecida.</Alert>}
         <Button variant="contained" disabled={loading || !eventRef.id} onClick={() => void execute()} startIcon={loading ? <CircularProgress size={18} color="inherit" /> : <PublishOutlinedIcon />} sx={{ alignSelf: 'flex-start' }}>Executar operacao</Button>
-      </OperationCard>
+      </OperationCard>}
     </Stack>
   );
 }
@@ -388,16 +396,27 @@ function AvailabilityPanel() {
 }
 
 export function EventsPage() {
+  const { permissions } = useAuth();
   const [tab, setTab] = useState(0);
-  const panels = [<EventSetup />, <AllocationSetup />, <ProductSetup />, <PriceTierSetup />, <AvailabilityPanel />];
+  const panels = [
+    (permissions.includes('events:create') || permissions.includes('events:publish') || permissions.includes('access:operate'))
+      && { label: 'Evento', content: <EventSetup /> },
+    permissions.includes('inventory:manage') && { label: 'Alocacao', content: <AllocationSetup /> },
+    permissions.includes('pricing:manage') && { label: 'Produto', content: <ProductSetup /> },
+    permissions.includes('pricing:manage') && { label: 'Lote de preco', content: <PriceTierSetup /> },
+    { label: 'Disponibilidade', content: <AvailabilityPanel /> },
+  ].filter(Boolean) as { label: string; content: ReactNode }[];
+  useEffect(() => {
+    if (tab >= panels.length) setTab(0);
+  }, [panels.length, tab]);
   return (
     <Box>
       <PageHeader title="Eventos e ofertas" subtitle="Configure o evento, inventario vendavel, produto e preco antes de abrir vendas." />
       <Alert severity="info" sx={{ mb: 2 }}>A API ainda nao lista eventos, alocacoes, produtos ou lotes. O workspace apresenta somente respostas reais criadas ou atualizadas neste navegador.</Alert>
       <Tabs value={tab} onChange={(_, value) => setTab(value)} variant="scrollable" sx={{ mb: 2 }}>
-        <Tab label="Evento" /><Tab label="Alocacao" /><Tab label="Produto" /><Tab label="Lote de preco" /><Tab label="Disponibilidade" />
+        {panels.map((panel) => <Tab key={panel.label} label={panel.label} />)}
       </Tabs>
-      {panels[tab]}
+      {panels[tab]?.content}
     </Box>
   );
 }

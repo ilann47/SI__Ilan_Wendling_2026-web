@@ -55,6 +55,8 @@ Vitest cobre criacao de hold com payload real, isolamento e chave idempotente.
 - A listagem de pedidos usa cursor e ownership do backend.
 - Credenciais sem endpoint de busca sao consultadas por ID ou resposta recente.
 - O token QR nao e logado nem persistido localmente.
+- Holds, pedidos e credenciais sao abas independentes e somente sao montadas
+  quando o principal possui a permissao contextual exigida pela operacao.
 
 ## Modulos relacionados
 
@@ -69,3 +71,4 @@ Vitest cobre criacao de hold com payload real, isolamento e chave idempotente.
 | Data | Acao |
 |---|---|
 | 2026-08-03 | Implementa holds, pedidos, confirmacao, cancelamento, credenciais e QR. |
+| 2026-08-03 | Restringe cada area comercial por permissao contextual efetiva. |
