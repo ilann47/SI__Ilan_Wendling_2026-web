@@ -7,6 +7,13 @@ export const cargosConfig: ResourceConfig = {
   basePath: '/api/cargos',
   singular: 'Cargo',
   plural: 'Cargos',
+  tenantAware: true,
+  permissions: {
+    read: ['workforce:read'],
+    create: ['workforce:manage'],
+    update: ['workforce:manage'],
+    delete: ['workforce:manage'],
+  },
   defaultSort: 'nome,asc',
   columns: [
     cols.id(),

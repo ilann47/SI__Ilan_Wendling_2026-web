@@ -80,4 +80,14 @@ describe('App - compatibilidade legada', () => {
       'suppliers:read',
     );
   });
+
+  it('protege a rota preservada de cargos com workforce:read', async () => {
+    render(<MemoryRouter initialEntries={['/app/cargos']}><App /></MemoryRouter>);
+
+    const heading = await screen.findByRole('heading', { name: 'Cargos' });
+    expect(heading.closest('[data-permissions]')).toHaveAttribute(
+      'data-permissions',
+      'workforce:read',
+    );
+  });
 });

@@ -48,4 +48,11 @@ describe('navigation - compatibilidade legada', () => {
 
     expect(item?.permissions).toEqual(['suppliers:read']);
   });
+
+  it('exige leitura contextual para Cargos', () => {
+    const item = navGroups.flatMap((group) => group.items)
+      .find((candidate) => candidate.label === 'Cargos');
+
+    expect(item?.permissions).toEqual(['workforce:read']);
+  });
 });

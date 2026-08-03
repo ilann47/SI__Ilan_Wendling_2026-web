@@ -1,4 +1,4 @@
-> Links: [[core]] · [[auth]] · [[paridade-api]] · [[eventos]] · [[pagamentos]] · [[clientes]] · [[logistica]] · [[fornecedores]]
+> Links: [[core]] · [[auth]] · [[paridade-api]] · [[eventos]] · [[pagamentos]] · [[clientes]] · [[logistica]] · [[fornecedores]] · [[rh]]
 
 # Compatibilidade Legada
 
@@ -45,9 +45,9 @@ Nenhuma nova integração. As telas chamam somente o backend existente.
 ## Tratamento de Erros
 
 Permanece centralizado em `api/client` e nos componentes CRUD. As APIs legadas,
-exceto Pagamentos V38, Clientes V40, Transportadoras V41 e Fornecedores V42,
-ainda não possuem escopo por organização; esse risco não é ocultado nem corrigido
-no frontend.
+exceto Pagamentos V38, Clientes V40, Transportadoras V41, Fornecedores V42 e
+Cargos V43, ainda não possuem escopo por organização; esse risco não é ocultado
+nem corrigido no frontend.
 
 ## Testes (curl ou equivalente)
 
@@ -75,6 +75,7 @@ no frontend.
 - [[clientes]]
 - [[logistica]]
 - [[fornecedores]]
+- [[rh]]
 
 ## Histórico (data + ação)
 
@@ -86,3 +87,4 @@ no frontend.
 | 2026-08-03 | Registra Clientes como segunda fatia legada adaptada ao JWT contextual V40. |
 | 2026-08-03 | Registra Transportadoras como terceira fatia adaptada ao JWT contextual V41. |
 | 2026-08-03 | Registra Fornecedores como quarta fatia adaptada ao JWT contextual V42. |
+| 2026-08-03 | Registra Cargos como quinta fatia adaptada ao JWT contextual V43. |

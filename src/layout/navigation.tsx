@@ -158,7 +158,12 @@ export const navGroups: NavGroup[] = [
   {
     label: 'RH & Acesso',
     items: [
-      { label: 'Cargos', path: '/app/cargos', icon: <BadgeOutlinedIcon fontSize="small" /> },
+      {
+        label: 'Cargos',
+        path: '/app/cargos',
+        icon: <BadgeOutlinedIcon fontSize="small" />,
+        permissions: ['workforce:read'],
+      },
       { label: 'Funcionários', path: '/app/funcionarios', icon: <WorkOutlineIcon fontSize="small" /> },
       { label: 'Usuários', path: '/app/usuarios', icon: <ManageAccountsOutlinedIcon fontSize="small" /> },
     ],

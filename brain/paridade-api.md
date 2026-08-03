@@ -1,4 +1,4 @@
-> Links: [[core]] · [[auth]] · [[administracao]] · [[instalacoes]] · [[eventos]] · [[vendas]] · [[pagamentos]] · [[clientes]] · [[logistica]] · [[fornecedores]] · [[acesso]] · [[dashboard]] · [[bloqueios]]
+> Links: [[core]] · [[auth]] · [[administracao]] · [[instalacoes]] · [[eventos]] · [[vendas]] · [[pagamentos]] · [[clientes]] · [[logistica]] · [[fornecedores]] · [[rh]] · [[acesso]] · [[dashboard]] · [[bloqueios]]
 
 # Paridade API Enterprise
 
@@ -13,10 +13,10 @@ A matriz foi confrontada com os controllers Java e com as chamadas Axios do
 frontend. Ela cobre 46 operações: login e as 45 operações `/api/v1`. Os
 controllers legados `/api/*` permanecem acessíveis no shell por compatibilidade
 funcional com a aplicação anterior. Pagamentos V38, Clientes V40,
-Transportadoras V41 e Fornecedores V42 já carregam escopo organizacional; os
-demais contratos legados ainda não. A matriz registra separadamente cobertura
-funcional e cobertura tenant-aware durante a migração descrita em
-[[unificacao-multitenant]].
+Transportadoras V41, Fornecedores V42 e Cargos V43 já carregam escopo
+organizacional; os demais contratos legados ainda não. A matriz registra
+separadamente cobertura funcional e cobertura tenant-aware durante a migração
+descrita em [[unificacao-multitenant]].
 
 ## Fluxo (camadas da arquitetura)
 
@@ -84,6 +84,7 @@ controller + PreAuthorize -> rota/comando da UI -> cliente HTTP -> resposta real
 | `/api/clientes` | `customers:read`, `customers:manage` | Cadastro/Clientes | Integrada e isolada por organização |
 | `/api/transportadoras` | `logistics:read`, `logistics:manage` | Logística/Transportadoras | Integrada e isolada por organização |
 | `/api/fornecedores` | `suppliers:read`, `suppliers:manage` | Cadastro/Fornecedores | Integrada e isolada por organização |
+| `/api/cargos` | `workforce:read`, `workforce:manage` | RH/Cargos | Integrada e isolada por organização |
 
 ## Lacunas de leitura do contrato atual
 
@@ -138,6 +139,7 @@ críticas e granularidade de RBAC. A validação real local complementa esta mat
 - [[clientes]]
 - [[logistica]]
 - [[fornecedores]]
+- [[rh]]
 - [[acesso]]
 - [[dashboard]]
 - [[bloqueios]]
@@ -153,3 +155,4 @@ críticas e granularidade de RBAC. A validação real local complementa esta mat
 | 2026-08-03 | Registra Clientes como contrato tenant-aware do backend V40. |
 | 2026-08-03 | Registra Transportadoras como contrato tenant-aware do backend V41. |
 | 2026-08-03 | Registra Fornecedores como contrato tenant-aware do backend V42. |
+| 2026-08-03 | Registra Cargos como contrato tenant-aware do backend V43. |

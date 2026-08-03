@@ -6,6 +6,7 @@ import {
 } from '../../resources/pessoasPagamento';
 import { transportadorasConfig } from '../../resources/logistica';
 import { fornecedoresConfig } from '../../resources/fornecedorConveniencia';
+import { cargosConfig } from '../../resources/rhUsuario';
 import {
   hasResourceActionPermission,
   resourceQueryKey,
@@ -180,6 +181,49 @@ describe('ResourceConfig tenant-aware de fornecedores', () => {
       10,
       'list',
       '/api/fornecedores',
+      { page: 0 },
+    ]);
+    expect(organizationTwo).not.toEqual(organizationOne);
+  });
+});
+
+describe('ResourceConfig tenant-aware de cargos', () => {
+  it('separa leitura e manutencao do cadastro', () => {
+    expect(cargosConfig.tenantAware).toBe(true);
+    expect(cargosConfig.permissions).toEqual({
+      read: ['workforce:read'],
+      create: ['workforce:manage'],
+      update: ['workforce:manage'],
+      delete: ['workforce:manage'],
+    });
+
+    expect(hasResourceActionPermission(cargosConfig, 'read', ['workforce:read'])).toBe(true);
+    expect(hasResourceActionPermission(cargosConfig, 'create', ['workforce:read'])).toBe(false);
+    expect(hasResourceActionPermission(cargosConfig, 'update', ['workforce:manage'])).toBe(true);
+    expect(hasResourceActionPermission(cargosConfig, 'delete', [])).toBe(false);
+  });
+
+  it('particiona consultas pela organizacao ativa', () => {
+    const organizationOne = resourceQueryKey(
+      cargosConfig,
+      10,
+      'list',
+      cargosConfig.basePath,
+      { page: 0 },
+    );
+    const organizationTwo = resourceQueryKey(
+      cargosConfig,
+      20,
+      'list',
+      cargosConfig.basePath,
+      { page: 0 },
+    );
+
+    expect(organizationOne).toEqual([
+      'tenant',
+      10,
+      'list',
+      '/api/cargos',
       { page: 0 },
     ]);
     expect(organizationTwo).not.toEqual(organizationOne);
