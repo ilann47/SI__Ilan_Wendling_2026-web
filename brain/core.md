@@ -1,4 +1,4 @@
-> Links: [[auth]] · [[acesso]] · [[administracao]] · [[workspace]] · [[instalacoes]] · [[eventos]] · [[vendas]] · [[dashboard]] · [[bloqueios]]
+> Links: [[auth]] · [[acesso]] · [[administracao]] · [[workspace]] · [[instalacoes]] · [[eventos]] · [[vendas]] · [[dashboard]] · [[bloqueios]] · [[paridade-api]]
 
 # Frontend Kaneko
 
@@ -70,6 +70,7 @@ Testing Library; E2E contra o backend real será acrescentado no recorte própri
   de um tenant porque suas APIs não garantem isolamento organizacional.
 - O shell possui skip link, foco visível, rótulos acessíveis e respeita redução
   de movimento. A fonte externa foi removida para não depender de rede na operação.
+- A cobertura controller por controller está registrada em [[paridade-api]].
 
 ## Módulos relacionados
 
@@ -92,3 +93,4 @@ Testing Library; E2E contra o backend real será acrescentado no recorte própri
 | 2026-08-03 | Adiciona funil de holds, pedidos, cancelamento e credenciais. |
 | 2026-08-03 | Adiciona dashboard de disponibilidade e decisoes de acesso reais. |
 | 2026-08-03 | Reforça acessibilidade, seleção de tenant e permissões por ação. |
+| 2026-08-03 | Consolida a matriz de paridade das APIs enterprise. |
