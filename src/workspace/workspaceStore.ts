@@ -22,8 +22,8 @@ export type WorkspaceKind =
 
 export type WorkspaceState = Partial<Record<WorkspaceKind, WorkspaceResource[]>>;
 
-export function workspaceStorageKey(organizationId: number): string {
-  return `kaneko.workspace.${organizationId}`;
+export function workspaceStorageKey(organizationId: number, membershipId: number): string {
+  return `kaneko.workspace.${organizationId}.${membershipId}`;
 }
 
 export function mergeWorkspaceResource(
@@ -33,15 +33,22 @@ export function mergeWorkspaceResource(
   return [resource, ...current.filter((item) => item.id !== resource.id)].slice(0, 20);
 }
 
-export function readWorkspace(organizationId: number): WorkspaceState {
+export function readWorkspace(organizationId: number, membershipId: number): WorkspaceState {
   try {
-    const raw = localStorage.getItem(workspaceStorageKey(organizationId));
+    const raw = localStorage.getItem(workspaceStorageKey(organizationId, membershipId));
     return raw ? JSON.parse(raw) as WorkspaceState : {};
   } catch {
     return {};
   }
 }
 
-export function writeWorkspace(organizationId: number, state: WorkspaceState): void {
-  localStorage.setItem(workspaceStorageKey(organizationId), JSON.stringify(state));
+export function writeWorkspace(
+  organizationId: number,
+  membershipId: number,
+  state: WorkspaceState,
+): void {
+  localStorage.setItem(
+    workspaceStorageKey(organizationId, membershipId),
+    JSON.stringify(state),
+  );
 }

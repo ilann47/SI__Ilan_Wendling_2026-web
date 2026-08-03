@@ -28,14 +28,21 @@ export function useOperationalWorkspace(): OperationalWorkspaceValue {
 export function OperationalWorkspaceProvider({ children }: { children: ReactNode }) {
   const { activeOrganization } = useAuth();
   const organizationId = activeOrganization?.organizationId;
+  const membershipId = activeOrganization?.membershipId;
   const [resources, setResources] = useState<WorkspaceState>({});
 
   useEffect(() => {
-    setResources(organizationId ? readWorkspace(organizationId) : {});
-  }, [organizationId]);
+    setResources(
+      organizationId && membershipId
+        ? readWorkspace(organizationId, membershipId)
+        : {},
+    );
+  }, [membershipId, organizationId]);
 
   const remember = useCallback<OperationalWorkspaceValue['remember']>((kind, resource) => {
-    if (!organizationId) throw new Error('Contexto organizacional ausente.');
+    if (!organizationId || !membershipId) {
+      throw new Error('Contexto organizacional ausente.');
+    }
     setResources((current) => {
       const next = {
         ...current,
@@ -44,17 +51,17 @@ export function OperationalWorkspaceProvider({ children }: { children: ReactNode
           updatedAt: resource.updatedAt ?? new Date().toISOString(),
         }),
       };
-      writeWorkspace(organizationId, next);
+      writeWorkspace(organizationId, membershipId, next);
       return next;
     });
-  }, [organizationId]);
+  }, [membershipId, organizationId]);
 
   const clear = useCallback(() => {
-    if (!organizationId) return;
+    if (!organizationId || !membershipId) return;
     const next = {};
-    writeWorkspace(organizationId, next);
+    writeWorkspace(organizationId, membershipId, next);
     setResources(next);
-  }, [organizationId]);
+  }, [membershipId, organizationId]);
 
   const recent = useCallback((kind: WorkspaceKind) => resources[kind] ?? [], [resources]);
 
