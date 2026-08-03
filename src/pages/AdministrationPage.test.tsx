@@ -4,9 +4,11 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { api } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
+import { useOperationalWorkspace } from '../workspace/OperationalWorkspaceContext';
 import { AdministrationPage } from './AdministrationPage';
 
 vi.mock('../auth/AuthContext', () => ({ useAuth: vi.fn() }));
+vi.mock('../workspace/OperationalWorkspaceContext', () => ({ useOperationalWorkspace: vi.fn() }));
 vi.mock('../components/SnackbarProvider', () => ({
   useSnackbar: () => ({ notify: vi.fn() }),
 }));
@@ -14,6 +16,33 @@ vi.mock('../components/SnackbarProvider', () => ({
 afterEach(() => vi.restoreAllMocks());
 
 describe('AdministrationPage', () => {
+  it('nao oferece consulta ou alteracao para quem pode apenas convidar', () => {
+    vi.mocked(useOperationalWorkspace).mockReturnValue({ recent: () => [], remember: vi.fn() } as unknown as ReturnType<typeof useOperationalWorkspace>);
+    vi.mocked(useAuth).mockReturnValue({
+      activeOrganization: { organizationId: 9, legalName: 'Kaneko' },
+      permissions: ['users:invite'],
+    } as unknown as ReturnType<typeof useAuth>);
+
+    render(<AdministrationPage />);
+
+    expect(screen.getByRole('button', { name: 'Criar vinculo' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Consultar' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Alterar estado' })).not.toBeInTheDocument();
+  });
+
+  it('separa concessao e revogacao de papeis', () => {
+    vi.mocked(useOperationalWorkspace).mockReturnValue({ recent: () => [], remember: vi.fn() } as unknown as ReturnType<typeof useOperationalWorkspace>);
+    vi.mocked(useAuth).mockReturnValue({
+      activeOrganization: { organizationId: 9, legalName: 'Kaneko' },
+      permissions: ['roles:grant'],
+    } as unknown as ReturnType<typeof useAuth>);
+
+    render(<AdministrationPage />);
+
+    expect(screen.getByRole('button', { name: 'Conceder papel' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Revogar atribuicao' })).not.toBeInTheDocument();
+  });
+
   it('atualiza a organizacao usando a versao carregada', async () => {
     vi.mocked(useAuth).mockReturnValue({
       activeOrganization: { organizationId: 9, legalName: 'Kaneko' },

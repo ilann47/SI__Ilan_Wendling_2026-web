@@ -47,6 +47,15 @@ export function createAppTheme(mode: AppColorMode) {
           '*::-webkit-scrollbar-thumb:hover': { backgroundColor: scrollThumbHover },
           '*::-webkit-scrollbar-button': { display: 'none', width: 0, height: 0 },
           '*::-webkit-scrollbar-corner': { backgroundColor: 'transparent' },
+          ':focus-visible': { outline: '3px solid #ffb300', outlineOffset: 2 },
+          '@media (prefers-reduced-motion: reduce)': {
+            '*, *::before, *::after': {
+              animationDuration: '0.01ms !important',
+              animationIterationCount: '1 !important',
+              transitionDuration: '0.01ms !important',
+              scrollBehavior: 'auto !important',
+            },
+          },
         },
       },
       MuiButton: { defaultProps: { disableElevation: true } },

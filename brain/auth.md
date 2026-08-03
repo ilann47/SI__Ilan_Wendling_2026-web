@@ -65,6 +65,9 @@ Validação disponível por `npm run typecheck` e `npm run build`.
   não é tratado como controle de acesso.
 - Usuário autenticado sem Membership ativa recebe estado explícito e não acessa
   a interface global legada.
+- A seleção permite pesquisa e destaca somente uma organização recente que ainda
+  esteja presente na projeção acessível retornada pelo servidor.
+- O login permite revelar a senha de forma acessível sem registrar seu valor.
 
 ## Módulos relacionados
 
@@ -78,3 +81,4 @@ Validação disponível por `npm run typecheck` e `npm run build`.
 | 2026-08-01 | Implementa descoberta e seleção de organização com JWT contextual. |
 | 2026-08-02 | Isola o cache remoto no logout e na troca de organização. |
 | 2026-08-02 | Torna a troca de tenant atômica e fecha rotas por permissão efetiva. |
+| 2026-08-03 | Adiciona pesquisa, preferência recente e controle acessível de senha. |

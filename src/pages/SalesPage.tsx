@@ -129,6 +129,7 @@ function OrderPanel() {
   const { notify } = useSnackbar();
   const queryClient = useQueryClient();
   const organizationId = activeOrganization!.organizationId;
+  const canCreate = permissions.includes('orders:create');
   const canRead = permissions.includes('orders:read');
   const canManual = permissions.includes('orders:manual-confirm');
   const canCancel = permissions.includes('orders:cancel');
@@ -193,7 +194,7 @@ function OrderPanel() {
   const choose = (id: string) => { setOrderId(id); const found = snapshot<OrderResponse>(recent('order'), id); if (found) accept(found); };
   return (
     <Stack spacing={2}>
-      <OperationCard title="Criar pedido" description="Consome um hold mantido do proprio ator e preserva o preco capturado." error={error}>
+      {canCreate && <OperationCard title="Criar pedido" description="Consome um hold mantido do proprio ator e preserva o preco capturado." error={error}>
         <Stack component="form" spacing={2} onSubmit={(event) => void create(event)}>
           <ResourceIdField label="ID do hold" value={form.holdId} onChange={(holdId) => setForm((current) => ({ ...current, holdId }))} recent={recent('hold')} />
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
@@ -207,7 +208,7 @@ function OrderPanel() {
           </Stack>
           <Button type="submit" variant="contained" disabled={loading !== null} startIcon={loading === 'create' ? <CircularProgress size={18} color="inherit" /> : <AddShoppingCartOutlinedIcon />} sx={{ alignSelf: 'flex-start' }}>Criar pedido</Button>
         </Stack>
-      </OperationCard>
+      </OperationCard>}
       {canRead && (
         <OperationCard title="Meus pedidos" description="A listagem e paginada por cursor e limitada aos pedidos do ator autenticado." error={orders.isError ? describeError(orders.error) : null}>
           <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
@@ -221,12 +222,12 @@ function OrderPanel() {
           <Stack direction="row" justifyContent="space-between"><Button disabled={cursorHistory.length === 1} onClick={() => setCursorHistory((current) => current.slice(0, -1))}>Anterior</Button><Button disabled={!orders.data?.hasMore || !orders.data.nextCursor} onClick={() => orders.data?.nextCursor && setCursorHistory((current) => [...current, orders.data!.nextCursor!])}>Proxima</Button></Stack>
         </OperationCard>
       )}
-      <OperationCard title="Operar pedido" description="Consulte para obter a versao mais recente antes de confirmar ou cancelar." error={error} result={order ? <ResourceSnapshot data={{ id: order.id, number: order.number, eventId: order.eventId, buyer: order.buyer.name, status: order.status, total: `${order.currency} ${Number(order.total).toFixed(2)}`, vehiclePlate: order.vehiclePlate, version: order.version }} /> : undefined}>
+      {(canRead || canManual || canCancel) && <OperationCard title="Operar pedido" description={canRead ? 'Consulte para obter a versao mais recente antes de confirmar ou cancelar.' : 'Informe o ID e a versao conhecida para executar somente a operacao autorizada.'} error={error} result={order ? <ResourceSnapshot data={{ id: order.id, number: order.number, eventId: order.eventId, buyer: order.buyer.name, status: order.status, total: `${order.currency} ${Number(order.total).toFixed(2)}`, vehiclePlate: order.vehiclePlate, version: order.version }} /> : undefined}>
         <ResourceIdField label="ID do pedido" value={orderId} onChange={choose} recent={recent('order')} />
-        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}><TextField label="Versao" type="number" value={version} onChange={(event) => setVersion(event.target.value)} inputProps={{ min: 0 }} required fullWidth /><Button variant="outlined" disabled={!orderId || loading !== null} onClick={() => void load()} startIcon={<SearchOutlinedIcon />}>Consultar</Button></Stack>
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}><TextField label="Versao" type="number" value={version} onChange={(event) => setVersion(event.target.value)} inputProps={{ min: 0 }} required fullWidth />{canRead && <Button variant="outlined" disabled={!orderId || loading !== null} onClick={() => void load()} startIcon={<SearchOutlinedIcon />}>Consultar</Button>}</Stack>
         {canManual && <Stack spacing={2}><Typography variant="subtitle2">Confirmacao manual</Typography><Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}><TextField label="Metodo" value={manual.paymentMethod} onChange={(event) => setManual((current) => ({ ...current, paymentMethod: event.target.value.toUpperCase() }))} fullWidth /><TextField label="Referencia da evidencia" value={manual.evidenceReference} onChange={(event) => setManual((current) => ({ ...current, evidenceReference: event.target.value }))} fullWidth /></Stack><TextField label="Motivo" value={manual.reason} onChange={(event) => setManual((current) => ({ ...current, reason: event.target.value }))} /><Button variant="contained" disabled={loading !== null || !orderId || !manual.evidenceReference || !manual.reason} onClick={() => void confirmManual()} startIcon={<CreditScoreOutlinedIcon />}>Confirmar manualmente</Button></Stack>}
         {canCancel && <Stack spacing={1}><TextField label="Motivo do cancelamento" value={cancelReason} onChange={(event) => setCancelReason(event.target.value)} multiline minRows={2} /><Button color="error" variant="outlined" disabled={loading !== null || !orderId || !cancelReason} onClick={() => setConfirmCancel(true)}>Cancelar pedido</Button></Stack>}
-      </OperationCard>
+      </OperationCard>}
       <ConfirmDialog open={confirmCancel} title="Cancelar pedido" message="Esta acao pode liberar inventario, bloquear credenciais e gerar pendencia externa de reembolso." confirmLabel="Confirmar cancelamento" confirmColor="error" loading={loading === 'cancel'} onClose={() => setConfirmCancel(false)} onConfirm={() => void cancel()} />
     </Stack>
   );

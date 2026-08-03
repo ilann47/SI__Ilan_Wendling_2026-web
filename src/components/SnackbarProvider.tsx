@@ -35,7 +35,7 @@ export function SnackbarProvider({ children }: { children: ReactNode }) {
         onClose={handleClose}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
       >
-        <Alert onClose={handleClose} severity={state.severity} variant="filled" sx={{ width: '100%' }}>
+        <Alert role="status" aria-live="polite" onClose={handleClose} severity={state.severity} variant="filled" sx={{ width: '100%' }}>
           {state.message}
         </Alert>
       </Snackbar>

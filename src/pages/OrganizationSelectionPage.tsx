@@ -7,17 +7,30 @@ import {
   CardActions,
   CardContent,
   CircularProgress,
+  Chip,
+  InputAdornment,
   Stack,
+  TextField,
   Typography,
 } from '@mui/material';
 import BusinessOutlinedIcon from '@mui/icons-material/BusinessOutlined';
+import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined';
 import { describeError } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
+import { readLastOrganizationId } from '../auth/organizationPreference';
 
 export function OrganizationSelectionPage() {
   const { organizations, selectOrganization, logout } = useAuth();
   const [selecting, setSelecting] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
+  const lastOrganizationId = readLastOrganizationId();
+  const term = search.trim().toLocaleLowerCase('pt-BR');
+  const visibleOrganizations = [...organizations]
+    .filter((organization) => !term || [organization.legalName, organization.tradeName]
+      .filter(Boolean).join(' ').toLocaleLowerCase('pt-BR').includes(term))
+    .sort((left, right) => Number(right.organizationId === lastOrganizationId)
+      - Number(left.organizationId === lastOrganizationId));
 
   const select = async (organizationId: number) => {
     setSelecting(organizationId);
@@ -41,7 +54,13 @@ export function OrganizationSelectionPage() {
           </Typography>
         </Box>
         {error && <Alert severity="error">{error}</Alert>}
-        {organizations.map((organization) => (
+        <TextField
+          label="Pesquisar organizacao"
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+          InputProps={{ startAdornment: <InputAdornment position="start"><SearchOutlinedIcon /></InputAdornment> }}
+        />
+        {visibleOrganizations.map((organization) => (
           <Card key={organization.organizationId} variant="outlined">
             <CardContent sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
               <BusinessOutlinedIcon color="primary" />
@@ -49,6 +68,7 @@ export function OrganizationSelectionPage() {
                 <Typography variant="subtitle1">
                   {organization.tradeName || organization.legalName}
                 </Typography>
+                {organization.organizationId === lastOrganizationId && <Chip label="Usada recentemente" size="small" color="primary" variant="outlined" sx={{ mt: 0.5 }} />}
                 {organization.tradeName && (
                   <Typography variant="body2" color="text.secondary">
                     {organization.legalName}
@@ -69,6 +89,7 @@ export function OrganizationSelectionPage() {
             </CardActions>
           </Card>
         ))}
+        {visibleOrganizations.length === 0 && <Alert severity="info">Nenhuma organizacao corresponde a pesquisa.</Alert>}
         <Button color="inherit" onClick={logout}>Sair</Button>
       </Stack>
     </Box>

@@ -1,4 +1,4 @@
-> Links: [[auth]] · [[acesso]] · [[administracao]] · [[workspace]] · [[instalacoes]] · [[eventos]] · [[vendas]] · [[dashboard]]
+> Links: [[auth]] · [[acesso]] · [[administracao]] · [[workspace]] · [[instalacoes]] · [[eventos]] · [[vendas]] · [[dashboard]] · [[bloqueios]]
 
 # Frontend Kaneko
 
@@ -58,8 +58,9 @@ Testing Library; E2E contra o backend real será acrescentado no recorte própri
 - A tela de seleção troca o contexto emitindo novo JWT; IDs de tenant não são
   enviados por header.
 - O login continua emitindo JWT global compatível com as APIs legadas.
-- Usuário sem Membership conserva o fluxo legado. Uma única organização é
-  selecionada automaticamente; múltiplas exigem escolha explícita.
+- Usuário sem Membership recebe estado explícito de acesso não provisionado e
+  não entra no shell tenant-aware. Uma única organização é selecionada
+  automaticamente; múltiplas exigem escolha explícita e podem ser pesquisadas.
 - O vendor compartilhado ainda gera aviso acima de 500 kB; páginas operacionais
   agora são carregadas em chunks independentes.
 - Ferramentas de teste e lint são somente `devDependencies`; Vite 7 e Vitest 4
@@ -67,6 +68,8 @@ Testing Library; E2E contra o backend real será acrescentado no recorte própri
 - O shell contextual registra somente o fluxo enterprise de eventos. Módulos
   legados continuam no código para compatibilidade, mas não são roteados dentro
   de um tenant porque suas APIs não garantem isolamento organizacional.
+- O shell possui skip link, foco visível, rótulos acessíveis e respeita redução
+  de movimento. A fonte externa foi removida para não depender de rede na operação.
 
 ## Módulos relacionados
 
@@ -88,3 +91,4 @@ Testing Library; E2E contra o backend real será acrescentado no recorte própri
 | 2026-08-03 | Adiciona configuracao e ciclo operacional completo de eventos e ofertas. |
 | 2026-08-03 | Adiciona funil de holds, pedidos, cancelamento e credenciais. |
 | 2026-08-03 | Adiciona dashboard de disponibilidade e decisoes de acesso reais. |
+| 2026-08-03 | Reforça acessibilidade, seleção de tenant e permissões por ação. |

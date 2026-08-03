@@ -37,4 +37,25 @@ describe('AppLayout', () => {
 
     await waitFor(() => expect(selectOrganization).toHaveBeenCalledWith(11));
   });
+
+  it('oferece atalhos e rotulos para navegacao por teclado', () => {
+    vi.mocked(useAuth).mockReturnValue({
+      user: { login: 'operador', perfil: 'OPERADOR' },
+      activeOrganization: { organizationId: 10, legalName: 'Kaneko A' },
+      organizations: [{ organizationId: 10, legalName: 'Kaneko A' }],
+      permissions: [],
+      logout: vi.fn(),
+      selectOrganization: vi.fn(),
+    } as unknown as ReturnType<typeof useAuth>);
+
+    render(
+      <MemoryRouter initialEntries={['/app']}>
+        <Routes><Route path="/app" element={<AppLayout />} /></Routes>
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByRole('link', { name: 'Ir para o conteudo principal' })).toHaveAttribute('href', '#conteudo-principal');
+    expect(screen.getByRole('button', { name: 'Abrir menu de navegacao' })).toBeInTheDocument();
+    expect(screen.getAllByRole('navigation', { name: 'Navegacao principal' }).length).toBeGreaterThan(0);
+  });
 });

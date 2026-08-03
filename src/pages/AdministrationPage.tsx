@@ -144,7 +144,7 @@ function OrganizationProfile() {
   );
 }
 
-function MembershipOperations() {
+function MembershipOperations({ canInvite, canManage }: { canInvite: boolean; canManage: boolean }) {
   const { activeOrganization } = useAuth();
   const { recent, remember } = useOperationalWorkspace();
   const organizationId = activeOrganization!.organizationId;
@@ -200,15 +200,15 @@ function MembershipOperations() {
       <Alert severity="info">
         A API atual nao oferece listagem de Memberships. Cadastre pelo ID global do usuario ou consulte um vinculo conhecido.
       </Alert>
-      <OperationCard title="Adicionar usuario" description="Cria uma Membership ativa no tenant atual." error={error}>
+      {canInvite && <OperationCard title="Adicionar usuario" description="Cria uma Membership ativa no tenant atual." error={error}>
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
           <TextField label="ID global do usuario" type="number" value={userId} onChange={(event) => setUserId(event.target.value)} inputProps={{ min: 1 }} required fullWidth />
           <Button variant="contained" disabled={!userId || loading !== null} onClick={() => void run('create')} startIcon={loading === 'create' ? <CircularProgress size={18} color="inherit" /> : <GroupAddOutlinedIcon />}>
             Criar vinculo
           </Button>
         </Stack>
-      </OperationCard>
-      <OperationCard
+      </OperationCard>}
+      {canManage && <OperationCard
         title="Consultar e alterar Membership"
         description="A consulta recupera a versao exigida pelo PATCH concorrente. ENCERRADO e terminal."
         error={error}
@@ -228,7 +228,7 @@ function MembershipOperations() {
             Alterar estado
           </Button>
         </Stack>
-      </OperationCard>
+      </OperationCard>}
     </Stack>
   );
 }
@@ -237,7 +237,7 @@ const roleCodes = [
   'ADMIN_ORGANIZACAO', 'GESTOR', 'ORGANIZADOR', 'SUPERVISOR', 'OPERADOR', 'FISCAL_ACESSO',
 ] as const;
 
-function RoleOperations() {
+function RoleOperations({ canGrant, canRevoke }: { canGrant: boolean; canRevoke: boolean }) {
   const { activeOrganization } = useAuth();
   const { recent } = useOperationalWorkspace();
   const organizationId = activeOrganization!.organizationId;
@@ -289,7 +289,7 @@ function RoleOperations() {
       <Alert severity="info">
         O catalogo abaixo reflete os papeis de sistema definidos nas migrations. A API ainda nao oferece leitura de papeis ou atribuicoes existentes.
       </Alert>
-      <OperationCard
+      {canGrant && <OperationCard
         title="Conceder papel"
         description="A permissao efetiva passa a valer na proxima requisicao, sem reemitir o JWT."
         error={error}
@@ -302,8 +302,8 @@ function RoleOperations() {
         <Button variant="contained" disabled={loading || !membershipId} onClick={() => void grant()} startIcon={loading ? <CircularProgress size={18} color="inherit" /> : <AdminPanelSettingsOutlinedIcon />} sx={{ alignSelf: 'flex-start' }}>
           Conceder papel
         </Button>
-      </OperationCard>
-      <OperationCard title="Revogar atribuicao" description="Exige ID, versao conhecida e motivo auditavel." error={error}>
+      </OperationCard>}
+      {canRevoke && <OperationCard title="Revogar atribuicao" description="Exige ID, versao conhecida e motivo auditavel." error={error}>
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
           <TextField label="ID da atribuicao" type="number" value={assignmentId} onChange={(event) => setAssignmentId(event.target.value)} inputProps={{ min: 1 }} required fullWidth />
           <TextField label="Versao" type="number" value={assignmentVersion} onChange={(event) => setAssignmentVersion(event.target.value)} inputProps={{ min: 0 }} required fullWidth />
@@ -312,7 +312,7 @@ function RoleOperations() {
         <Button variant="outlined" color="error" disabled={loading || !membershipId || !assignmentId || !reason.trim()} onClick={() => void revoke()}>
           Revogar atribuicao
         </Button>
-      </OperationCard>
+      </OperationCard>}
     </Stack>
   );
 }
@@ -321,12 +321,17 @@ export function AdministrationPage() {
   const { permissions } = useAuth();
   const [tab, setTab] = useState(0);
   const canOrganization = permissions.includes('organizations:admin');
-  const canMembership = permissions.includes('users:invite') || canOrganization;
-  const canRoles = permissions.includes('roles:grant') || permissions.includes('roles:revoke');
+  const canInvite = permissions.includes('users:invite') || canOrganization;
+  const canGrant = permissions.includes('roles:grant');
+  const canRevoke = permissions.includes('roles:revoke');
   const available = [
     canOrganization && { label: 'Organizacao', content: <OrganizationProfile /> },
-    canMembership && { label: 'Memberships', content: <MembershipOperations /> },
-    canRoles && { label: 'Papeis e acessos', content: <RoleOperations /> },
+    (canInvite || canOrganization) && {
+      label: 'Memberships', content: <MembershipOperations canInvite={canInvite} canManage={canOrganization} />,
+    },
+    (canGrant || canRevoke) && {
+      label: 'Papeis e acessos', content: <RoleOperations canGrant={canGrant} canRevoke={canRevoke} />,
+    },
   ].filter(Boolean) as { label: string; content: ReactNode }[];
 
   useEffect(() => {

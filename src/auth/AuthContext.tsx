@@ -9,6 +9,7 @@ import {
 } from 'react';
 import { api, getToken, setToken, setUnauthorizedHandler } from '../api/client';
 import { useQueryClient } from '@tanstack/react-query';
+import { rememberLastOrganizationId } from './organizationPreference';
 
 export type Perfil = 'ADMIN' | 'OPERADOR';
 
@@ -131,6 +132,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setToken(data.token);
       setPermissions(permissionResponse.data.permissions);
       setActiveOrganization(organization);
+      rememberLastOrganizationId(organizationId);
     } finally {
       setContextLoading(false);
     }
@@ -162,6 +164,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setToken(context.token);
         setPermissions(permissionResponse.data.permissions);
         setActiveOrganization(data[0]);
+        rememberLastOrganizationId(data[0].organizationId);
       } else {
         setActiveOrganization(null);
         setPermissions([]);

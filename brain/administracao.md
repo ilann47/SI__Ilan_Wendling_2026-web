@@ -53,6 +53,8 @@ com a versao carregada.
 - Nenhuma listagem e simulada quando o backend nao a oferece.
 - Os papeis selecionaveis sao o catalogo de sistema definido nas migrations.
 - Encerramento de Membership permanece terminal.
+- `users:invite` monta somente a criação; consulta e transição de Membership
+  exigem `organizations:admin`. Concessão e revogação respeitam permissões distintas.
 
 ## Modulos relacionados
 
@@ -65,3 +67,4 @@ com a versao carregada.
 | Data | Acao |
 |---|---|
 | 2026-08-03 | Implementa provisionamento, perfil empresarial, Memberships e RBAC contextual. |
+| 2026-08-03 | Alinha cada comando administrativo à permissão do controller. |

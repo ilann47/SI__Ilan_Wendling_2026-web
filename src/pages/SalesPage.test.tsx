@@ -1,4 +1,5 @@
 import { render, screen, waitFor } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { api } from '../api/client';
@@ -25,6 +26,22 @@ describe('SalesPage', () => {
     expect(screen.getByRole('tab', { name: 'Credenciais' })).toBeInTheDocument();
     expect(screen.queryByRole('tab', { name: 'Holds' })).not.toBeInTheDocument();
     expect(screen.queryByRole('tab', { name: 'Pedidos' })).not.toBeInTheDocument();
+  });
+
+  it('nao oferece criar ou consultar pedido sem as permissoes correspondentes', () => {
+    vi.mocked(useAuth).mockReturnValue({
+      activeOrganization: { organizationId: 2 }, permissions: ['orders:manual-confirm'],
+    } as unknown as ReturnType<typeof useAuth>);
+    vi.mocked(useOperationalWorkspace).mockReturnValue({
+      recent: () => [], remember: vi.fn(),
+    } as unknown as ReturnType<typeof useOperationalWorkspace>);
+
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(<QueryClientProvider client={client}><SalesPage /></QueryClientProvider>);
+
+    expect(screen.getByText('Confirmacao manual')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Criar pedido' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Consultar' })).not.toBeInTheDocument();
   });
 
   it('cria hold idempotente a partir de produto real', async () => {

@@ -83,7 +83,9 @@ export function AppLayout() {
                 key={item.path}
                 component={RouterLink}
                 to={item.path}
-                selected={location.pathname === item.path}
+                selected={item.path === '/app'
+                  ? location.pathname === item.path
+                  : location.pathname.startsWith(item.path)}
                 onClick={() => !isDesktop && setMobileOpen(false)}
                 sx={{ mx: 1, borderRadius: 2 }}
               >
@@ -100,10 +102,21 @@ export function AppLayout() {
 
   return (
     <Box sx={{ display: 'flex' }}>
+      <Box
+        component="a"
+        href="#conteudo-principal"
+        sx={{
+          position: 'fixed', top: 8, left: 8, zIndex: theme.zIndex.tooltip + 1,
+          px: 2, py: 1, bgcolor: 'background.paper', color: 'primary.main', borderRadius: 1,
+          transform: 'translateY(-150%)', '&:focus': { transform: 'translateY(0)' },
+        }}
+      >
+        Ir para o conteudo principal
+      </Box>
       <AppBar position="fixed" sx={{ zIndex: theme.zIndex.drawer + 1 }}>
         <Toolbar>
           {!isDesktop && (
-            <IconButton edge="start" onClick={() => setMobileOpen(true)} sx={{ mr: 1 }}>
+            <IconButton edge="start" aria-label="Abrir menu de navegacao" onClick={() => setMobileOpen(true)} sx={{ mr: 1 }}>
               <MenuIcon />
             </IconButton>
           )}
@@ -177,7 +190,7 @@ export function AppLayout() {
         </Toolbar>
       </AppBar>
 
-      <Box component="nav" sx={{ width: { md: DRAWER_WIDTH }, flexShrink: { md: 0 } }}>
+      <Box component="nav" aria-label="Navegacao principal" sx={{ width: { md: DRAWER_WIDTH }, flexShrink: { md: 0 } }}>
         <Drawer
           variant="temporary"
           open={mobileOpen}
@@ -201,6 +214,8 @@ export function AppLayout() {
 
       <Box
         component="main"
+        id="conteudo-principal"
+        tabIndex={-1}
         sx={{ flexGrow: 1, width: { md: `calc(100% - ${DRAWER_WIDTH}px)` }, minHeight: '100vh', bgcolor: 'background.default' }}
       >
         <Toolbar />
