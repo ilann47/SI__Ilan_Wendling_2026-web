@@ -11,6 +11,7 @@ export type WorkspaceKind =
   | 'venue'
   | 'facility'
   | 'sector'
+  | 'space'
   | 'event'
   | 'allocation'
   | 'product'

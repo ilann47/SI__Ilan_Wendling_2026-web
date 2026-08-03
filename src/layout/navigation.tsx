@@ -2,6 +2,7 @@ import FactCheckOutlinedIcon from '@mui/icons-material/FactCheckOutlined';
 import QrCodeScannerOutlinedIcon from '@mui/icons-material/QrCodeScannerOutlined';
 import SpaceDashboardOutlinedIcon from '@mui/icons-material/SpaceDashboardOutlined';
 import AdminPanelSettingsOutlinedIcon from '@mui/icons-material/AdminPanelSettingsOutlined';
+import ApartmentOutlinedIcon from '@mui/icons-material/ApartmentOutlined';
 import type { ReactNode } from 'react';
 
 export interface NavItem {
@@ -43,6 +44,12 @@ export const navGroups: NavGroup[] = [
         path: '/app/administracao',
         icon: <AdminPanelSettingsOutlinedIcon fontSize="small" />,
         permissions: ['organizations:admin', 'users:invite', 'roles:grant', 'roles:revoke'],
+      },
+      {
+        label: 'Instalacoes',
+        path: '/app/instalacoes',
+        icon: <ApartmentOutlinedIcon fontSize="small" />,
+        permissions: ['facilities:manage', 'organizations:admin'],
       },
     ],
   },

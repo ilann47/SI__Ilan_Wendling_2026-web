@@ -1,4 +1,4 @@
-> Links: [[auth]] · [[acesso]] · [[administracao]] · [[workspace]]
+> Links: [[auth]] · [[acesso]] · [[administracao]] · [[workspace]] · [[instalacoes]]
 
 # Frontend Kaneko
 
@@ -84,3 +84,4 @@ Testing Library; E2E contra o backend real será acrescentado no recorte própri
 | 2026-08-02 | Separa o shell enterprise dos cadastros legados e ativa lazy loading por página. |
 | 2026-08-02 | Padroniza timeout, ETag e chaves de cache tenant-aware no cliente HTTP. |
 | 2026-08-03 | Adiciona workspace de referencias reais e administracao enterprise. |
+| 2026-08-03 | Adiciona cadastro encadeado de locais, patios, setores e vagas. |

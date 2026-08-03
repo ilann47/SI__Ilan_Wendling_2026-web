@@ -15,6 +15,8 @@ const AccessAttemptsPage = lazy(() => import('./pages/AccessAttemptsPage')
   .then((module) => ({ default: module.AccessAttemptsPage })));
 const AdministrationPage = lazy(() => import('./pages/AdministrationPage')
   .then((module) => ({ default: module.AdministrationPage })));
+const FacilitiesPage = lazy(() => import('./pages/FacilitiesPage')
+  .then((module) => ({ default: module.FacilitiesPage })));
 
 function LoadingPage() {
   return (
@@ -49,6 +51,11 @@ export function App() {
           <Route path="administracao" element={
             <PermissionRoute anyOf={['organizations:admin', 'users:invite', 'roles:grant', 'roles:revoke']}>
               <AdministrationPage />
+            </PermissionRoute>
+          } />
+          <Route path="instalacoes" element={
+            <PermissionRoute anyOf={['facilities:manage', 'organizations:admin']}>
+              <FacilitiesPage />
             </PermissionRoute>
           } />
         </Route>
