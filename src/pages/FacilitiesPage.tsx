@@ -18,8 +18,9 @@ import {
   Tabs,
   TextField,
 } from '@mui/material';
-import { useState, type Dispatch, type FormEvent, type SetStateAction } from 'react';
+import { useEffect, useState, type Dispatch, type FormEvent, type ReactNode, type SetStateAction } from 'react';
 import { api, describeError } from '../api/client';
+import { useAuth } from '../auth/AuthContext';
 import { PageHeader } from '../components/common/PageHeader';
 import { OperationCard } from '../components/enterprise/OperationCard';
 import { ResourceIdField } from '../components/enterprise/ResourceIdField';
@@ -204,16 +205,25 @@ function SpaceImportForm() {
 }
 
 export function FacilitiesPage() {
+  const { permissions } = useAuth();
   const [tab, setTab] = useState(0);
-  const content = [<VenueForm />, <FacilityForm />, <SectorForm />, <SpaceImportForm />];
+  const content = [
+    permissions.includes('organizations:admin') && { label: 'Locais', content: <VenueForm /> },
+    { label: 'Patios', content: <FacilityForm /> },
+    { label: 'Setores', content: <SectorForm /> },
+    { label: 'Vagas', content: <SpaceImportForm /> },
+  ].filter(Boolean) as { label: string; content: ReactNode }[];
+  useEffect(() => {
+    if (tab >= content.length) setTab(0);
+  }, [content.length, tab]);
   return (
     <Box>
       <PageHeader title="Instalacoes" subtitle="Cadastre a estrutura fisica usada pelos eventos, do local ate as vagas." />
       <Alert severity="info" sx={{ mb: 2 }}>As APIs atuais sao orientadas a criacao e ainda nao oferecem listagens. Recursos confirmados ficam disponiveis como referencias recentes deste tenant.</Alert>
       <Tabs value={tab} onChange={(_, value) => setTab(value)} variant="scrollable" sx={{ mb: 2 }}>
-        <Tab label="Locais" /><Tab label="Patios" /><Tab label="Setores" /><Tab label="Vagas" />
+        {content.map((item) => <Tab key={item.label} label={item.label} />)}
       </Tabs>
-      {content[tab]}
+      {content[tab]?.content}
     </Box>
   );
 }

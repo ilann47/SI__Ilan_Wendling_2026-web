@@ -52,6 +52,8 @@ Vitest cobre conversao do lote e rejeicao de categorias fora do catalogo.
 - Nenhuma listagem inexistente e simulada.
 - A rota e a navegacao exigem exclusivamente `facilities:manage`, conforme o
   contrato do backend; administracao organizacional nao concede acesso implicito.
+- Dentro da rota, o cadastro de Venue exige adicionalmente `organizations:admin`,
+  enquanto patios, setores e vagas usam `facilities:manage`.
 
 ## Modulos relacionados
 
@@ -66,3 +68,4 @@ Vitest cobre conversao do lote e rejeicao de categorias fora do catalogo.
 |---|---|
 | 2026-08-03 | Implementa fluxo completo de criacao da estrutura fisica. |
 | 2026-08-03 | Alinha acesso da interface a permissao `facilities:manage`. |
+| 2026-08-03 | Separa a permissao de Venue das demais instalacoes. |
