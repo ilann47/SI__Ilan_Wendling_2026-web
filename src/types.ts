@@ -567,6 +567,8 @@ export interface ProdutoFornecedorRequest {
 // ===================== Patio =====================
 export interface TarifaResponse {
   id: number;
+  organizacaoId?: number;
+  version?: number;
   descricao: string;
   valorHora: number;
   valorDiaria: number;

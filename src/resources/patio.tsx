@@ -7,6 +7,13 @@ import { tipoVeiculoOptions, statusMensalistaOptions } from './options';
 export const tarifasConfig: ResourceConfig = {
   key: 'tarifas',
   basePath: '/api/tarifas',
+  tenantAware: true,
+  permissions: {
+    read: ['operations:read'],
+    create: ['operations:manage'],
+    update: ['operations:manage'],
+    delete: ['operations:manage'],
+  },
   singular: 'Tarifa',
   plural: 'Tarifas',
   defaultSort: 'descricao,asc',

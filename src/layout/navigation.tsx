@@ -114,7 +114,12 @@ export const navGroups: NavGroup[] = [
         icon: <LocalShippingOutlinedIcon fontSize="small" />,
         permissions: ['suppliers:read'],
       },
-      { label: 'Tarifas', path: '/app/tarifas', icon: <PriceChangeOutlinedIcon fontSize="small" /> },
+      {
+        label: 'Tarifas',
+        path: '/app/tarifas',
+        icon: <PriceChangeOutlinedIcon fontSize="small" />,
+        permissions: ['operations:read'],
+      },
       {
         label: 'Condições de Pagamento',
         path: '/app/condicoes-pagamento',
