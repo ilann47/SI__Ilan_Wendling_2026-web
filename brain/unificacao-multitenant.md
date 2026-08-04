@@ -81,6 +81,7 @@ permissão produz `403`; recurso inexistente ou pertencente a outro tenant produ
 
 | Data | Ação |
 |---|---|
+| 2026-08-04 | Integra Movimentacoes e fechamento operacional tenant-aware V61. |
 | 2026-08-04 | Integra Mensalistas e referencias tenant-aware do contrato V60. |
 | 2026-08-04 | Integra Tarifas da operacao ao contexto V59 com `operations:*`. |
 | 2026-08-04 | Integra Veiculos da operacao ao contexto V58 com cache e acoes protegidos por `operations:*`. |

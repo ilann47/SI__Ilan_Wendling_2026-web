@@ -151,6 +151,8 @@ export const mensalistasConfig: ResourceConfig = {
 export const movimentacoesConfig: ResourceConfig = {
   key: 'movimentacoes',
   basePath: '/api/movimentacoes',
+  tenantAware: true,
+  permissions: { read: ['operations:read'] },
   singular: 'Movimentação',
   plural: 'Movimentações',
   canCreate: false,

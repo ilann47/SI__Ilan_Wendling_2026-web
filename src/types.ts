@@ -638,11 +638,14 @@ export interface MensalistaRequest {
 
 export interface MovimentacaoResponse {
   id: number;
+  organizacaoId?: number;
+  version?: number;
   veiculoId: number;
   veiculoPlaca: string;
   tipo?: TipoMovimentacao;
   mensalistaId?: number;
   tarifaId?: number;
+  patioId?: number;
   dataEntrada: string;
   dataSaida?: string;
   valorCobrado?: number;
@@ -652,6 +655,7 @@ export interface MovimentacaoResponse {
 }
 export interface EntradaRequest {
   veiculoId: number;
+  patioId?: number;
 }
 
 // ===================== Fiscal =====================

@@ -72,7 +72,12 @@ export const navGroups: NavGroup[] = [
     label: 'Operação',
     items: [
       { label: 'Pátio', path: '/app/patio', icon: <LocalParkingOutlinedIcon fontSize="small" /> },
-      { label: 'Movimentações', path: '/app/movimentacoes', icon: <SwapHorizOutlinedIcon fontSize="small" /> },
+      {
+        label: 'Movimentações',
+        path: '/app/movimentacoes',
+        icon: <SwapHorizOutlinedIcon fontSize="small" />,
+        permissions: ['operations:read'],
+      },
       {
         label: 'Mensalistas',
         path: '/app/mensalistas',
