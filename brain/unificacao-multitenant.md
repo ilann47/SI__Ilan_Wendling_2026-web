@@ -1,4 +1,4 @@
-> Links: [[core]] · [[auth]] · [[compatibilidade-legada]] · [[paridade-api]] · [[workspace]] · [[pagamentos]] · [[clientes]] · [[logistica]] · [[fornecedores]] · [[rh]] · [[conveniencia]]
+> Links: [[core]] · [[auth]] · [[compatibilidade-legada]] · [[paridade-api]] · [[workspace]] · [[pagamentos]] · [[clientes]] · [[logistica]] · [[fornecedores]] · [[rh]] · [[conveniencia]] · [[estoque]]
 
 # Unificação Multi-Tenant
 
@@ -90,3 +90,4 @@ permissão produz `403`; recurso inexistente ou pertencente a outro tenant produ
 | 2026-08-03 | Amplia a onda de RH com Funcionários tenant-aware. |
 | 2026-08-03 | Integra os catálogos de conveniência V50-V52 e mantém consumers globais desativados. |
 | 2026-08-03 | Amplia Conveniência com Produto–Fornecedor V53 e mantém notas e estoque fora da onda. |
+| 2026-08-03 | Conclui a fatia V54 de razão de estoque, mantendo notas e relatórios nas ondas próprias. |

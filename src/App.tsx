@@ -28,6 +28,8 @@ const PatioPage = lazy(() => import('./pages/PatioPage')
   .then((module) => ({ default: module.PatioPage })));
 const RelatoriosPage = lazy(() => import('./pages/RelatoriosPage')
   .then((module) => ({ default: module.RelatoriosPage })));
+const StockPage = lazy(() => import('./pages/StockPage')
+  .then((module) => ({ default: module.StockPage })));
 const CrudResourcePage = lazy(() => import('./components/crud/CrudResourcePage')
   .then((module) => ({ default: module.CrudResourcePage })));
 
@@ -84,6 +86,9 @@ export function App() {
           } />
           <Route path="patio" element={<PatioPage />} />
           <Route path="relatorios" element={<RelatoriosPage />} />
+          <Route path="estoque" element={
+            <PermissionRoute anyOf={['stock:read']}><StockPage /></PermissionRoute>
+          } />
           {allConfigs.map((config) => (
             <Route
               key={config.key}

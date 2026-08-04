@@ -1,4 +1,4 @@
-> Links: [[auth]] · [[acesso]] · [[administracao]] · [[workspace]] · [[instalacoes]] · [[eventos]] · [[vendas]] · [[pagamentos]] · [[clientes]] · [[logistica]] · [[fornecedores]] · [[rh]] · [[conveniencia]] · [[dashboard]] · [[bloqueios]] · [[paridade-api]] · [[compatibilidade-legada]] · [[unificacao-multitenant]]
+> Links: [[auth]] · [[acesso]] · [[administracao]] · [[workspace]] · [[instalacoes]] · [[eventos]] · [[vendas]] · [[pagamentos]] · [[clientes]] · [[logistica]] · [[fornecedores]] · [[rh]] · [[conveniencia]] · [[estoque]] · [[dashboard]] · [[bloqueios]] · [[paridade-api]] · [[compatibilidade-legada]] · [[unificacao-multitenant]]
 
 # Frontend Kaneko
 
@@ -118,3 +118,4 @@ Testing Library; E2E contra o backend real será acrescentado no recorte própri
 | 2026-08-03 | Integra Funcionários ao contexto organizacional preservando `/api/funcionarios`. |
 | 2026-08-03 | Integra Categoria, Marca, Unidade de Medida, Produto e Serviço aos contratos V50-V52. |
 | 2026-08-03 | Integra Produto–Fornecedor ao contexto organizacional V53 sem ativar notas ou estoque. |
+| 2026-08-03 | Integra a posição e razão de estoque V54 sem acoplar notas ou movimentações de pátio. |

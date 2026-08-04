@@ -1,4 +1,4 @@
-> Links: [[core]] · [[auth]] · [[administracao]] · [[instalacoes]] · [[eventos]] · [[vendas]] · [[pagamentos]] · [[clientes]] · [[logistica]] · [[fornecedores]] · [[rh]] · [[conveniencia]] · [[acesso]] · [[dashboard]] · [[bloqueios]]
+> Links: [[core]] · [[auth]] · [[administracao]] · [[instalacoes]] · [[eventos]] · [[vendas]] · [[pagamentos]] · [[clientes]] · [[logistica]] · [[fornecedores]] · [[rh]] · [[conveniencia]] · [[estoque]] · [[acesso]] · [[dashboard]] · [[bloqueios]]
 
 # Paridade API Enterprise
 
@@ -88,6 +88,9 @@ controller + PreAuthorize -> rota/comando da UI -> cliente HTTP -> resposta real
 | `/api/fornecedores` | `suppliers:read`, `suppliers:manage` | Cadastro/Fornecedores | Integrada e isolada por organização |
 | `/api/cargos` | `workforce:read`, `workforce:manage` | RH/Cargos | Integrada e isolada por organização |
 | `/api/funcionarios` | `workforce:read`, `workforce:manage` | RH/Funcionários | Integrada e isolada por organização |
+| `/api/v1/stock-locations` | `stock:read`, `stock:manage` | Estoque/Locais | Integrada com ETag e isolada por organização |
+| `/api/v1/stock-positions`, `/stock-balances`, `/stock-movements` | `stock:read` | Estoque/Posição e Razão | Integrada e isolada por organização |
+| `/api/v1/stock-adjustments`, `/stock-movements/{id}/compensation` | `stock:manage` | Estoque/Ajustes | Integrada com idempotência |
 
 ## Lacunas de leitura do contrato atual
 

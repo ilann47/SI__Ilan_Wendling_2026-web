@@ -29,8 +29,16 @@ vi.mock('./components/crud/CrudResourcePage', () => ({
 
 vi.mock('./pages/PatioPage', () => ({ PatioPage: () => <h1>Patio legado</h1> }));
 vi.mock('./pages/RelatoriosPage', () => ({ RelatoriosPage: () => <h1>Relatorios legados</h1> }));
+vi.mock('./pages/StockPage', () => ({ StockPage: () => <h1>Estoque</h1> }));
 
 describe('App - compatibilidade legada', () => {
+  it('protege a pagina de estoque com stock:read', async () => {
+    render(<MemoryRouter initialEntries={['/app/estoque']}><App /></MemoryRouter>);
+
+    const heading = await screen.findByRole('heading', { name: 'Estoque' });
+    expect(heading.closest('[data-permissions]')).toHaveAttribute('data-permissions', 'stock:read');
+  });
+
   it.each([
     ['/app/notas-entrada', 'Notas de Entrada'],
     ['/app/notas-saida', 'Notas de Saída'],

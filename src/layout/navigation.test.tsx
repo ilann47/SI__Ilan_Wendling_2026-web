@@ -76,6 +76,14 @@ describe('navigation - compatibilidade legada', () => {
     expect(item?.permissions).toEqual(['catalog:read']);
   });
 
+  it('exige stock:read para Estoque', () => {
+    const item = navGroups.flatMap((group) => group.items)
+      .find((candidate) => candidate.label === 'Estoque');
+
+    expect(item?.path).toBe('/app/estoque');
+    expect(item?.permissions).toEqual(['stock:read']);
+  });
+
   it('exige leitura contextual para Cargos', () => {
     const item = navGroups.flatMap((group) => group.items)
       .find((candidate) => candidate.label === 'Cargos');

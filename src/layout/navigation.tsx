@@ -34,6 +34,7 @@ import SwapHorizOutlinedIcon from '@mui/icons-material/SwapHorizOutlined';
 import TrendingDownOutlinedIcon from '@mui/icons-material/TrendingDownOutlined';
 import TrendingUpOutlinedIcon from '@mui/icons-material/TrendingUpOutlined';
 import WorkOutlineIcon from '@mui/icons-material/WorkOutline';
+import WarehouseOutlinedIcon from '@mui/icons-material/WarehouseOutlined';
 import type { ReactNode } from 'react';
 
 export interface NavItem {
@@ -131,6 +132,12 @@ export const navGroups: NavGroup[] = [
         path: '/app/produtos',
         icon: <Inventory2OutlinedIcon fontSize="small" />,
         permissions: ['catalog:read'],
+      },
+      {
+        label: 'Estoque',
+        path: '/app/estoque',
+        icon: <WarehouseOutlinedIcon fontSize="small" />,
+        permissions: ['stock:read'],
       },
       {
         label: 'Serviços',

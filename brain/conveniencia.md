@@ -1,4 +1,4 @@
-> Links: [[core]] · [[auth]] · [[unificacao-multitenant]] · [[compatibilidade-legada]] · [[paridade-api]] · [[fornecedores]]
+> Links: [[core]] · [[auth]] · [[unificacao-multitenant]] · [[compatibilidade-legada]] · [[paridade-api]] · [[fornecedores]] · [[estoque]]
 
 # Conveniência
 
@@ -76,6 +76,7 @@ conflito. Gates: `npm run typecheck`, `npm run lint`,
 - [[compatibilidade-legada]]
 - [[paridade-api]]
 - [[fornecedores]]
+- [[estoque]]
 
 ## Histórico (data + ação)
 
@@ -83,3 +84,4 @@ conflito. Gates: `npm run typecheck`, `npm run lint`,
 |---|---|
 | 2026-08-03 | Integra os cinco catálogos V50-V52 com tenancy, RBAC e concorrência por ETag. |
 | 2026-08-03 | Integra Produto–Fornecedor V53 com pontas imutáveis, filtro por produto e permissão cruzada de leitura. |
+| 2026-08-03 | Direciona saldo e movimentos para a razão V54 em [[estoque]]. |

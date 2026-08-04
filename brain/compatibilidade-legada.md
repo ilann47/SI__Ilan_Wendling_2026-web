@@ -1,4 +1,4 @@
-> Links: [[core]] · [[auth]] · [[paridade-api]] · [[eventos]] · [[pagamentos]] · [[clientes]] · [[logistica]] · [[fornecedores]] · [[rh]] · [[conveniencia]]
+> Links: [[core]] · [[auth]] · [[paridade-api]] · [[eventos]] · [[pagamentos]] · [[clientes]] · [[logistica]] · [[fornecedores]] · [[rh]] · [[conveniencia]] · [[estoque]]
 
 # Compatibilidade Legada
 
@@ -92,3 +92,4 @@ organização; esse risco não é ocultado nem corrigido no frontend.
 | 2026-08-03 | Registra Funcionários como extensão tenant-aware da fatia de RH. |
 | 2026-08-03 | Registra a compatibilidade temporária de ProdutoFornecedor, notas, estoque e relatórios fora da onda V50-V52. |
 | 2026-08-03 | Remove ProdutoFornecedor da compatibilidade global após V53; notas, estoque e relatórios permanecem pendentes. |
+| 2026-08-03 | Retira posição/razão da compatibilidade após V54; notas e relatório gerencial legado permanecem preservados. |
