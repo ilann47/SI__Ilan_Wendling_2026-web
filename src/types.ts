@@ -930,6 +930,8 @@ export interface ContaReceberRequest {
 
 export interface ContaPagarAvulsaResponse {
   id: number;
+  organizacaoId?: number;
+  version?: number;
   descricao: string;
   fornecedorId?: number;
   fornecedorNome?: string;

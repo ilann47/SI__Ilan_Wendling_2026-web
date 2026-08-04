@@ -100,7 +100,12 @@ export const navGroups: NavGroup[] = [
     items: [
       { label: 'Contas a Receber', path: '/app/contas-receber', icon: <TrendingUpOutlinedIcon fontSize="small" />, permissions: ['finance:read'] },
       { label: 'Contas a Pagar', path: '/app/contas-pagar', icon: <TrendingDownOutlinedIcon fontSize="small" />, permissions: ['finance:read'] },
-      { label: 'Despesas Avulsas', path: '/app/contas-pagar-avulsas', icon: <ReceiptOutlinedIcon fontSize="small" /> },
+      {
+        label: 'Despesas Avulsas',
+        path: '/app/contas-pagar-avulsas',
+        icon: <ReceiptOutlinedIcon fontSize="small" />,
+        permissions: ['finance:read'],
+      },
     ],
   },
   {

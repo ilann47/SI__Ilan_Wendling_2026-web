@@ -178,6 +178,15 @@ export const contaReceberConfig: ResourceConfig = {
 export const contaPagarAvulsaConfig: ResourceConfig = {
   key: 'contas-pagar-avulsas',
   basePath: '/api/contas-pagar-avulsas',
+  tenantAware: true,
+  permissions: {
+    read: ['finance:read'], create: ['finance:manage'],
+    update: ['finance:manage'], delete: ['finance:manage'],
+  },
+  requiredAllPermissions: {
+    create: ['suppliers:read', 'payments:read'],
+    update: ['suppliers:read', 'payments:read'],
+  },
   singular: 'Despesa Avulsa',
   plural: 'Contas a Pagar Avulsas',
   subtitle: 'Despesas avulsas sem vínculo com fornecedor.',
