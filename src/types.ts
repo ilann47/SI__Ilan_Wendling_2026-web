@@ -614,6 +614,8 @@ export interface VeiculoRequest {
 
 export interface MensalistaResponse {
   id: number;
+  organizacaoId?: number;
+  version?: number;
   clienteId: number;
   clienteNome: string;
   veiculoId: number;

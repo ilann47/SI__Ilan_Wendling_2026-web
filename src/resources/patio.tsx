@@ -91,6 +91,17 @@ export const veiculosConfig: ResourceConfig = {
 export const mensalistasConfig: ResourceConfig = {
   key: 'mensalistas',
   basePath: '/api/mensalistas',
+  tenantAware: true,
+  permissions: {
+    read: ['operations:read'],
+    create: ['operations:manage'],
+    update: ['operations:manage'],
+    delete: ['operations:manage'],
+  },
+  requiredAllPermissions: {
+    create: ['customers:read'],
+    update: ['customers:read'],
+  },
   singular: 'Mensalista',
   plural: 'Mensalistas',
   columns: [
