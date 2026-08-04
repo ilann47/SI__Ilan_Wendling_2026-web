@@ -18,7 +18,7 @@ import {
   servicosConfig,
   unidadesMedidaConfig,
 } from '../../resources/fornecedorConveniencia';
-import { notaEntradaConfig, notaSaidaConfig } from '../../resources/fiscal';
+import { notaEntradaConfig, notaSaidaConfig, notaServicoConfig } from '../../resources/fiscal';
 import { cargosConfig, funcionariosConfig } from '../../resources/rhUsuario';
 import {
   hasResourceActionPermission,
@@ -456,6 +456,7 @@ describe('ResourceConfig tenant-aware do catalogo de conveniencia', () => {
     expect(notaEntradaConfig.fields.find((field) => field.name === 'localEstoqueId'))
       .toMatchObject({ required: true, type: 'reference' });
     expect(notaSaidaConfig.tenantAware).toBe(true);
+    expect(notaServicoConfig.tenantAware).toBe(true);
   });
 });
 

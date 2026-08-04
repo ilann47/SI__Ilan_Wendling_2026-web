@@ -787,6 +787,8 @@ export interface NotaSaidaRequest {
 
 export interface NotaServicoResponse {
   id: number;
+  organizacaoId?: number;
+  version?: number;
   numero: string;
   modelo: string;
   serie: string;
@@ -878,6 +880,8 @@ export interface ContaReceberResponse {
   clienteNome: string;
   notaSaidaId?: number;
   notaSaidaNumero?: string;
+  notaServicoId?: number;
+  notaServicoNumero?: string;
   mensalistaId?: number;
   condicaoPagamentoId?: number;
   formaPagamentoId?: number;

@@ -189,6 +189,12 @@ export const notaServicoConfig: ResourceConfig = {
   basePath: '/api/notas-servico',
   singular: 'Nota de Serviço',
   plural: 'Notas de Serviço',
+  tenantAware: true,
+  permissions: {
+    read: ['fiscal:read'], create: ['fiscal:manage'],
+    update: ['fiscal:manage'], delete: ['fiscal:manage'],
+  },
+  requiredAllPermissions: { create: ['customers:read', 'catalog:read'] },
   subtitle: 'Notas fiscais de serviço (NFS-e) com apuração de ISS.',
   canEdit: true,
   canDelete: true,
@@ -224,20 +230,6 @@ export const notaServicoConfig: ResourceConfig = {
     { name: 'aliquotaIss', label: 'Alíquota ISS', type: 'percent', cols: 4 },
     { name: 'valorDesconto', label: 'Desconto', type: 'money', cols: 4 },
     { name: 'dataEmissao', label: 'Emissão', type: 'date', cols: 4 },
-    {
-      name: 'movimentacaoId',
-      label: 'Movimentação (origem)',
-      type: 'reference',
-      cols: 6,
-      reference: { basePath: '/api/movimentacoes', labelField: 'veiculoPlaca' },
-    },
-    {
-      name: 'mensalistaId',
-      label: 'Mensalista (origem)',
-      type: 'reference',
-      cols: 6,
-      reference: { basePath: '/api/mensalistas', labelField: 'veiculoPlaca' },
-    },
     {
       name: 'condicaoPagamentoId',
       label: 'Condição de pagamento',

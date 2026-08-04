@@ -39,3 +39,4 @@ Saída e serviço permanecem na próxima fatia fiscal.
 |---|---|
 | 2026-08-04 | Integração frontend V55 concluída. |
 | 2026-08-04 | Integração frontend V56 concluída. |
+| 2026-08-04 | Integração frontend de Nota de Serviço V57 concluída. |

@@ -82,7 +82,7 @@ export const navGroups: NavGroup[] = [
     items: [
       { label: 'Notas de Entrada', path: '/app/notas-entrada', icon: <CallReceivedOutlinedIcon fontSize="small" />, permissions: ['fiscal:read'] },
       { label: 'Notas de Saída', path: '/app/notas-saida', icon: <CallMadeOutlinedIcon fontSize="small" />, permissions: ['fiscal:read'] },
-      { label: 'Notas de Serviço', path: '/app/notas-servico', icon: <DescriptionOutlinedIcon fontSize="small" /> },
+      { label: 'Notas de Serviço', path: '/app/notas-servico', icon: <DescriptionOutlinedIcon fontSize="small" />, permissions: ['fiscal:read'] },
     ],
   },
   {
