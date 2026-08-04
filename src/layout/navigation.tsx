@@ -84,7 +84,11 @@ export const navGroups: NavGroup[] = [
         icon: <CardMembershipOutlinedIcon fontSize="small" />,
         permissions: ['operations:read'],
       },
-      { label: 'Relatórios', path: '/app/relatorios', icon: <AssessmentOutlinedIcon fontSize="small" /> },
+      {
+        label: 'Relatórios', path: '/app/relatorios',
+        icon: <AssessmentOutlinedIcon fontSize="small" />,
+        permissions: ['finance:read', 'operations:read', 'stock:read'],
+      },
     ],
   },
   {

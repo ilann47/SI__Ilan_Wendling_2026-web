@@ -23,6 +23,8 @@ import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import StorefrontIcon from '@mui/icons-material/Storefront';
 import DesignServicesIcon from '@mui/icons-material/DesignServices';
 import { api } from '../api/client';
+import { tenantQueryKey } from '../api/queryKeys';
+import { useAuth } from '../auth/AuthContext';
 import { PageHeader } from '../components/common/PageHeader';
 import { KpiCard } from '../components/common/KpiCard';
 import { StatusChip } from '../components/common/StatusChip';
@@ -45,11 +47,12 @@ const kpiGrid = {
   gap: 2,
 } as const;
 
-function FaturamentoTab() {
+function FaturamentoTab({ organizationId, enabled }: { organizationId: number; enabled: boolean }) {
   const [inicio, setInicio] = useState<Dayjs>(dayjs());
   const [fim, setFim] = useState<Dayjs>(dayjs());
   const { data } = useQuery({
-    queryKey: ['rel', 'faturamento', inicio.format('YYYY-MM-DD'), fim.format('YYYY-MM-DD')],
+    queryKey: tenantQueryKey(organizationId, 'rel', 'faturamento', inicio.format('YYYY-MM-DD'), fim.format('YYYY-MM-DD')),
+    enabled,
     queryFn: () =>
       api
         .get<FaturamentoDiaResponse>('/api/relatorios/faturamento', {
@@ -114,11 +117,12 @@ function TitulosTable({ titulos }: { titulos: Titulo[] }) {
   );
 }
 
-function ContasAVencerTab() {
+function ContasAVencerTab({ organizationId, enabled }: { organizationId: number; enabled: boolean }) {
   const [inicio, setInicio] = useState<Dayjs>(dayjs());
   const [fim, setFim] = useState<Dayjs>(dayjs().add(30, 'day'));
   const { data } = useQuery({
-    queryKey: ['rel', 'contas-a-vencer', inicio.format('YYYY-MM-DD'), fim.format('YYYY-MM-DD')],
+    queryKey: tenantQueryKey(organizationId, 'rel', 'contas-a-vencer', inicio.format('YYYY-MM-DD'), fim.format('YYYY-MM-DD')),
+    enabled,
     queryFn: () =>
       api
         .get<ContasAVencerResponse>('/api/relatorios/contas-a-vencer', {
@@ -157,9 +161,10 @@ function ContasAVencerTab() {
   );
 }
 
-function EstoqueTab() {
+function EstoqueTab({ organizationId, enabled }: { organizationId: number; enabled: boolean }) {
   const { data } = useQuery({
-    queryKey: ['rel', 'estoque'],
+    queryKey: tenantQueryKey(organizationId, 'rel', 'estoque'),
+    enabled,
     queryFn: () => api.get<EstoqueMinimoResponse>('/api/relatorios/estoque-minimo').then((r) => r.data),
   });
   const itens = data?.itens ?? [];
@@ -204,9 +209,10 @@ function EstoqueTab() {
   );
 }
 
-function MensalistasTab() {
+function MensalistasTab({ organizationId, enabled }: { organizationId: number; enabled: boolean }) {
   const { data } = useQuery({
-    queryKey: ['rel', 'mensalistas'],
+    queryKey: tenantQueryKey(organizationId, 'rel', 'mensalistas'),
+    enabled,
     queryFn: () => api.get<MensalistasAtivosResponse>('/api/relatorios/mensalistas-ativos').then((r) => r.data),
   });
   const itens = data?.itens ?? [];
@@ -256,6 +262,12 @@ function MensalistasTab() {
 
 export function RelatoriosPage() {
   const [tab, setTab] = useState(0);
+  const { activeOrganization, permissions } = useAuth();
+  const organizationId = activeOrganization!.organizationId;
+  const canOperations = permissions.includes('operations:read');
+  const canFinance = permissions.includes('finance:read');
+  const canFiscal = permissions.includes('fiscal:read');
+  const canStock = permissions.includes('stock:read');
   return (
     <Box>
       <PageHeader title="Relatórios" subtitle="Consultas gerenciais consolidadas." />
@@ -266,16 +278,16 @@ export function RelatoriosPage() {
         <Tab label="Mensalistas ativos" />
       </Tabs>
       <TabPanel value={tab} index={0}>
-        <FaturamentoTab />
+        <FaturamentoTab organizationId={organizationId} enabled={canOperations && canFinance && canFiscal} />
       </TabPanel>
       <TabPanel value={tab} index={1}>
-        <ContasAVencerTab />
+        <ContasAVencerTab organizationId={organizationId} enabled={canFinance} />
       </TabPanel>
       <TabPanel value={tab} index={2}>
-        <EstoqueTab />
+        <EstoqueTab organizationId={organizationId} enabled={canStock} />
       </TabPanel>
       <TabPanel value={tab} index={3}>
-        <MensalistasTab />
+        <MensalistasTab organizationId={organizationId} enabled={canOperations} />
       </TabPanel>
     </Box>
   );
