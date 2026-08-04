@@ -49,6 +49,8 @@ export interface ResourceConfig {
   optimisticLocking?: boolean;
   /** Permissoes efetivas exigidas por acao; ausencia preserva o contrato legado. */
   permissions?: ResourcePermissions;
+  /** Permissoes adicionais cumulativas; todas devem existir para liberar a acao. */
+  requiredAllPermissions?: ResourcePermissions;
   canCreate?: boolean;
   canEdit?: boolean;
   canDelete?: boolean;
@@ -63,7 +65,12 @@ export function hasResourceActionPermission(
   grantedPermissions: readonly string[],
 ): boolean {
   const required = config.permissions?.[action];
-  return !required?.length || required.some((permission) => grantedPermissions.includes(permission));
+  const requiredAll = config.requiredAllPermissions?.[action];
+  const hasPrimaryPermission = !required?.length
+    || required.some((permission) => grantedPermissions.includes(permission));
+  const hasEveryAdditionalPermission = !requiredAll?.length
+    || requiredAll.every((permission) => grantedPermissions.includes(permission));
+  return hasPrimaryPermission && hasEveryAdditionalPermission;
 }
 
 export function resourceQueryKey(

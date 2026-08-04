@@ -279,6 +279,11 @@ export const produtoFornecedoresConfig: ResourceConfig = {
   basePath: '/api/produto-fornecedores',
   singular: 'Produto x Fornecedor',
   plural: 'Produtos por Fornecedor',
+  ...catalogTenantConfig,
+  requiredAllPermissions: {
+    create: ['suppliers:read'],
+    update: ['suppliers:read'],
+  },
   subtitle: 'Vínculo de produtos com seus fornecedores.',
   columns: [
     cols.id(),
@@ -288,12 +293,21 @@ export const produtoFornecedoresConfig: ResourceConfig = {
     cols.money('custo', 'Custo'),
     cols.bool('ativo', 'Ativo'),
   ],
+  filters: [
+    {
+      name: 'produtoId',
+      label: 'Produto',
+      type: 'reference',
+      reference: { basePath: '/api/produtos', labelField: 'nome' },
+    },
+  ],
   fields: [
     {
       name: 'produtoId',
       label: 'Produto',
       type: 'reference',
       required: true,
+      disabledOnEdit: true,
       cols: 6,
       reference: { basePath: '/api/produtos', labelField: 'nome' },
     },
@@ -302,11 +316,13 @@ export const produtoFornecedoresConfig: ResourceConfig = {
       label: 'Fornecedor',
       type: 'reference',
       required: true,
+      disabledOnEdit: true,
       cols: 6,
       reference: { basePath: '/api/fornecedores', labelField: 'nome' },
     },
     { name: 'codigoProd', label: 'Código no fornecedor', type: 'text', cols: 6 },
     { name: 'custo', label: 'Custo', type: 'money', cols: 6 },
+    { name: 'ativo', label: 'Ativo', type: 'switch', cols: 4 },
   ],
 };
 

@@ -101,9 +101,12 @@ export function ResourceFormDialog({
             >
               {fields.map((f) => {
                 const cols = f.type === 'subitems' || f.type === 'textarea' ? 12 : f.cols ?? 6;
+                const renderedField = initialValues && f.disabledOnEdit
+                  ? { ...f, disabled: true }
+                  : f;
                 return (
                   <Box key={f.name} sx={{ gridColumn: { sm: `span ${cols}` } }}>
-                    <FieldRenderer field={f} />
+                    <FieldRenderer field={renderedField} />
                   </Box>
                 );
               })}

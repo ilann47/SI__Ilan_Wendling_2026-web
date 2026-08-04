@@ -24,6 +24,7 @@ import {
   hasResourceActionPermission,
   resourceQueryKey,
 } from './resourceConfig';
+import { buildResourcePayload } from '../form/ResourceFormDialog';
 
 describe('ResourceConfig tenant-aware de pagamentos', () => {
   it.each([formasPagamentoConfig, condicoesPagamentoConfig])(
@@ -345,8 +346,111 @@ describe('ResourceConfig tenant-aware do catalogo de conveniencia', () => {
     expect(productFields.has('status')).toBe(false);
   });
 
-  it('nao antecipa consumers ainda globais', () => {
-    expect(produtoFornecedoresConfig.tenantAware).not.toBe(true);
+  it('ativa Produto x Fornecedor no contexto do catalogo V53', () => {
+    expect(produtoFornecedoresConfig.tenantAware).toBe(true);
+    expect(produtoFornecedoresConfig.optimisticLocking).toBe(true);
+    expect(produtoFornecedoresConfig.permissions).toEqual({
+      read: ['catalog:read'],
+      create: ['catalog:manage'],
+      update: ['catalog:manage'],
+      delete: ['catalog:manage'],
+    });
+    expect(produtoFornecedoresConfig.requiredAllPermissions).toEqual({
+      create: ['suppliers:read'],
+      update: ['suppliers:read'],
+    });
+    expect(hasResourceActionPermission(
+      produtoFornecedoresConfig,
+      'read',
+      ['catalog:read'],
+    )).toBe(true);
+    expect(hasResourceActionPermission(
+      produtoFornecedoresConfig,
+      'create',
+      ['catalog:manage'],
+    )).toBe(false);
+    expect(hasResourceActionPermission(
+      produtoFornecedoresConfig,
+      'create',
+      ['catalog:manage', 'suppliers:read'],
+    )).toBe(true);
+    expect(hasResourceActionPermission(
+      produtoFornecedoresConfig,
+      'update',
+      ['catalog:manage'],
+    )).toBe(false);
+    expect(hasResourceActionPermission(
+      produtoFornecedoresConfig,
+      'delete',
+      ['catalog:manage'],
+    )).toBe(true);
+
+    const organizationOne = resourceQueryKey(
+      produtoFornecedoresConfig,
+      10,
+      'list',
+      produtoFornecedoresConfig.basePath,
+    );
+    const organizationTwo = resourceQueryKey(
+      produtoFornecedoresConfig,
+      20,
+      'list',
+      produtoFornecedoresConfig.basePath,
+    );
+    expect(organizationOne).toEqual([
+      'tenant',
+      10,
+      'list',
+      '/api/produto-fornecedores',
+    ]);
+    expect(organizationTwo).not.toEqual(organizationOne);
+  });
+
+  it('fecha o payload e mantem as referencias V53 no mesmo contexto', () => {
+    expect(produtoFornecedoresConfig.filters).toEqual([
+      expect.objectContaining({ name: 'produtoId' }),
+    ]);
+
+    const fields = new Map(produtoFornecedoresConfig.fields.map((field) => [field.name, field]));
+    expect([...fields.keys()]).toEqual([
+      'produtoId',
+      'fornecedorId',
+      'codigoProd',
+      'custo',
+      'ativo',
+    ]);
+    expect(fields.get('produtoId')).toMatchObject({
+      disabledOnEdit: true,
+      reference: { basePath: produtosConfig.basePath },
+    });
+    expect(fields.get('fornecedorId')).toMatchObject({
+      disabledOnEdit: true,
+      reference: { basePath: fornecedoresConfig.basePath },
+    });
+    expect(produtosConfig.tenantAware).toBe(true);
+    expect(fornecedoresConfig.tenantAware).toBe(true);
+
+    expect(buildResourcePayload(produtoFornecedoresConfig.fields, {
+      produtoId: 10,
+      fornecedorId: 20,
+      codigoProd: 'REF-1',
+      custo: 0,
+      ativo: false,
+      id: 30,
+      version: 4,
+      organizationId: 40,
+      produtoNome: 'PRODUTO',
+      fornecedorNome: 'FORNECEDOR',
+    })).toEqual({
+      produtoId: 10,
+      fornecedorId: 20,
+      codigoProd: 'REF-1',
+      custo: 0,
+      ativo: false,
+    });
+  });
+
+  it('mantem fora da onda V53 apenas os consumers ainda globais', () => {
     expect(notaEntradaConfig.tenantAware).not.toBe(true);
     expect(notaSaidaConfig.tenantAware).not.toBe(true);
   });

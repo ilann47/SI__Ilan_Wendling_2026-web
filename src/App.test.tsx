@@ -110,6 +110,16 @@ describe('App - compatibilidade legada', () => {
     );
   });
 
+  it('protege Produto x Fornecedor com catalog:read', async () => {
+    render(<MemoryRouter initialEntries={['/app/produto-fornecedores']}><App /></MemoryRouter>);
+
+    const heading = await screen.findByRole('heading', { name: 'Produtos por Fornecedor' });
+    expect(heading.closest('[data-permissions]')).toHaveAttribute(
+      'data-permissions',
+      'catalog:read',
+    );
+  });
+
   it('protege a rota preservada de cargos com workforce:read', async () => {
     render(<MemoryRouter initialEntries={['/app/cargos']}><App /></MemoryRouter>);
 

@@ -42,7 +42,13 @@ export function FieldRenderer({ field, namePrefix = '', dense }: Props) {
         control={control}
         render={({ field: f }) => (
           <FormControlLabel
-            control={<Switch checked={!!f.value} onChange={(e) => f.onChange(e.target.checked)} />}
+            control={(
+              <Switch
+                checked={!!f.value}
+                onChange={(e) => f.onChange(e.target.checked)}
+                disabled={field.disabled}
+              />
+            )}
             label={field.label}
           />
         )}

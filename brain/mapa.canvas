@@ -62,6 +62,6 @@
     {"id":"unificacao-multitenant-conveniencia","fromNode":"unificacao-multitenant","fromSide":"right","toNode":"conveniencia","toSide":"left","label":"catalogos V50-V52"},
     {"id":"auth-conveniencia","fromNode":"auth","fromSide":"bottom","toNode":"conveniencia","toSide":"top","label":"JWT e catalog:*"},
     {"id":"conveniencia-paridade-api","fromNode":"conveniencia","fromSide":"top","toNode":"paridade-api","toSide":"bottom","label":"contratos tenant-aware"},
-    {"id":"fornecedores-conveniencia","fromNode":"fornecedores","fromSide":"right","toNode":"conveniencia","toSide":"left","label":"consumer futuro"}
+    {"id":"fornecedores-conveniencia","fromNode":"fornecedores","fromSide":"right","toNode":"conveniencia","toSide":"left","label":"lookup suppliers:read V53"}
   ]
 }

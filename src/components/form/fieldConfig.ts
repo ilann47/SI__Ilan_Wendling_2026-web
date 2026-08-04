@@ -42,6 +42,8 @@ export interface FieldConfig {
   helperText?: string;
   defaultValue?: unknown;
   disabled?: boolean;
+  /** Mantem o campo editavel na criacao e bloqueia sua troca em registros existentes. */
+  disabledOnEdit?: boolean;
   step?: number;
   /** Para type 'document': modo fixo de mascara/validacao. Default 'auto'. */
   documentMode?: 'cpf' | 'cnpj' | 'auto';

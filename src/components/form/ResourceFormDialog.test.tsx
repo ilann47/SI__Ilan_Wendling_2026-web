@@ -51,4 +51,35 @@ describe('ResourceFormDialog', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Recarregar dados' }));
     expect(reload).toHaveBeenCalledOnce();
   });
+
+  it('bloqueia uma identidade imutavel somente durante a edicao', () => {
+    const field: FieldConfig = {
+      name: 'produtoId',
+      label: 'Produto',
+      type: 'text',
+      disabledOnEdit: true,
+    };
+    const { rerender } = render(
+      <ResourceFormDialog
+        open
+        title="Novo vinculo"
+        fields={[field]}
+        onClose={() => undefined}
+        onSubmit={() => undefined}
+      />,
+    );
+    expect(screen.getByRole('textbox', { name: 'Produto' })).toBeEnabled();
+
+    rerender(
+      <ResourceFormDialog
+        open
+        title="Editar vinculo"
+        fields={[field]}
+        initialValues={{ produtoId: 10 }}
+        onClose={() => undefined}
+        onSubmit={() => undefined}
+      />,
+    );
+    expect(screen.getByRole('textbox', { name: 'Produto' })).toBeDisabled();
+  });
 });

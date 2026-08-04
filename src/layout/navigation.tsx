@@ -138,7 +138,7 @@ export const navGroups: NavGroup[] = [
         icon: <BuildOutlinedIcon fontSize="small" />,
         permissions: ['catalog:read'],
       },
-      { label: 'Produto x Fornecedor', path: '/app/produto-fornecedores', icon: <LinkOutlinedIcon fontSize="small" /> },
+      { label: 'Produto x Fornecedor', path: '/app/produto-fornecedores', icon: <LinkOutlinedIcon fontSize="small" />, permissions: ['catalog:read'] },
       {
         label: 'Categorias',
         path: '/app/categorias',
