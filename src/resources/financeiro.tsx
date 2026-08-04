@@ -8,6 +8,15 @@ export const contaPagarConfig: ResourceConfig = {
   basePath: '/api/contas-pagar',
   singular: 'Conta a Pagar',
   plural: 'Contas a Pagar',
+  tenantAware: true,
+  permissions: {
+    read: ['finance:read'],
+    create: ['finance:manage'],
+    update: ['finance:manage'],
+  },
+  requiredAllPermissions: {
+    create: ['suppliers:read'],
+  },
   subtitle: 'Títulos a pagar (parcelas de fornecedores).',
   defaultSort: 'dataVencimento,asc',
   canEdit: false,

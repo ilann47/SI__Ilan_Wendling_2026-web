@@ -19,7 +19,8 @@
     {"id":"fornecedores","type":"file","file":"fornecedores.md","x":3000,"y":600,"width":360,"height":220},
     {"id":"rh","type":"file","file":"rh.md","x":3500,"y":600,"width":360,"height":220},
     {"id":"conveniencia","type":"file","file":"conveniencia.md","x":4000,"y":600,"width":360,"height":220},
-    {"id":"estoque","type":"file","file":"estoque.md","x":4500,"y":600,"width":360,"height":220}
+    {"id":"estoque","type":"file","file":"estoque.md","x":4500,"y":600,"width":360,"height":220},
+    {"id":"fiscal-financeiro","type":"file","file":"fiscal-financeiro.md","x":5000,"y":600,"width":360,"height":220}
   ],
   "edges": [
     {"id":"core-auth","fromNode":"core","fromSide":"right","toNode":"auth","toSide":"left","label":"JWT contextual"},
@@ -67,6 +68,8 @@
     {"id":"conveniencia-estoque","fromNode":"conveniencia","fromSide":"right","toNode":"estoque","toSide":"left","label":"produto tenant V54"},
     {"id":"auth-estoque","fromNode":"auth","fromSide":"bottom","toNode":"estoque","toSide":"top","label":"JWT e stock:*"},
     {"id":"estoque-paridade-api","fromNode":"estoque","fromSide":"top","toNode":"paridade-api","toSide":"bottom","label":"contratos V54"},
-    {"id":"unificacao-multitenant-estoque","fromNode":"unificacao-multitenant","fromSide":"right","toNode":"estoque","toSide":"left","label":"razao tenant"}
+    {"id":"unificacao-multitenant-estoque","fromNode":"unificacao-multitenant","fromSide":"right","toNode":"estoque","toSide":"left","label":"razao tenant"},
+    {"id":"estoque-fiscal-financeiro","fromNode":"estoque","fromSide":"right","toNode":"fiscal-financeiro","toSide":"left","label":"recebimento V55"},
+    {"id":"auth-fiscal-financeiro","fromNode":"auth","fromSide":"bottom","toNode":"fiscal-financeiro","toSide":"top","label":"fiscal/finance"}
   ]
 }

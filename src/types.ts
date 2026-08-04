@@ -666,6 +666,8 @@ export interface ItemNotaEntradaResponse {
 }
 export interface NotaEntradaResponse {
   id: number;
+  organizacaoId?: number;
+  version?: number;
   numero: string;
   modelo: string;
   serie: string;
@@ -673,6 +675,8 @@ export interface NotaEntradaResponse {
   fornecedorNome: string;
   condicaoPagamentoId?: number;
   condicaoPagamentoNome?: string;
+  localEstoqueId?: number;
+  localEstoqueNome?: string;
   dataEmissao: string;
   dataChegada?: string;
   tipoFrete: TipoFrete;
@@ -701,6 +705,7 @@ export interface NotaEntradaRequest {
   serie?: string;
   fornecedorId: number;
   condicaoPagamentoId?: number;
+  localEstoqueId: number;
   dataEmissao?: string;
   dataChegada?: string;
   tipoFrete?: TipoFrete;

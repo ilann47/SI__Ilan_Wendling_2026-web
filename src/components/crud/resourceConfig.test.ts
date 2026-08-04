@@ -450,8 +450,11 @@ describe('ResourceConfig tenant-aware do catalogo de conveniencia', () => {
     });
   });
 
-  it('mantem fora da onda V53 apenas os consumers ainda globais', () => {
-    expect(notaEntradaConfig.tenantAware).not.toBe(true);
+  it('migra nota de entrada na V55 e mantem nota de saida pendente', () => {
+    expect(notaEntradaConfig.tenantAware).toBe(true);
+    expect(notaEntradaConfig.permissions?.read).toEqual(['fiscal:read']);
+    expect(notaEntradaConfig.fields.find((field) => field.name === 'localEstoqueId'))
+      .toMatchObject({ required: true, type: 'reference' });
     expect(notaSaidaConfig.tenantAware).not.toBe(true);
   });
 });
