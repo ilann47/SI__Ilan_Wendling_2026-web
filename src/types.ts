@@ -587,6 +587,8 @@ export interface TarifaRequest {
 
 export interface VeiculoResponse {
   id: number;
+  organizacaoId?: number;
+  version?: number;
   placa: string;
   modelo?: string;
   cor?: string;

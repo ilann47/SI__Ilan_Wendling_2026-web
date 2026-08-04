@@ -66,6 +66,7 @@ permissão produz `403`; recurso inexistente ou pertencente a outro tenant produ
 ## Módulos relacionados
 
 - [[core]]
+- [[clientes]]
 - [[auth]]
 - [[compatibilidade-legada]]
 - [[paridade-api]]
@@ -80,6 +81,7 @@ permissão produz `403`; recurso inexistente ou pertencente a outro tenant produ
 
 | Data | Ação |
 |---|---|
+| 2026-08-04 | Integra Veiculos da operacao ao contexto V58 com cache e acoes protegidos por `operations:*`. |
 | 2026-08-03 | Registra a estratégia de convergência multi-tenant de todas as superfícies. |
 | 2026-08-03 | Registra pagamentos como primeira onda concluída do retrofit multiempresa. |
 | 2026-08-03 | Registra Clientes como segunda onda concluída do retrofit multiempresa. |

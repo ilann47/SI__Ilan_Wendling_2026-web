@@ -102,7 +102,12 @@ export const navGroups: NavGroup[] = [
         icon: <PeopleOutlinedIcon fontSize="small" />,
         permissions: ['customers:read'],
       },
-      { label: 'Veículos', path: '/app/veiculos', icon: <DirectionsCarOutlinedIcon fontSize="small" /> },
+      {
+        label: 'Veículos',
+        path: '/app/veiculos',
+        icon: <DirectionsCarOutlinedIcon fontSize="small" />,
+        permissions: ['operations:read'],
+      },
       {
         label: 'Fornecedores',
         path: '/app/fornecedores',

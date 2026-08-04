@@ -36,6 +36,17 @@ export const tarifasConfig: ResourceConfig = {
 export const veiculosConfig: ResourceConfig = {
   key: 'veiculos',
   basePath: '/api/veiculos',
+  tenantAware: true,
+  permissions: {
+    read: ['operations:read'],
+    create: ['operations:manage'],
+    update: ['operations:manage'],
+    delete: ['operations:manage'],
+  },
+  requiredAllPermissions: {
+    create: ['customers:read'],
+    update: ['customers:read'],
+  },
   singular: 'Veículo',
   plural: 'Veículos',
   defaultSort: 'placa,asc',
