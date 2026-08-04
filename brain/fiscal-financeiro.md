@@ -3,7 +3,7 @@
 # Fiscal e Financeiro de Entrada
 
 ## Objetivo
-Operar notas de entrada e contas a pagar na organização ativa.
+Operar notas de entrada/saída e contas a pagar/receber na organização ativa.
 
 ## Contexto
 As telas legadas foram conectadas aos contratos tenant-aware da V55.
@@ -38,3 +38,4 @@ Saída e serviço permanecem na próxima fatia fiscal.
 | Data | Ação |
 |---|---|
 | 2026-08-04 | Integração frontend V55 concluída. |
+| 2026-08-04 | Integração frontend V56 concluída. |

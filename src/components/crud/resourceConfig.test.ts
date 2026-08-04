@@ -455,7 +455,7 @@ describe('ResourceConfig tenant-aware do catalogo de conveniencia', () => {
     expect(notaEntradaConfig.permissions?.read).toEqual(['fiscal:read']);
     expect(notaEntradaConfig.fields.find((field) => field.name === 'localEstoqueId'))
       .toMatchObject({ required: true, type: 'reference' });
-    expect(notaSaidaConfig.tenantAware).not.toBe(true);
+    expect(notaSaidaConfig.tenantAware).toBe(true);
   });
 });
 

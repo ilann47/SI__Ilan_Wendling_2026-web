@@ -120,3 +120,4 @@ Testing Library; E2E contra o backend real será acrescentado no recorte própri
 | 2026-08-03 | Integra Produto–Fornecedor ao contexto organizacional V53 sem ativar notas ou estoque. |
 | 2026-08-03 | Integra a posição e razão de estoque V54 sem acoplar notas ou movimentações de pátio. |
 | 2026-08-04 | Integra Nota de Entrada e Conta a Pagar aos contratos V55. |
+| 2026-08-04 | Integra Nota de Saída e Conta a Receber aos contratos V56. |
