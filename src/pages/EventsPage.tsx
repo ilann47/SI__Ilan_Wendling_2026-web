@@ -6,14 +6,23 @@ import {
   Alert,
   Box,
   Button,
+  Card,
+  Chip,
   CircularProgress,
   MenuItem,
   Stack,
   Tab,
   Tabs,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
   TextField,
   Typography,
 } from '@mui/material';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import { api, describeError, ifMatchHeaders } from '../api/client';
 import { PageHeader } from '../components/common/PageHeader';
@@ -25,25 +34,10 @@ import { fromApiDateTime, fromNowLocalInput, toApiDateTime } from '../utils/date
 import { useOperationalWorkspace } from '../workspace/OperationalWorkspaceContext';
 import type { WorkspaceResource } from '../workspace/workspaceStore';
 import { useAuth } from '../auth/AuthContext';
+import { tenantQueryKey } from '../api/queryKeys';
+import { eventCatalogApi, type AllocationResponse, type EventResponse,
+  type PriceTierResponse, type ProductResponse } from '../api/eventCatalog';
 
-interface EventResponse {
-  id: number; venueId: number; name: string; startsAt: string; endsAt: string; timeZone: string;
-  status: string; reentryPolicy: string | null; externalId?: string | null; version: number;
-  configurationChecklist?: Record<string, boolean>;
-}
-interface AllocationResponse {
-  id: number; eventId: number; parkingFacilityId: number; startsAt: string; endsAt: string;
-  operationalCapacity: number; sellableCapacity: number; reservedCapacity: number; version: number;
-}
-interface ProductResponse {
-  id: number; eventId: number; parkingAllocationId: number; name: string; category: string;
-  right: string; accessStartsAt: string; accessEndsAt: string; quota: number; status: string;
-  benefits: string[]; restrictions: string[]; version: number;
-}
-interface PriceTierResponse {
-  id: number; parkingProductId: number; name: string; price: number; currency: string;
-  salesStartsAt: string; salesEndsAt: string; quantity: number; priority: number; version: number;
-}
 interface AvailabilityResponse {
   eventId: number; asOf: string; totalAvailable: number; guaranteesHold: boolean;
   items: Array<{
@@ -58,7 +52,10 @@ function recentSnapshot<T>(items: WorkspaceResource[], id: string): T | null {
   return resource?.snapshot ? resource.snapshot as T : null;
 }
 
-function EventSetup() {
+function EventSetup({ catalog, loadingCatalog, catalogError, refreshCatalog }: {
+  catalog: EventResponse[]; loadingCatalog: boolean; catalogError: unknown;
+  refreshCatalog: () => void;
+}) {
   const { permissions } = useAuth();
   const { recent, remember } = useOperationalWorkspace();
   const canCreate = permissions.includes('events:create');
@@ -104,6 +101,7 @@ function EventSetup() {
         externalId: form.externalId.trim() || null,
       }, { headers: { 'Idempotency-Key': crypto.randomUUID() } });
       accept(response.data);
+      refreshCatalog();
     } catch (cause) { setError(describeError(cause)); } finally { setLoading(false); }
   };
 
@@ -137,11 +135,27 @@ function EventSetup() {
         }, { headers });
       }
       accept(response.data);
+      refreshCatalog();
     } catch (cause) { setError(describeError(cause)); } finally { setLoading(false); }
   };
 
   return (
     <Stack spacing={2}>
+      <Card>
+        {loadingCatalog ? <Box sx={{ display: 'grid', placeItems: 'center', py: 5 }}><CircularProgress /></Box>
+          : catalogError ? <Alert severity="error">{describeError(catalogError)}</Alert>
+            : catalog.length === 0 ? <Alert severity="info">Nenhum evento cadastrado.</Alert>
+              : <TableContainer><Table size="small"><TableHead><TableRow>
+                <TableCell>Evento</TableCell><TableCell>Inicio</TableCell><TableCell>Status</TableCell>
+                <TableCell>Versao</TableCell><TableCell>Acoes</TableCell>
+              </TableRow></TableHead><TableBody>{catalog.map((item) => <TableRow key={item.id} hover
+                selected={eventRef.id === String(item.id)}>
+                <TableCell>{item.name}<Typography variant="caption" display="block" color="text.secondary">#{item.id}</Typography></TableCell>
+                <TableCell>{new Date(item.startsAt).toLocaleString('pt-BR')}</TableCell>
+                <TableCell><Chip size="small" label={item.status} /></TableCell><TableCell>{item.version}</TableCell>
+                <TableCell><Button size="small" onClick={() => accept(item)}>Selecionar</Button></TableCell>
+              </TableRow>)}</TableBody></Table></TableContainer>}
+      </Card>
       {canCreate && <OperationCard title="Criar evento" description="A chave idempotente e gerada por tentativa de criacao." error={error}>
         <Stack component="form" spacing={2} onSubmit={(event) => void create(event)}>
           <TextField label="Nome do evento" value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} required />
@@ -159,7 +173,7 @@ function EventSetup() {
       </OperationCard>}
       {allowedActions.length > 0 && <OperationCard
         title="Ciclo de vida"
-        description="Como nao existe GET de evento, selecione uma resposta recente ou informe ID, versao e estado conhecidos."
+        description="Selecione um evento da listagem para executar as transicoes permitidas."
         error={error}
         result={result ? <ResourceSnapshot data={{ id: result.id, name: result.name, status: result.status, reentryPolicy: result.reentryPolicy, version: result.version, configurationChecklist: result.configurationChecklist }} /> : undefined}
       >
@@ -182,7 +196,11 @@ function EventSetup() {
   );
 }
 
-function AllocationSetup() {
+function AllocationSetup({ events }: { events: EventResponse[] }) {
+  const { activeOrganization, permissions } = useAuth();
+  const queryClient = useQueryClient();
+  const orgId = activeOrganization?.organizationId;
+  const canManage = permissions.includes('inventory:manage');
   const { recent, remember } = useOperationalWorkspace();
   const allocations = recent('allocation');
   const [eventId, setEventId] = useState('');
@@ -194,6 +212,12 @@ function AllocationSetup() {
   const [result, setResult] = useState<AllocationResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const allocationKey = orgId && eventId
+    ? tenantQueryKey(orgId, 'event-allocations', Number(eventId))
+    : ['event-allocations', Number(eventId)];
+  const catalog = useQuery({ queryKey: allocationKey,
+    queryFn: () => eventCatalogApi.listAllocations(Number(eventId)),
+    enabled: !!orgId && !!eventId });
   const capacities = () => ({
     operationalCapacity: Number(form.operationalCapacity),
     sellableCapacity: Number(form.sellableCapacity),
@@ -210,6 +234,7 @@ function AllocationSetup() {
         parkingFacilityId: Number(form.parkingFacilityId), startsAt: toApiDateTime(form.startsAt), endsAt: toApiDateTime(form.endsAt), ...capacities(),
       }, { headers: { 'Idempotency-Key': crypto.randomUUID() } });
       accept(response.data);
+      void queryClient.invalidateQueries({ queryKey: allocationKey });
     } catch (cause) { setError(describeError(cause)); } finally { setLoading(false); }
   };
   const update = async () => {
@@ -217,6 +242,7 @@ function AllocationSetup() {
     try {
       const response = await api.patch<AllocationResponse>(`/api/v1/parking-allocations/${Number(allocationRef.id)}`, capacities(), { headers: ifMatchHeaders(Number(allocationRef.version)) });
       accept(response.data);
+      void queryClient.invalidateQueries({ queryKey: allocationKey });
     } catch (cause) { setError(describeError(cause)); } finally { setLoading(false); }
   };
   const choose = (id: string) => {
@@ -228,7 +254,23 @@ function AllocationSetup() {
     }
   };
   return (
-    <OperationCard title="Alocacao evento-patio" description="Capacidade vendavel + reservada nao pode superar a operacional." error={error} result={result ? <ResourceSnapshot data={{ id: result.id, eventId: result.eventId, parkingFacilityId: result.parkingFacilityId, operationalCapacity: result.operationalCapacity, sellableCapacity: result.sellableCapacity, reservedCapacity: result.reservedCapacity, version: result.version }} /> : undefined}>
+    <Stack spacing={2}>
+    <Card><Stack spacing={1.5} sx={{ p: 2 }}><TextField select label="Evento para listar alocacoes"
+      value={eventId} onChange={(event) => setEventId(event.target.value)} fullWidth>
+      {events.map((item) => <MenuItem key={item.id} value={String(item.id)}>{item.name} #{item.id}</MenuItem>)}
+    </TextField>{catalog.isLoading ? <CircularProgress size={24} /> : catalog.isError
+      ? <Alert severity="error">{describeError(catalog.error)}</Alert> : eventId && catalog.data?.length === 0
+        ? <Alert severity="info">Nenhuma alocacao neste evento.</Alert> : catalog.data && catalog.data.length > 0
+          ? <TableContainer><Table size="small"><TableHead><TableRow><TableCell>Patio</TableCell>
+            <TableCell>Operacional</TableCell><TableCell>Vendavel</TableCell><TableCell>Reservada</TableCell><TableCell /></TableRow></TableHead>
+            <TableBody>{catalog.data.map((item) => <TableRow key={item.id} hover selected={allocationRef.id === String(item.id)}>
+              <TableCell>#{item.parkingFacilityId}</TableCell><TableCell>{item.operationalCapacity}</TableCell>
+              <TableCell>{item.sellableCapacity}</TableCell><TableCell>{item.reservedCapacity}</TableCell>
+              <TableCell><Button size="small" onClick={() => { accept(item); setForm((current) => ({ ...current,
+                operationalCapacity: String(item.operationalCapacity), sellableCapacity: String(item.sellableCapacity),
+                reservedCapacity: String(item.reservedCapacity) })); }}>Selecionar</Button></TableCell>
+            </TableRow>)}</TableBody></Table></TableContainer> : null}</Stack></Card>
+    {canManage && <OperationCard title="Alocacao evento-patio" description="Capacidade vendavel + reservada nao pode superar a operacional." error={error} result={result ? <ResourceSnapshot data={{ id: result.id, eventId: result.eventId, parkingFacilityId: result.parkingFacilityId, operationalCapacity: result.operationalCapacity, sellableCapacity: result.sellableCapacity, reservedCapacity: result.reservedCapacity, version: result.version }} /> : undefined}>
       <Stack component="form" spacing={2} onSubmit={(event) => void create(event)}>
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
           <ResourceIdField label="ID do evento" value={eventId} onChange={setEventId} recent={recent('event')} />
@@ -243,15 +285,20 @@ function AllocationSetup() {
         </Stack>
         <Button type="submit" variant="contained" disabled={loading} startIcon={loading ? <CircularProgress size={18} color="inherit" /> : <InventoryOutlinedIcon />} sx={{ alignSelf: 'flex-start' }}>Criar alocacao</Button>
       </Stack>
-      <Alert severity="info">Para alterar capacidades, escolha uma alocacao recente ou informe ID e versao conhecidos.</Alert>
+      <Alert severity="info">Selecione uma alocacao da listagem acima para alterar suas capacidades.</Alert>
       <ResourceIdField label="ID da alocacao" value={allocationRef.id} onChange={choose} recent={allocations} />
       <TextField label="Versao da alocacao" type="number" value={allocationRef.version} onChange={(event) => setAllocationRef((current) => ({ ...current, version: event.target.value }))} inputProps={{ min: 0 }} required />
       <Button variant="outlined" disabled={loading || !allocationRef.id} onClick={() => void update()} sx={{ alignSelf: 'flex-start' }}>Atualizar capacidades</Button>
-    </OperationCard>
+    </OperationCard>}
+    </Stack>
   );
 }
 
-function ProductSetup() {
+function ProductSetup({ events }: { events: EventResponse[] }) {
+  const { activeOrganization, permissions } = useAuth();
+  const queryClient = useQueryClient();
+  const orgId = activeOrganization?.organizationId;
+  const canManage = permissions.includes('pricing:manage');
   const { recent, remember } = useOperationalWorkspace();
   const products = recent('product');
   const allocations = recent('allocation');
@@ -261,6 +308,14 @@ function ProductSetup() {
   const [result, setResult] = useState<ProductResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const productKey = orgId && eventId ? tenantQueryKey(orgId, 'event-products', Number(eventId))
+    : ['event-products', Number(eventId)];
+  const allocationKey = orgId && eventId ? tenantQueryKey(orgId, 'event-allocations', Number(eventId))
+    : ['event-allocations', Number(eventId)];
+  const catalog = useQuery({ queryKey: productKey, queryFn: () => eventCatalogApi.listProducts(Number(eventId)),
+    enabled: !!orgId && !!eventId });
+  const allocationCatalog = useQuery({ queryKey: allocationKey,
+    queryFn: () => eventCatalogApi.listAllocations(Number(eventId)), enabled: !!orgId && !!eventId });
   const accept = (data: ProductResponse) => {
     setResult(data); setProductRef({ id: String(data.id), version: String(data.version) });
     remember('product', { id: data.id, label: data.name, version: data.version, snapshot: { ...data } });
@@ -276,6 +331,7 @@ function ProductSetup() {
         restrictions: form.restrictions.split(',').map((item) => item.trim()).filter(Boolean),
       }, { headers: { 'Idempotency-Key': crypto.randomUUID() } });
       accept(response.data);
+      void queryClient.invalidateQueries({ queryKey: productKey });
     } catch (cause) { setError(describeError(cause)); } finally { setLoading(false); }
   };
   const publish = async () => {
@@ -283,6 +339,7 @@ function ProductSetup() {
     try {
       const response = await api.post<ProductResponse>(`/api/v1/parking-products/${Number(productRef.id)}/publication`, { confirmed: true }, { headers: ifMatchHeaders(Number(productRef.version)) });
       accept(response.data);
+      void queryClient.invalidateQueries({ queryKey: productKey });
     } catch (cause) { setError(describeError(cause)); } finally { setLoading(false); }
   };
   const choose = (id: string) => {
@@ -290,7 +347,8 @@ function ProductSetup() {
     const snapshot = recentSnapshot<ProductResponse>(products, id); if (snapshot) accept(snapshot);
   };
   const chooseAllocation = (allocationId: string) => {
-    const allocation = recentSnapshot<AllocationResponse>(allocations, allocationId);
+    const allocation = allocationCatalog.data?.find((item) => item.id === Number(allocationId))
+      ?? recentSnapshot<AllocationResponse>(allocations, allocationId);
     setForm((current) => allocation ? {
       ...current,
       allocationId,
@@ -301,11 +359,26 @@ function ProductSetup() {
     if (allocation) setEventId(String(allocation.eventId));
   };
   return (
-    <OperationCard title="Produto de estacionamento" description="A quota pertence a uma unica alocacao de patio e o direito da Fase 1 e estacionamento de evento." error={error} result={result ? <ResourceSnapshot data={{ id: result.id, eventId: result.eventId, name: result.name, category: result.category, quota: result.quota, status: result.status, version: result.version }} /> : undefined}>
+    <Stack spacing={2}>
+    <Card><Stack spacing={1.5} sx={{ p: 2 }}><TextField select label="Evento para listar produtos"
+      value={eventId} onChange={(event) => setEventId(event.target.value)} fullWidth>
+      {events.map((item) => <MenuItem key={item.id} value={String(item.id)}>{item.name} #{item.id}</MenuItem>)}
+    </TextField>{catalog.isLoading ? <CircularProgress size={24} /> : catalog.isError
+      ? <Alert severity="error">{describeError(catalog.error)}</Alert> : eventId && catalog.data?.length === 0
+        ? <Alert severity="info">Nenhum produto neste evento.</Alert> : catalog.data && catalog.data.length > 0
+          ? <TableContainer><Table size="small"><TableHead><TableRow><TableCell>Produto</TableCell><TableCell>Categoria</TableCell>
+            <TableCell>Quota</TableCell><TableCell>Status</TableCell><TableCell /></TableRow></TableHead><TableBody>
+            {catalog.data.map((item) => <TableRow key={item.id} hover selected={productRef.id === String(item.id)}>
+              <TableCell>{item.name}<Typography variant="caption" display="block" color="text.secondary">#{item.id}</Typography></TableCell>
+              <TableCell>{item.category}</TableCell><TableCell>{item.quota}</TableCell><TableCell><Chip size="small" label={item.status} /></TableCell>
+              <TableCell><Button size="small" onClick={() => accept(item)}>Selecionar</Button></TableCell>
+            </TableRow>)}</TableBody></Table></TableContainer> : null}</Stack></Card>
+    {canManage && <OperationCard title="Produto de estacionamento" description="A quota pertence a uma unica alocacao de patio e o direito da Fase 1 e estacionamento de evento." error={error} result={result ? <ResourceSnapshot data={{ id: result.id, eventId: result.eventId, name: result.name, category: result.category, quota: result.quota, status: result.status, version: result.version }} /> : undefined}>
       <Stack component="form" spacing={2} onSubmit={(event) => void create(event)}>
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
           <ResourceIdField label="ID do evento" value={eventId} onChange={setEventId} recent={recent('event')} />
-          <ResourceIdField label="ID da alocacao" value={form.allocationId} onChange={chooseAllocation} recent={allocations} />
+          <ResourceIdField label="ID da alocacao" value={form.allocationId}
+            onChange={chooseAllocation} recent={allocations} />
         </Stack>
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
           <TextField label="Nome" value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} required fullWidth />
@@ -323,17 +396,31 @@ function ProductSetup() {
       <ResourceIdField label="ID do produto para publicacao" value={productRef.id} onChange={choose} recent={products} />
       <TextField label="Versao do produto" type="number" value={productRef.version} onChange={(event) => setProductRef((current) => ({ ...current, version: event.target.value }))} inputProps={{ min: 0 }} required />
       <Button variant="outlined" disabled={loading || !productRef.id} onClick={() => void publish()} startIcon={<PublishOutlinedIcon />} sx={{ alignSelf: 'flex-start' }}>Publicar produto</Button>
-    </OperationCard>
+    </OperationCard>}
+    </Stack>
   );
 }
 
-function PriceTierSetup() {
+function PriceTierSetup({ events }: { events: EventResponse[] }) {
+  const { activeOrganization, permissions } = useAuth();
+  const queryClient = useQueryClient();
+  const orgId = activeOrganization?.organizationId;
+  const canManage = permissions.includes('pricing:manage');
   const { recent, remember } = useOperationalWorkspace();
+  const [eventId, setEventId] = useState('');
   const [productId, setProductId] = useState('');
   const [form, setForm] = useState({ name: 'Lote 1', price: '50.00', currency: 'BRL', salesStartsAt: fromNowLocalInput(0), salesEndsAt: fromNowLocalInput(20 * 60), quantity: '50', priority: '0' });
   const [result, setResult] = useState<PriceTierResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const productKey = orgId && eventId ? tenantQueryKey(orgId, 'event-products', Number(eventId))
+    : ['event-products', Number(eventId)];
+  const tierKey = orgId && productId ? tenantQueryKey(orgId, 'product-price-tiers', Number(productId))
+    : ['product-price-tiers', Number(productId)];
+  const productsCatalog = useQuery({ queryKey: productKey,
+    queryFn: () => eventCatalogApi.listProducts(Number(eventId)), enabled: !!orgId && !!eventId });
+  const tiersCatalog = useQuery({ queryKey: tierKey,
+    queryFn: () => eventCatalogApi.listPriceTiers(Number(productId)), enabled: !!orgId && !!productId });
   const submit = async (event: FormEvent) => {
     event.preventDefault(); setLoading(true); setError(null);
     try {
@@ -344,10 +431,25 @@ function PriceTierSetup() {
       }, { headers: { 'Idempotency-Key': crypto.randomUUID() } });
       setResult(response.data);
       remember('priceTier', { id: response.data.id, label: response.data.name, version: response.data.version, snapshot: { ...response.data } });
+      void queryClient.invalidateQueries({ queryKey: tierKey });
     } catch (cause) { setError(describeError(cause)); } finally { setLoading(false); }
   };
   return (
-    <OperationCard title="Lote de preco" description="Janelas de venda, quantidade e prioridade determinam o lote vigente." error={error} result={result ? <ResourceSnapshot data={{ id: result.id, parkingProductId: result.parkingProductId, name: result.name, price: result.price, currency: result.currency, quantity: result.quantity, priority: result.priority, version: result.version }} /> : undefined}>
+    <Stack spacing={2}>
+    <Card><Stack spacing={1.5} sx={{ p: 2 }}><Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+      <TextField select label="Evento" value={eventId} onChange={(event) => { setEventId(event.target.value); setProductId(''); }} fullWidth>
+        {events.map((item) => <MenuItem key={item.id} value={String(item.id)}>{item.name} #{item.id}</MenuItem>)}</TextField>
+      <TextField select label="Produto para listar lotes" value={productId} onChange={(event) => setProductId(event.target.value)} fullWidth>
+        {(productsCatalog.data ?? []).map((item) => <MenuItem key={item.id} value={String(item.id)}>{item.name} #{item.id}</MenuItem>)}</TextField>
+    </Stack>{tiersCatalog.isLoading ? <CircularProgress size={24} /> : tiersCatalog.isError
+      ? <Alert severity="error">{describeError(tiersCatalog.error)}</Alert> : productId && tiersCatalog.data?.length === 0
+        ? <Alert severity="info">Nenhum lote de preco neste produto.</Alert> : tiersCatalog.data && tiersCatalog.data.length > 0
+          ? <TableContainer><Table size="small"><TableHead><TableRow><TableCell>Lote</TableCell><TableCell>Preco</TableCell>
+            <TableCell>Quantidade</TableCell><TableCell>Prioridade</TableCell></TableRow></TableHead><TableBody>
+            {tiersCatalog.data.map((item) => <TableRow key={item.id} hover><TableCell>{item.name} #{item.id}</TableCell>
+              <TableCell>{item.currency} {Number(item.price).toFixed(2)}</TableCell><TableCell>{item.quantity}</TableCell>
+              <TableCell>{item.priority}</TableCell></TableRow>)}</TableBody></Table></TableContainer> : null}</Stack></Card>
+    {canManage && <OperationCard title="Lote de preco" description="Janelas de venda, quantidade e prioridade determinam o lote vigente." error={error} result={result ? <ResourceSnapshot data={{ id: result.id, parkingProductId: result.parkingProductId, name: result.name, price: result.price, currency: result.currency, quantity: result.quantity, priority: result.priority, version: result.version }} /> : undefined}>
       <Stack component="form" spacing={2} onSubmit={(event) => void submit(event)}>
         <ResourceIdField label="ID do produto" value={productId} onChange={setProductId} recent={recent('product')} />
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
@@ -365,11 +467,12 @@ function PriceTierSetup() {
         </Stack>
         <Button type="submit" variant="contained" disabled={loading} startIcon={loading ? <CircularProgress size={18} color="inherit" /> : <PriceChangeOutlinedIcon />} sx={{ alignSelf: 'flex-start' }}>Criar lote</Button>
       </Stack>
-    </OperationCard>
+    </OperationCard>}
+    </Stack>
   );
 }
 
-function AvailabilityPanel() {
+function AvailabilityPanel({ events }: { events: EventResponse[] }) {
   const { recent } = useOperationalWorkspace();
   const [eventId, setEventId] = useState('');
   const [category, setCategory] = useState('');
@@ -386,7 +489,10 @@ function AvailabilityPanel() {
   return (
     <OperationCard title="Disponibilidade publicada" description="Consulta forte de leitura. A disponibilidade somente e garantida depois da criacao de um hold." error={error}>
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-        <ResourceIdField label="ID do evento" value={eventId} onChange={setEventId} recent={recent('event')} />
+        <TextField select label="Evento" value={eventId} onChange={(event) => setEventId(event.target.value)} fullWidth>
+          {events.map((item) => <MenuItem key={item.id} value={String(item.id)}>{item.name} #{item.id}</MenuItem>)}
+          {events.length === 0 && recent('event').map((item) => <MenuItem key={item.id} value={String(item.id)}>{item.label} #{item.id}</MenuItem>)}
+        </TextField>
         <TextField select label="Categoria" value={category} onChange={(event) => setCategory(event.target.value)} fullWidth><MenuItem value="">Todas</MenuItem>{facilityCategories.map((item) => <MenuItem key={item} value={item}>{item}</MenuItem>)}</TextField>
         <Button variant="contained" disabled={loading || !eventId} onClick={() => void load()} startIcon={loading ? <CircularProgress size={18} color="inherit" /> : <InventoryOutlinedIcon />}>Consultar</Button>
       </Stack>
@@ -408,15 +514,24 @@ function AvailabilityPanel() {
 }
 
 export function EventsPage() {
-  const { permissions } = useAuth();
+  const { permissions, activeOrganization } = useAuth();
+  const orgId = activeOrganization?.organizationId;
+  const eventsKey = orgId ? tenantQueryKey(orgId, 'events') : ['events'];
+  const eventsQuery = useQuery({ queryKey: eventsKey, queryFn: eventCatalogApi.listEvents,
+    enabled: !!orgId && permissions.includes('events:read') });
+  const events = eventsQuery.data?.content ?? [];
   const [tab, setTab] = useState(0);
   const panels = [
-    (permissions.includes('events:create') || permissions.includes('events:publish') || permissions.includes('access:operate'))
-      && { label: 'Evento', content: <EventSetup /> },
-    permissions.includes('inventory:manage') && { label: 'Alocacao', content: <AllocationSetup /> },
-    permissions.includes('pricing:manage') && { label: 'Produto', content: <ProductSetup /> },
-    permissions.includes('pricing:manage') && { label: 'Lote de preco', content: <PriceTierSetup /> },
-    { label: 'Disponibilidade', content: <AvailabilityPanel /> },
+    (permissions.includes('events:read') || permissions.includes('events:create') || permissions.includes('events:publish') || permissions.includes('access:operate'))
+      && { label: 'Evento', content: <EventSetup catalog={events} loadingCatalog={eventsQuery.isLoading}
+        catalogError={eventsQuery.error} refreshCatalog={() => { void eventsQuery.refetch(); }} /> },
+    (permissions.includes('inventory:read') || permissions.includes('inventory:manage'))
+      && { label: 'Alocacao', content: <AllocationSetup events={events} /> },
+    (permissions.includes('pricing:read') || permissions.includes('pricing:manage'))
+      && { label: 'Produto', content: <ProductSetup events={events} /> },
+    (permissions.includes('pricing:read') || permissions.includes('pricing:manage'))
+      && { label: 'Lote de preco', content: <PriceTierSetup events={events} /> },
+    { label: 'Disponibilidade', content: <AvailabilityPanel events={events} /> },
   ].filter(Boolean) as { label: string; content: ReactNode }[];
   useEffect(() => {
     if (tab >= panels.length) setTab(0);
@@ -424,7 +539,6 @@ export function EventsPage() {
   return (
     <Box>
       <PageHeader title="Eventos e ofertas" subtitle="Configure o evento, inventario vendavel, produto e preco antes de abrir vendas." />
-      <Alert severity="info" sx={{ mb: 2 }}>A API ainda nao lista eventos, alocacoes, produtos ou lotes. O workspace apresenta somente respostas reais criadas ou atualizadas neste navegador.</Alert>
       <Tabs value={tab} onChange={(_, value) => setTab(value)} variant="scrollable" sx={{ mb: 2 }}>
         {panels.map((panel) => <Tab key={panel.label} label={panel.label} />)}
       </Tabs>
