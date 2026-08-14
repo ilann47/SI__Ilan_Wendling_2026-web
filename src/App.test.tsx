@@ -30,6 +30,7 @@ vi.mock('./components/crud/CrudResourcePage', () => ({
 vi.mock('./pages/PatioPage', () => ({ PatioPage: () => <h1>Patio legado</h1> }));
 vi.mock('./pages/RelatoriosPage', () => ({ RelatoriosPage: () => <h1>Relatorios legados</h1> }));
 vi.mock('./pages/StockPage', () => ({ StockPage: () => <h1>Estoque</h1> }));
+vi.mock('./pages/PurchaseOrdersPage', () => ({ PurchaseOrdersPage: () => <h1>Ordens de Compra</h1> }));
 
 describe('App - compatibilidade legada', () => {
   it('protege a pagina de estoque com stock:read', async () => {
@@ -37,6 +38,13 @@ describe('App - compatibilidade legada', () => {
 
     const heading = await screen.findByRole('heading', { name: 'Estoque' });
     expect(heading.closest('[data-permissions]')).toHaveAttribute('data-permissions', 'stock:read');
+  });
+
+  it('protege ordens de compra com purchases:read', async () => {
+    render(<MemoryRouter initialEntries={['/app/ordens-compra']}><App /></MemoryRouter>);
+
+    const heading = await screen.findByRole('heading', { name: 'Ordens de Compra' });
+    expect(heading.closest('[data-permissions]')).toHaveAttribute('data-permissions', 'purchases:read');
   });
 
   it.each([

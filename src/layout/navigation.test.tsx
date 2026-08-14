@@ -15,7 +15,15 @@ describe('navigation - compatibilidade legada', () => {
       Produtos: '/app/produtos',
       Serviços: '/app/servicos',
       'Contas a Pagar': '/app/contas-pagar',
+      'Ordens de Compra': '/app/ordens-compra',
     });
+  });
+
+  it('exige leitura contextual para Ordens de Compra', () => {
+    const item = navGroups.flatMap((group) => group.items)
+      .find((candidate) => candidate.label === 'Ordens de Compra');
+
+    expect(item?.permissions).toEqual(['purchases:read']);
   });
 
   it.each(['Formas de Pagamento', 'Condições de Pagamento'])(

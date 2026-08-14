@@ -30,6 +30,8 @@ const RelatoriosPage = lazy(() => import('./pages/RelatoriosPage')
   .then((module) => ({ default: module.RelatoriosPage })));
 const StockPage = lazy(() => import('./pages/StockPage')
   .then((module) => ({ default: module.StockPage })));
+const PurchaseOrdersPage = lazy(() => import('./pages/PurchaseOrdersPage')
+  .then((module) => ({ default: module.PurchaseOrdersPage })));
 const CrudResourcePage = lazy(() => import('./components/crud/CrudResourcePage')
   .then((module) => ({ default: module.CrudResourcePage })));
 
@@ -88,6 +90,9 @@ export function App() {
           <Route path="relatorios" element={<RelatoriosPage />} />
           <Route path="estoque" element={
             <PermissionRoute anyOf={['stock:read']}><StockPage /></PermissionRoute>
+          } />
+          <Route path="ordens-compra" element={
+            <PermissionRoute anyOf={['purchases:read']}><PurchaseOrdersPage /></PermissionRoute>
           } />
           {allConfigs.map((config) => (
             <Route

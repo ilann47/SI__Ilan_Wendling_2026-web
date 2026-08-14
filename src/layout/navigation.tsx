@@ -5,6 +5,7 @@ import AdminPanelSettingsOutlinedIcon from '@mui/icons-material/AdminPanelSettin
 import ApartmentOutlinedIcon from '@mui/icons-material/ApartmentOutlined';
 import EventOutlinedIcon from '@mui/icons-material/EventOutlined';
 import ShoppingBagOutlinedIcon from '@mui/icons-material/ShoppingBagOutlined';
+import ShoppingCartCheckoutOutlinedIcon from '@mui/icons-material/ShoppingCartCheckoutOutlined';
 import BlockOutlinedIcon from '@mui/icons-material/BlockOutlined';
 import AssessmentOutlinedIcon from '@mui/icons-material/AssessmentOutlined';
 import BadgeOutlinedIcon from '@mui/icons-material/BadgeOutlined';
@@ -88,6 +89,17 @@ export const navGroups: NavGroup[] = [
         label: 'Relatórios', path: '/app/relatorios',
         icon: <AssessmentOutlinedIcon fontSize="small" />,
         permissions: ['finance:read', 'operations:read', 'stock:read'],
+      },
+    ],
+  },
+  {
+    label: 'Compras',
+    items: [
+      {
+        label: 'Ordens de Compra',
+        path: '/app/ordens-compra',
+        icon: <ShoppingCartCheckoutOutlinedIcon fontSize="small" />,
+        permissions: ['purchases:read'],
       },
     ],
   },

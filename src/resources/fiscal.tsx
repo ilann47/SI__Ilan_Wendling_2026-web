@@ -77,6 +77,13 @@ export const notaEntradaConfig: ResourceConfig = {
       cols: 6,
       reference: { basePath: '/api/v1/stock-locations', labelField: 'nome' },
     },
+    {
+      name: 'recebimentoCompraId',
+      label: 'Recebimento da ordem',
+      type: 'integer',
+      cols: 6,
+      helperText: 'Opcional. Informe o ID exibido no historico da Ordem de Compra para evitar duplicar o estoque.',
+    },
     { name: 'dataEmissao', label: 'Emissão', type: 'date', cols: 4 },
     { name: 'dataChegada', label: 'Chegada', type: 'date', cols: 4 },
     { name: 'valorFrete', label: 'Frete', type: 'money', cols: 3 },
