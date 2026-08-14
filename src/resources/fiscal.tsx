@@ -159,6 +159,11 @@ export const notaSaidaConfig: ResourceConfig = {
       name: 'localEstoqueId', label: 'Local de estoque', type: 'reference', required: true, cols: 6,
       reference: { basePath: '/api/v1/stock-locations', labelField: 'nome' },
     },
+    {
+      name: 'vendaAdministrativaId', label: 'Venda administrativa vinculada',
+      type: 'integer', cols: 6,
+      helperText: 'Opcional. Informe a venda confirmada para documentar sem repetir estoque ou financeiro.',
+    },
     { name: 'dataEmissao', label: 'Emissão', type: 'date', cols: 4 },
     { name: 'dataSaida', label: 'Saída', type: 'date', cols: 4 },
     { name: 'valorFrete', label: 'Frete', type: 'money', cols: 3 },

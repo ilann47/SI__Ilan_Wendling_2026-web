@@ -31,6 +31,9 @@ vi.mock('./pages/PatioPage', () => ({ PatioPage: () => <h1>Patio legado</h1> }))
 vi.mock('./pages/RelatoriosPage', () => ({ RelatoriosPage: () => <h1>Relatorios legados</h1> }));
 vi.mock('./pages/StockPage', () => ({ StockPage: () => <h1>Estoque</h1> }));
 vi.mock('./pages/PurchaseOrdersPage', () => ({ PurchaseOrdersPage: () => <h1>Ordens de Compra</h1> }));
+vi.mock('./pages/AdministrativeSalesPage', () => ({
+  AdministrativeSalesPage: () => <h1>Vendas Administrativas</h1>,
+}));
 
 describe('App - compatibilidade legada', () => {
   it('protege a pagina de estoque com stock:read', async () => {
@@ -45,6 +48,12 @@ describe('App - compatibilidade legada', () => {
 
     const heading = await screen.findByRole('heading', { name: 'Ordens de Compra' });
     expect(heading.closest('[data-permissions]')).toHaveAttribute('data-permissions', 'purchases:read');
+  });
+
+  it('protege vendas administrativas com sales:read', async () => {
+    render(<MemoryRouter initialEntries={['/app/vendas-administrativas']}><App /></MemoryRouter>);
+    const heading = await screen.findByRole('heading', { name: 'Vendas Administrativas' });
+    expect(heading.closest('[data-permissions]')).toHaveAttribute('data-permissions', 'sales:read');
   });
 
   it.each([

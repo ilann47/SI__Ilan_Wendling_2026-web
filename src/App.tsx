@@ -32,6 +32,8 @@ const StockPage = lazy(() => import('./pages/StockPage')
   .then((module) => ({ default: module.StockPage })));
 const PurchaseOrdersPage = lazy(() => import('./pages/PurchaseOrdersPage')
   .then((module) => ({ default: module.PurchaseOrdersPage })));
+const AdministrativeSalesPage = lazy(() => import('./pages/AdministrativeSalesPage')
+  .then((module) => ({ default: module.AdministrativeSalesPage })));
 const CrudResourcePage = lazy(() => import('./components/crud/CrudResourcePage')
   .then((module) => ({ default: module.CrudResourcePage })));
 
@@ -93,6 +95,9 @@ export function App() {
           } />
           <Route path="ordens-compra" element={
             <PermissionRoute anyOf={['purchases:read']}><PurchaseOrdersPage /></PermissionRoute>
+          } />
+          <Route path="vendas-administrativas" element={
+            <PermissionRoute anyOf={['sales:read']}><AdministrativeSalesPage /></PermissionRoute>
           } />
           {allConfigs.map((config) => (
             <Route

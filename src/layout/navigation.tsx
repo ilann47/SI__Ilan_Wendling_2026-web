@@ -101,6 +101,12 @@ export const navGroups: NavGroup[] = [
         icon: <ShoppingCartCheckoutOutlinedIcon fontSize="small" />,
         permissions: ['purchases:read'],
       },
+      {
+        label: 'Vendas Administrativas',
+        path: '/app/vendas-administrativas',
+        icon: <SellOutlinedIcon fontSize="small" />,
+        permissions: ['sales:read'],
+      },
     ],
   },
   {
