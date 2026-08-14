@@ -17,6 +17,7 @@ describe('navigation - compatibilidade legada', () => {
       'Contas a Pagar': '/app/contas-pagar',
       'Ordens de Compra': '/app/ordens-compra',
       'Vendas Administrativas': '/app/vendas-administrativas',
+      'Ordens de Servico': '/app/ordens-servico',
     });
   });
 
@@ -24,6 +25,12 @@ describe('navigation - compatibilidade legada', () => {
     const item = navGroups.flatMap((group) => group.items)
       .find((candidate) => candidate.label === 'Vendas Administrativas');
     expect(item?.permissions).toEqual(['sales:read']);
+  });
+
+  it('exige leitura contextual para Ordens de Servico', () => {
+    const item = navGroups.flatMap((group) => group.items)
+      .find((candidate) => candidate.label === 'Ordens de Servico');
+    expect(item?.permissions).toEqual(['service_orders:read']);
   });
 
   it('exige leitura contextual para Ordens de Compra', () => {

@@ -107,6 +107,12 @@ export const navGroups: NavGroup[] = [
         icon: <SellOutlinedIcon fontSize="small" />,
         permissions: ['sales:read'],
       },
+      {
+        label: 'Ordens de Servico',
+        path: '/app/ordens-servico',
+        icon: <BuildOutlinedIcon fontSize="small" />,
+        permissions: ['service_orders:read'],
+      },
     ],
   },
   {

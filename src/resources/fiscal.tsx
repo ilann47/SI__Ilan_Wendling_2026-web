@@ -238,6 +238,13 @@ export const notaServicoConfig: ResourceConfig = {
       cols: 4,
       reference: { basePath: '/api/servicos', labelField: 'nome' },
     },
+    {
+      name: 'ordemServicoId',
+      label: 'Ordem de servico vinculada',
+      type: 'integer',
+      cols: 4,
+      helperText: 'Opcional. Informe uma ordem concluida para vincular o faturamento.',
+    },
     { name: 'valorServico', label: 'Valor do serviço', type: 'money', required: true, cols: 4 },
     { name: 'aliquotaIss', label: 'Alíquota ISS', type: 'percent', cols: 4 },
     { name: 'valorDesconto', label: 'Desconto', type: 'money', cols: 4 },
