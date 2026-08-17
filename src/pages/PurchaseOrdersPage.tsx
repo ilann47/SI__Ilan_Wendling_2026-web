@@ -4,6 +4,7 @@ import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import HistoryOutlinedIcon from '@mui/icons-material/HistoryOutlined';
 import InventoryOutlinedIcon from '@mui/icons-material/InventoryOutlined';
+import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
 import {
   Alert, Box, Button, Card, Chip, CircularProgress, Dialog, DialogActions,
   DialogContent, DialogTitle, Stack, Table, TableBody, TableCell,
@@ -80,6 +81,7 @@ export function PurchaseOrdersPage() {
   const [approving, setApproving] = useState<PurchaseOrder | null>(null);
   const [cancelling, setCancelling] = useState<PurchaseOrder | null>(null);
   const [receiving, setReceiving] = useState<PurchaseOrder | null>(null);
+  const [details, setDetails] = useState<PurchaseOrder | null>(null);
   const [history, setHistory] = useState<PurchaseOrder | null>(null);
   const canManage = permissions.includes('purchases:manage');
   const list = useQuery({
@@ -157,6 +159,7 @@ export function PurchaseOrdersPage() {
         {canManage && order.status === 'RASCUNHO' && <Button size="small" color="success" startIcon={<CheckCircleOutlineIcon />} onClick={() => setApproving(order)}>Aprovar</Button>}
         {canManage && ['RASCUNHO', 'APROVADA'].includes(order.status) && <Button size="small" color="error" startIcon={<CancelOutlinedIcon />} onClick={() => setCancelling(order)}>Cancelar</Button>}
         {canManage && ['APROVADA', 'PARCIALMENTE_RECEBIDA'].includes(order.status) && <Button size="small" startIcon={<InventoryOutlinedIcon />} onClick={() => setReceiving(order)}>Receber</Button>}
+        <Button size="small" startIcon={<VisibilityOutlinedIcon />} onClick={() => setDetails(order)}>Detalhes</Button>
         <Button size="small" startIcon={<HistoryOutlinedIcon />} onClick={() => setHistory(order)}>Historico</Button>
       </Stack></TableCell>
     </TableRow>)}</TableBody></Table></TableContainer></Card>}
@@ -171,6 +174,67 @@ export function PurchaseOrdersPage() {
     ]} submitting={cancel.isPending} onClose={() => setCancelling(null)} onSubmit={(values) => cancel.mutate(values)} />
     <ResourceFormDialog open={!!receiving} title={`Receber ${receiving?.numero ?? ''}`} fields={receiptFields}
       submitting={receive.isPending} onClose={() => setReceiving(null)} onSubmit={(values) => receive.mutate(values)} />
+    <Dialog open={!!details} onClose={() => setDetails(null)} maxWidth="lg" fullWidth>
+      <DialogTitle>Detalhes da ordem {details?.numero}</DialogTitle><DialogContent dividers>
+        {details && <Stack spacing={3}>
+          <Stack direction={{ xs: 'column', md: 'row' }} spacing={3} justifyContent="space-between">
+            <Box>
+              <Typography variant="overline" color="text.secondary">Fornecedor</Typography>
+              <Typography fontWeight={700}>{details.fornecedorNome}</Typography>
+            </Box>
+            <Box>
+              <Typography variant="overline" color="text.secondary">Emissao</Typography>
+              <Typography>{formatDate(details.dataEmissao)}</Typography>
+            </Box>
+            <Box>
+              <Typography variant="overline" color="text.secondary">Previsao de entrega</Typography>
+              <Typography>{details.previsaoEntrega ? formatDate(details.previsaoEntrega) : 'Nao informada'}</Typography>
+            </Box>
+            <Box>
+              <Typography variant="overline" color="text.secondary">Status</Typography>
+              <Box><Chip size="small" label={details.status.replace(/_/g, ' ')} color={statusColor(details.status)} /></Box>
+            </Box>
+          </Stack>
+
+          <Box>
+            <Typography variant="h6" gutterBottom>Itens comprados</Typography>
+            <TableContainer component={Card} variant="outlined"><Table size="small">
+              <TableHead><TableRow>
+                <TableCell>Produto</TableCell><TableCell align="right">Pedida</TableCell>
+                <TableCell align="right">Recebida</TableCell><TableCell align="right">Pendente</TableCell>
+                <TableCell align="right">Valor unitario</TableCell><TableCell align="right">Desconto</TableCell>
+                <TableCell align="right">Total</TableCell>
+              </TableRow></TableHead>
+              <TableBody>{details.itens.map((item) => <TableRow key={item.id}>
+                <TableCell><Typography fontWeight={600}>{item.produtoNome}</Typography>
+                  <Typography variant="caption" color="text.secondary">Produto #{item.produtoId}</Typography></TableCell>
+                <TableCell align="right">{formatNumber(item.quantidadePedida)}</TableCell>
+                <TableCell align="right">{formatNumber(item.quantidadeRecebida)}</TableCell>
+                <TableCell align="right">{formatNumber(item.quantidadePendente)}</TableCell>
+                <TableCell align="right">{formatCurrency(item.valorUnitario)}</TableCell>
+                <TableCell align="right">{formatCurrency(item.valorDesconto)}</TableCell>
+                <TableCell align="right">{formatCurrency(item.valorTotal)}</TableCell>
+              </TableRow>)}</TableBody>
+            </Table></TableContainer>
+          </Box>
+
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={3} justifyContent="flex-end">
+            <Box><Typography variant="caption" color="text.secondary">Subtotal</Typography>
+              <Typography>{formatCurrency(details.subtotal)}</Typography></Box>
+            <Box><Typography variant="caption" color="text.secondary">Frete</Typography>
+              <Typography>{formatCurrency(details.valorFrete)}</Typography></Box>
+            <Box><Typography variant="caption" color="text.secondary">Desconto</Typography>
+              <Typography>{formatCurrency(details.valorDesconto)}</Typography></Box>
+            <Box><Typography variant="caption" color="text.secondary">Total da ordem</Typography>
+              <Typography variant="h6">{formatCurrency(details.valorTotal)}</Typography></Box>
+          </Stack>
+
+          {details.observacao && <Box><Typography variant="overline" color="text.secondary">Observacao</Typography>
+            <Typography>{details.observacao}</Typography></Box>}
+          {details.motivoCancelamento && <Alert severity="error">Motivo do cancelamento: {details.motivoCancelamento}</Alert>}
+        </Stack>}
+      </DialogContent><DialogActions><Button onClick={() => setDetails(null)}>Fechar</Button></DialogActions>
+    </Dialog>
     <Dialog open={!!history} onClose={() => setHistory(null)} maxWidth="md" fullWidth>
       <DialogTitle>Recebimentos de {history?.numero}</DialogTitle><DialogContent dividers>
         {receipts.isLoading && <CircularProgress />}{receipts.isError && <Alert severity="error">{describeError(receipts.error)}</Alert>}
