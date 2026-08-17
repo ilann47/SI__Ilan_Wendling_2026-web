@@ -31,6 +31,7 @@ import { useAuth } from '../auth/AuthContext';
 import { useColorMode } from '../context/ColorModeContext';
 import { useSnackbar } from '../components/SnackbarProvider';
 import { describeError } from '../api/client';
+import { GlobalSearch } from '../components/search/GlobalSearch';
 
 const DRAWER_WIDTH = 268;
 
@@ -123,6 +124,7 @@ export function AppLayout() {
           <Typography variant="h6" sx={{ flexGrow: 1, fontSize: { xs: 16, md: 20 } }}>
             {activeOrganization?.tradeName || activeOrganization?.legalName || 'Estacionamento Kaneko'}
           </Typography>
+          <GlobalSearch />
           <Tooltip title={mode === 'light' ? 'Modo escuro' : 'Modo claro'}>
             <IconButton onClick={toggle} color="inherit">
               {mode === 'light' ? <DarkModeOutlinedIcon /> : <LightModeOutlinedIcon />}

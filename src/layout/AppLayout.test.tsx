@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useAuth } from '../auth/AuthContext';
@@ -11,6 +12,17 @@ vi.mock('../context/ColorModeContext', () => ({
 
 describe('AppLayout', () => {
   beforeEach(() => vi.mocked(useAuth).mockReset());
+
+  const renderLayout = () => {
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    return render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter initialEntries={['/app']}>
+          <Routes><Route path="/app" element={<AppLayout />} /></Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+  };
 
   it('permite trocar para outra organizacao acessivel', async () => {
     const selectOrganization = vi.fn().mockResolvedValue(undefined);
@@ -26,11 +38,7 @@ describe('AppLayout', () => {
       selectOrganization,
     } as unknown as ReturnType<typeof useAuth>);
 
-    render(
-      <MemoryRouter initialEntries={['/app']}>
-        <Routes><Route path="/app" element={<AppLayout />} /></Routes>
-      </MemoryRouter>,
-    );
+    renderLayout();
 
     fireEvent.click(screen.getByRole('button', { name: 'Conta' }));
     fireEvent.click(screen.getByRole('menuitem', { name: /Kaneko B/ }));
@@ -48,11 +56,7 @@ describe('AppLayout', () => {
       selectOrganization: vi.fn(),
     } as unknown as ReturnType<typeof useAuth>);
 
-    render(
-      <MemoryRouter initialEntries={['/app']}>
-        <Routes><Route path="/app" element={<AppLayout />} /></Routes>
-      </MemoryRouter>,
-    );
+    renderLayout();
 
     expect(screen.getByRole('link', { name: 'Ir para o conteudo principal' })).toHaveAttribute('href', '#conteudo-principal');
     expect(screen.getByRole('button', { name: 'Abrir menu de navegacao' })).toBeInTheDocument();
