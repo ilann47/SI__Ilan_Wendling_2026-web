@@ -46,7 +46,7 @@ describe('AppLayout', () => {
     await waitFor(() => expect(selectOrganization).toHaveBeenCalledWith(11));
   });
 
-  it('oferece atalhos e rotulos para navegacao por teclado', () => {
+  it('oferece atalhos, rotulos e secoes recolhiveis', async () => {
     vi.mocked(useAuth).mockReturnValue({
       user: { login: 'operador', perfil: 'OPERADOR' },
       activeOrganization: { organizationId: 10, legalName: 'Kaneko A' },
@@ -61,5 +61,7 @@ describe('AppLayout', () => {
     expect(screen.getByRole('link', { name: 'Ir para o conteudo principal' })).toHaveAttribute('href', '#conteudo-principal');
     expect(screen.getByRole('button', { name: 'Abrir menu de navegacao' })).toBeInTheDocument();
     expect(screen.getAllByRole('navigation', { name: 'Navegacao principal' }).length).toBeGreaterThan(0);
+    fireEvent.click(screen.getByRole('button', { name: 'Recolher Operação' }));
+    await waitFor(() => expect(screen.queryByRole('link', { name: 'Visão geral' })).not.toBeInTheDocument());
   });
 });

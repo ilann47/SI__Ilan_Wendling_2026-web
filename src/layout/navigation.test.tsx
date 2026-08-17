@@ -2,6 +2,14 @@ import { describe, expect, it } from 'vitest';
 import { navGroups } from './navigation';
 
 describe('navigation - compatibilidade legada', () => {
+  it('organiza todos os destinos em no maximo seis areas principais', () => {
+    expect(navGroups).toHaveLength(6);
+    expect(navGroups.map((group) => group.label)).toEqual([
+      'Operação', 'Comercial', 'Fiscal e financeiro',
+      'Clientes e parceiros', 'Produtos e estoque', 'Administração',
+    ]);
+  });
+
   it('exibe os modulos legados junto dos modulos de eventos', () => {
     const items = navGroups.flatMap((group) => group.items);
     const pathsByLabel = Object.fromEntries(items.map((item) => [item.label, item.path]));
@@ -17,7 +25,7 @@ describe('navigation - compatibilidade legada', () => {
       'Contas a Pagar': '/app/contas-pagar',
       'Ordens de Compra': '/app/ordens-compra',
       'Vendas Administrativas': '/app/vendas-administrativas',
-      'Ordens de Servico': '/app/ordens-servico',
+      'Ordens de Serviço': '/app/ordens-servico',
     });
   });
 
@@ -29,7 +37,7 @@ describe('navigation - compatibilidade legada', () => {
 
   it('exige leitura contextual para Ordens de Servico', () => {
     const item = navGroups.flatMap((group) => group.items)
-      .find((candidate) => candidate.label === 'Ordens de Servico');
+      .find((candidate) => candidate.label === 'Ordens de Serviço');
     expect(item?.permissions).toEqual(['service_orders:read']);
   });
 
