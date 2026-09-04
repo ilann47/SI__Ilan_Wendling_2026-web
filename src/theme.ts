@@ -15,19 +15,20 @@ export function createAppTheme(mode: AppColorMode) {
     palette: {
       mode,
       primary: { main: '#1565c0' },
-      secondary: { main: '#00897b' },
+      secondary: { main: '#475569' },
       success: { main: '#2e7d32' },
       warning: { main: '#ed6c02' },
       error: { main: '#d32f2f' },
+      info: { main: '#1565c0' },
       background: isLight
-        ? { default: '#f4f6f8', paper: '#ffffff' }
+        ? { default: '#f8fafc', paper: '#ffffff' }
         : { default: '#0f141a', paper: '#161c24' },
     },
     shape: { borderRadius: 10 },
     typography: {
-      fontFamily: '"Inter", Roboto, system-ui, -apple-system, sans-serif',
+      fontFamily: 'system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
       h4: { fontWeight: 700 },
-      h5: { fontWeight: 700 },
+      h5: { fontWeight: 700, letterSpacing: -0.3 },
       h6: { fontWeight: 600 },
       subtitle1: { fontWeight: 600 },
       button: { textTransform: 'none', fontWeight: 600 },
@@ -58,15 +59,42 @@ export function createAppTheme(mode: AppColorMode) {
           },
         },
       },
-      MuiButton: { defaultProps: { disableElevation: true } },
+      MuiButton: {
+        defaultProps: { disableElevation: true },
+        styleOverrides: {
+          root: { minHeight: 40, borderRadius: 8, paddingLeft: 16, paddingRight: 16 },
+          sizeSmall: { minHeight: 36, minWidth: 36 },
+          containedPrimary: { boxShadow: 'none' },
+        },
+      },
+      MuiIconButton: {
+        styleOverrides: { root: { minWidth: 40, minHeight: 40 } },
+      },
       MuiPaper: { styleOverrides: { root: { backgroundImage: 'none' } } },
       MuiCard: {
         defaultProps: { elevation: 0 },
         styleOverrides: {
           root: {
             border: '1px solid',
-            borderColor: isLight ? 'rgba(15,23,42,0.08)' : 'rgba(255,255,255,0.08)',
+            borderColor: isLight ? 'rgba(15,23,42,0.06)' : 'rgba(255,255,255,0.08)',
+            boxShadow: isLight ? '0 1px 2px rgba(15,23,42,0.04)' : 'none',
           },
+        },
+      },
+      MuiDialog: {
+        defaultProps: { fullWidth: true },
+        styleOverrides: {
+          paper: { borderRadius: 12 },
+        },
+      },
+      MuiDrawer: {
+        styleOverrides: {
+          paper: { border: 'none' },
+        },
+      },
+      MuiChip: {
+        styleOverrides: {
+          root: { fontWeight: 600 },
         },
       },
       MuiAppBar: {
@@ -80,6 +108,31 @@ export function createAppTheme(mode: AppColorMode) {
         },
       },
       MuiTextField: { defaultProps: { size: 'small' } },
+      MuiOutlinedInput: {
+        styleOverrides: {
+          root: { borderRadius: 8, minHeight: 40 },
+        },
+      },
+      MuiTableHead: {
+        styleOverrides: {
+          root: {
+            '& .MuiTableCell-head': {
+              fontWeight: 600,
+              color: isLight ? '#64748b' : 'rgba(255,255,255,0.7)',
+              backgroundColor: isLight ? '#f8fafc' : 'rgba(255,255,255,0.03)',
+            },
+          },
+        },
+      },
+      MuiTableCell: {
+        styleOverrides: {
+          root: {
+            borderColor: isLight ? 'rgba(15,23,42,0.06)' : 'rgba(255,255,255,0.06)',
+            paddingTop: 10,
+            paddingBottom: 10,
+          },
+        },
+      },
     },
   };
   return createTheme(options, ptBR);

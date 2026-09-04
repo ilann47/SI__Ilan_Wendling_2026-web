@@ -1,27 +1,19 @@
-import { useEffect, useState } from 'react';
 import { Box, MenuItem, TextField } from '@mui/material';
 import { ReferenceSelect } from '../form/ReferenceSelect';
 import { type FilterConfig } from './resourceConfig';
 
 interface Props {
   filters: FilterConfig[];
+  values: Record<string, unknown>;
   onChange: (values: Record<string, unknown>) => void;
 }
 
-export function FilterBar({ filters, onChange }: Props) {
-  const [local, setLocal] = useState<Record<string, unknown>>({});
-
-  useEffect(() => {
-    const timer = setTimeout(() => onChange(local), 400);
-    return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [local]);
-
+export function FilterBar({ filters, values, onChange }: Props) {
   const set = (name: string, value: unknown) =>
-    setLocal((prev) => ({ ...prev, [name]: value === '' ? undefined : value }));
+    onChange({ ...values, [name]: value === '' ? undefined : value });
 
   return (
-    <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap', mb: 2 }}>
+    <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap', pt: 1 }}>
       {filters.map((f) => {
         if (f.type === 'boolean') {
           return (
@@ -31,7 +23,7 @@ export function FilterBar({ filters, onChange }: Props) {
               size="small"
               label={f.label}
               sx={{ minWidth: 150 }}
-              value={(local[f.name] as string) ?? ''}
+              value={(values[f.name] as string) ?? ''}
               onChange={(e) => set(f.name, e.target.value)}
             >
               <MenuItem value="">Todos</MenuItem>
@@ -48,7 +40,7 @@ export function FilterBar({ filters, onChange }: Props) {
               size="small"
               label={f.label}
               sx={{ minWidth: 170 }}
-              value={(local[f.name] as string) ?? ''}
+              value={(values[f.name] as string) ?? ''}
               onChange={(e) => set(f.name, e.target.value)}
             >
               <MenuItem value="">Todos</MenuItem>
@@ -68,7 +60,7 @@ export function FilterBar({ filters, onChange }: Props) {
               type="number"
               label={f.label}
               sx={{ width: 120 }}
-              value={(local[f.name] as string) ?? ''}
+              value={(values[f.name] as string) ?? ''}
               onChange={(e) => set(f.name, e.target.value)}
               inputProps={{ min: 1, inputMode: 'numeric' }}
             />
@@ -79,7 +71,7 @@ export function FilterBar({ filters, onChange }: Props) {
             <Box key={f.name} sx={{ minWidth: 230 }}>
               <ReferenceSelect
                 label={f.label}
-                value={(local[f.name] as number) ?? null}
+                value={(values[f.name] as number) ?? null}
                 onChange={(v) => set(f.name, v ?? '')}
                 reference={f.reference}
               />
@@ -91,7 +83,7 @@ export function FilterBar({ filters, onChange }: Props) {
             key={f.name}
             size="small"
             label={f.label}
-            value={(local[f.name] as string) ?? ''}
+            value={(values[f.name] as string) ?? ''}
             onChange={(e) => set(f.name, e.target.value)}
           />
         );

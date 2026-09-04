@@ -38,6 +38,11 @@ export function minutesToHuman(min?: number | null): string {
   return h === 0 ? `${m}min` : `${h}h${m.toString().padStart(2, '0')}`;
 }
 
+export function formatStatusLabel(status?: string | null): string {
+  if (!status) return '—';
+  return status.replace(/_/g, ' ');
+}
+
 /** Cor (palette MUI) para uma situacao/status conhecido. */
 export function statusColor(
   status?: string | null,
@@ -50,16 +55,25 @@ export function statusColor(
     case 'RECEBIDA':
     case 'FECHADO':
     case 'AUTORIZADA':
+    case 'CONCLUIDA':
+    case 'APROVADA':
+    case 'REGULAR':
       return 'success';
     case 'PENDENTE':
     case 'PARCIAL':
+    case 'PARCIALMENTE_RECEBIDA':
     case 'ABERTO':
+    case 'RASCUNHO':
+    case 'EM_EXECUCAO':
       return 'warning';
     case 'CANCELADA':
     case 'CANCELADO':
     case 'RECUSADA':
+    case 'VENCIDO':
+    case 'INATIVO':
       return 'error';
     case 'SUSPENSO':
+    case 'PUBLICADO':
       return 'info';
     default:
       return 'default';
