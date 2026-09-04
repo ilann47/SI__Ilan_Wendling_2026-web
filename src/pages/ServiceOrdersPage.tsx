@@ -3,8 +3,16 @@ import CancelOutlinedIcon from '@mui/icons-material/CancelOutlined';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import PlayArrowOutlinedIcon from '@mui/icons-material/PlayArrowOutlined';
-import { Alert, Box, Button, Card, Chip, CircularProgress, Stack, Table,
-  TableBody, TableCell, TableContainer, TableHead, TableRow } from '@mui/material';
+import { Alert, Box, Button, Card, Chip, Stack, Table,
+  TableBody, TableCell, TableContainer, TableHead, TableRow, Typography } from '@mui/material';
+import { EmptyState } from '../components/listing/EmptyState';
+import { ErrorState } from '../components/listing/ErrorState';
+import { ListingSkeleton } from '../components/listing/ListingSkeleton';
+import { ListingToolbar } from '../components/listing/ListingToolbar';
+import { DetailDrawer } from '../components/listing/DetailDrawer';
+import { PrimaryButton } from '../components/listing/PrimaryButton';
+import { RelatedItemsTable } from '../components/listing/ResourceDetailBody';
+import { UNAVAILABLE_API } from '../components/listing/listingUtils';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { buildServiceOrderPayload, serviceOrdersApi, type ServiceOrder } from '../api/serviceOrders';
@@ -57,9 +65,13 @@ export function ServiceOrdersPage() {
   const [starting, setStarting] = useState<ServiceOrder | null>(null);
   const [completing, setCompleting] = useState<ServiceOrder | null>(null);
   const [cancelling, setCancelling] = useState<ServiceOrder | null>(null);
-  const queryKey = orgId ? tenantQueryKey(orgId, 'service-orders') : ['service-orders'];
-  const list = useQuery({ queryKey, queryFn: () => serviceOrdersApi.list({ size: 100,
-    sort: 'dataAbertura,desc' }), enabled: !!orgId && permissions.includes('service_orders:read') });
+  const [details, setDetails] = useState<ServiceOrder | null>(null);
+  const [search, setSearch] = useState('');
+  const [page, setPage] = useState(0);
+  const queryKey = orgId ? tenantQueryKey(orgId, 'service-orders', page, search) : ['service-orders'];
+  const list = useQuery({ queryKey, queryFn: () => serviceOrdersApi.list({
+    page, size: 10, sort: 'dataAbertura,desc', ...(search.trim() ? { numero: search.trim() } : {}),
+  }), enabled: !!orgId && permissions.includes('service_orders:read') });
   const done = (message: string) => { notify(message, 'success');
     void queryClient.invalidateQueries({ queryKey }); };
   const fail = (error: unknown) => notify(describeError(error), 'error');
@@ -78,24 +90,32 @@ export function ServiceOrdersPage() {
       cancelling!.version), onSuccess: () => { setCancelling(null); done('Ordem cancelada.'); }, onError: fail });
 
   if (!orgId || !permissions.includes('service_orders:read')) {
-    return <Alert severity="warning">Seu contexto nao possui permissao para ordens de servico.</Alert>;
+    return <Alert severity="warning">Seu contexto não possui permissão para ordens de serviço.</Alert>;
   }
-  return <Box><PageHeader title="Ordens de Servico"
-    subtitle="Execucao de servicos com ciclo operacional e faturamento por Nota de Servico."
-    action={canManage ? <Button variant="contained" startIcon={<AddOutlinedIcon />}
-      onClick={() => setEditing(null)}>Nova ordem</Button> : undefined} />
-    {list.isLoading && <Box sx={{ display: 'grid', placeItems: 'center', py: 6 }}><CircularProgress /></Box>}
-    {list.isError && <Alert severity="error">{describeError(list.error)}</Alert>}
-    {list.data && <Card><TableContainer><Table size="small"><TableHead><TableRow>
-      <TableCell>Numero</TableCell><TableCell>Cliente</TableCell><TableCell>Abertura</TableCell>
-      <TableCell>Status</TableCell><TableCell align="right">Total</TableCell><TableCell>Acoes</TableCell>
-    </TableRow></TableHead><TableBody>{list.data.content.map((order) => <TableRow key={order.id} hover>
+  const orders = list.data?.content ?? [];
+  return <Box><PageHeader title="Ordens de Serviço"
+    subtitle="Execução de serviços com ciclo operacional e faturamento por Nota de Serviço."
+    count={list.data?.totalElements}
+    action={canManage ? <PrimaryButton startIcon={<AddOutlinedIcon />}
+      onClick={() => setEditing(null)}>Nova ordem</PrimaryButton> : undefined} />
+    <ListingToolbar searchValue={search} searchLabel="Buscar por número"
+      onSearchChange={(value) => { setSearch(value); setPage(0); }} />
+    {list.isLoading && <ListingSkeleton />}
+    {list.isError && <ErrorState message={describeError(list.error)} onRetry={() => void list.refetch()} />}
+    {!list.isLoading && !list.isError && orders.length === 0 && (
+      <EmptyState title="Nenhuma ordem de serviço encontrada" description="Abra uma ordem ou ajuste a busca." />
+    )}
+    {orders.length > 0 && <Card sx={{ display: { xs: 'none', md: 'block' } }}><TableContainer><Table size="small" stickyHeader><TableHead><TableRow>
+      <TableCell>Número</TableCell><TableCell>Cliente</TableCell><TableCell>Abertura</TableCell>
+      <TableCell>Situação</TableCell><TableCell align="right">Total</TableCell><TableCell>Ações</TableCell>
+    </TableRow></TableHead><TableBody>{orders.map((order) => <TableRow key={order.id} hover
+      onClick={() => setDetails(order)} sx={{ cursor: 'pointer' }}>
       <TableCell>{order.numero}</TableCell><TableCell>{order.clienteNome}</TableCell>
       <TableCell>{formatDate(order.dataAbertura)}</TableCell><TableCell><Chip size="small"
         color={order.status === 'CONCLUIDA' ? 'success' : order.status === 'CANCELADA'
           ? 'error' : order.status === 'EM_EXECUCAO' ? 'info' : 'default'}
-        label={order.status} /></TableCell><TableCell align="right">{formatCurrency(order.valorTotal)}</TableCell>
-      <TableCell><Stack direction="row" spacing={0.5}>{canManage && order.status === 'RASCUNHO' && <>
+        label={order.status.replace(/_/g, ' ')} /></TableCell><TableCell align="right">{formatCurrency(order.valorTotal)}</TableCell>
+      <TableCell onClick={(event) => event.stopPropagation()}><Stack direction="row" spacing={0.5}>{canManage && order.status === 'RASCUNHO' && <>
         <Button size="small" startIcon={<EditOutlinedIcon />} onClick={() => setEditing(order)}>Editar</Button>
         <Button size="small" color="info" startIcon={<PlayArrowOutlinedIcon />}
           onClick={() => setStarting(order)}>Iniciar</Button></>}
@@ -105,6 +125,42 @@ export function ServiceOrdersPage() {
           <Button size="small" color="error" startIcon={<CancelOutlinedIcon />}
             onClick={() => setCancelling(order)}>Cancelar</Button>}</Stack></TableCell>
     </TableRow>)}</TableBody></Table></TableContainer></Card>}
+    {orders.length > 0 && <Stack spacing={1.5} sx={{ display: { xs: 'flex', md: 'none' } }}>
+      {orders.map((order) => <Card key={order.id} sx={{ p: 2 }} onClick={() => setDetails(order)}>
+        <Typography fontWeight={700}>{order.numero}</Typography>
+        <Typography variant="body2">{order.clienteNome}</Typography>
+        <Chip size="small" label={order.status.replace(/_/g, ' ')} sx={{ mt: 1 }} />
+      </Card>)}
+    </Stack>}
+    {list.data && list.data.totalPages > 1 && (
+      <Stack direction="row" justifyContent="space-between" sx={{ mt: 2 }}>
+        <Button disabled={page === 0} onClick={() => setPage((current) => current - 1)}>Anterior</Button>
+        <Button disabled={list.data.last} onClick={() => setPage((current) => current + 1)}>Próxima</Button>
+      </Stack>
+    )}
+    <DetailDrawer open={!!details} title={`Ordem ${details?.numero ?? ''}`} subtitle={details?.clienteNome}
+      onClose={() => setDetails(null)}>
+      {details && <Stack spacing={2.5}>
+        <Box><Typography variant="overline" color="text.secondary">Situação</Typography>
+          <Box><Chip size="small" label={details.status.replace(/_/g, ' ')} /></Box></Box>
+        <RelatedItemsTable title="Serviços" items={details.itens} />
+        <Box><Typography variant="overline" color="text.secondary">Datas</Typography>
+          <Typography variant="body2">Abertura: {formatDate(details.dataAbertura)}</Typography>
+          <Typography variant="body2">Previsão: {details.previsaoConclusao ? formatDate(details.previsaoConclusao) : '—'}</Typography>
+          <Typography variant="body2">Iniciada: {details.iniciadaEm ? formatDate(details.iniciadaEm) : '—'}</Typography>
+          <Typography variant="body2">Concluída: {details.concluidaEm ? formatDate(details.concluidaEm) : '—'}</Typography>
+        </Box>
+        <Box><Typography variant="overline" color="text.secondary">Valor</Typography>
+          <Typography variant="h6">{formatCurrency(details.valorTotal)}</Typography></Box>
+        <Box><Typography variant="overline" color="text.secondary">Responsável</Typography>
+          <Typography variant="body2" color="text.secondary">{UNAVAILABLE_API}</Typography></Box>
+        <Box><Typography variant="overline" color="text.secondary">Nota de serviço</Typography>
+          <Typography variant="body2" color="text.secondary">{UNAVAILABLE_API}</Typography></Box>
+        <Box><Typography variant="overline" color="text.secondary">Conta a receber</Typography>
+          <Typography variant="body2" color="text.secondary">{UNAVAILABLE_API}</Typography></Box>
+        {details.motivoCancelamento && <Alert severity="error">{details.motivoCancelamento}</Alert>}
+      </Stack>}
+    </DetailDrawer>
     <ResourceFormDialog open={editing !== undefined} title={editing ? 'Editar ordem' : 'Nova ordem'}
       fields={fields} initialValues={editing ? toForm(editing) : null} submitting={save.isPending}
       onClose={() => setEditing(undefined)} onSubmit={(values) => save.mutate(values)} />

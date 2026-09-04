@@ -2,8 +2,16 @@ import AddOutlinedIcon from '@mui/icons-material/AddOutlined';
 import CancelOutlinedIcon from '@mui/icons-material/CancelOutlined';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
-import { Alert, Box, Button, Card, Chip, CircularProgress, Stack, Table,
-  TableBody, TableCell, TableContainer, TableHead, TableRow } from '@mui/material';
+import { Alert, Box, Button, Card, Chip, Stack, Table,
+  TableBody, TableCell, TableContainer, TableHead, TableRow, Typography } from '@mui/material';
+import { EmptyState } from '../components/listing/EmptyState';
+import { ErrorState } from '../components/listing/ErrorState';
+import { ListingSkeleton } from '../components/listing/ListingSkeleton';
+import { ListingToolbar } from '../components/listing/ListingToolbar';
+import { DetailDrawer } from '../components/listing/DetailDrawer';
+import { PrimaryButton } from '../components/listing/PrimaryButton';
+import { RelatedItemsTable } from '../components/listing/ResourceDetailBody';
+import { UNAVAILABLE_API } from '../components/listing/listingUtils';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { buildAdministrativeSalePayload, administrativeSalesApi,
@@ -58,9 +66,13 @@ export function AdministrativeSalesPage() {
   const [editing, setEditing] = useState<AdministrativeSale | null | undefined>(undefined);
   const [confirming, setConfirming] = useState<AdministrativeSale | null>(null);
   const [cancelling, setCancelling] = useState<AdministrativeSale | null>(null);
-  const queryKey = orgId ? tenantQueryKey(orgId, 'administrative-sales') : ['administrative-sales'];
-  const list = useQuery({ queryKey, queryFn: () => administrativeSalesApi.list({ size: 100,
-    sort: 'dataEmissao,desc' }), enabled: !!orgId && permissions.includes('sales:read') });
+  const [details, setDetails] = useState<AdministrativeSale | null>(null);
+  const [search, setSearch] = useState('');
+  const [page, setPage] = useState(0);
+  const queryKey = orgId ? tenantQueryKey(orgId, 'administrative-sales', page, search) : ['administrative-sales'];
+  const list = useQuery({ queryKey, queryFn: () => administrativeSalesApi.list({
+    page, size: 10, sort: 'dataEmissao,desc', ...(search.trim() ? { numero: search.trim() } : {}),
+  }), enabled: !!orgId && permissions.includes('sales:read') });
   const done = (message: string) => { notify(message, 'success');
     void client.invalidateQueries({ queryKey }); };
   const fail = (error: unknown) => notify(describeError(error), 'error');
@@ -76,29 +88,75 @@ export function AdministrativeSalesPage() {
       cancelling!.version), onSuccess: () => { setCancelling(null); done('Venda cancelada.'); }, onError: fail });
 
   if (!orgId || !permissions.includes('sales:read')) {
-    return <Alert severity="warning">Seu contexto nao possui permissao comercial.</Alert>;
+    return <Alert severity="warning">Seu contexto não possui permissão comercial.</Alert>;
   }
+  const sales = list.data?.content ?? [];
   return <Box><PageHeader title="Vendas Administrativas"
     subtitle="Vendas fora do PDV com baixa de estoque e contas a receber."
-    action={canManage ? <Button variant="contained" startIcon={<AddOutlinedIcon />}
-      onClick={() => setEditing(null)}>Nova venda</Button> : undefined} />
-    {list.isLoading && <Box sx={{ display: 'grid', placeItems: 'center', py: 6 }}><CircularProgress /></Box>}
-    {list.isError && <Alert severity="error">{describeError(list.error)}</Alert>}
-    {list.data && <Card><TableContainer><Table size="small"><TableHead><TableRow>
-      <TableCell>Numero</TableCell><TableCell>Cliente</TableCell><TableCell>Emissao</TableCell>
-      <TableCell>Status</TableCell><TableCell align="right">Total</TableCell><TableCell>Acoes</TableCell>
-    </TableRow></TableHead><TableBody>{list.data.content.map((sale) => <TableRow key={sale.id} hover>
+    count={list.data?.totalElements}
+    action={canManage ? <PrimaryButton startIcon={<AddOutlinedIcon />}
+      onClick={() => setEditing(null)}>Nova venda</PrimaryButton> : undefined} />
+    <ListingToolbar searchValue={search} searchLabel="Buscar por número"
+      onSearchChange={(value) => { setSearch(value); setPage(0); }} />
+    {list.isLoading && <ListingSkeleton />}
+    {list.isError && <ErrorState message={describeError(list.error)} onRetry={() => void list.refetch()} />}
+    {!list.isLoading && !list.isError && sales.length === 0 && (
+      <EmptyState title="Nenhuma venda administrativa encontrada" description="Registre uma venda ou ajuste a busca." />
+    )}
+    {sales.length > 0 && <Card sx={{ display: { xs: 'none', md: 'block' } }}><TableContainer><Table size="small" stickyHeader><TableHead><TableRow>
+      <TableCell>Número</TableCell><TableCell>Cliente</TableCell><TableCell>Emissão</TableCell>
+      <TableCell>Situação</TableCell><TableCell align="right">Total</TableCell><TableCell>Ações</TableCell>
+    </TableRow></TableHead><TableBody>{sales.map((sale) => <TableRow key={sale.id} hover
+      onClick={() => setDetails(sale)} sx={{ cursor: 'pointer' }}>
       <TableCell>{sale.numero}</TableCell><TableCell>{sale.clienteNome}</TableCell>
       <TableCell>{formatDate(sale.dataEmissao)}</TableCell><TableCell><Chip size="small"
         color={sale.status === 'CONFIRMADA' ? 'success' : sale.status === 'CANCELADA' ? 'error' : 'default'}
-        label={sale.status} /></TableCell><TableCell align="right">{formatCurrency(sale.valorTotal)}</TableCell>
-      <TableCell><Stack direction="row" spacing={0.5}>{canManage && sale.status === 'RASCUNHO' && <>
+        label={sale.status.replace(/_/g, ' ')} /></TableCell><TableCell align="right">{formatCurrency(sale.valorTotal)}</TableCell>
+      <TableCell onClick={(event) => event.stopPropagation()}><Stack direction="row" spacing={0.5}>{canManage && sale.status === 'RASCUNHO' && <>
         <Button size="small" startIcon={<EditOutlinedIcon />} onClick={() => setEditing(sale)}>Editar</Button>
         <Button size="small" color="success" startIcon={<CheckCircleOutlineIcon />}
           onClick={() => setConfirming(sale)}>Confirmar</Button>
         <Button size="small" color="error" startIcon={<CancelOutlinedIcon />}
           onClick={() => setCancelling(sale)}>Cancelar</Button></>}</Stack></TableCell>
     </TableRow>)}</TableBody></Table></TableContainer></Card>}
+    {sales.length > 0 && <Stack spacing={1.5} sx={{ display: { xs: 'flex', md: 'none' } }}>
+      {sales.map((sale) => <Card key={sale.id} sx={{ p: 2 }} onClick={() => setDetails(sale)}>
+        <Typography fontWeight={700}>{sale.numero}</Typography>
+        <Typography variant="body2">{sale.clienteNome}</Typography>
+        <Stack direction="row" justifyContent="space-between" sx={{ mt: 1 }}>
+          <Chip size="small" label={sale.status.replace(/_/g, ' ')} />
+          <Typography>{formatCurrency(sale.valorTotal)}</Typography>
+        </Stack>
+      </Card>)}
+    </Stack>}
+    {list.data && list.data.totalPages > 1 && (
+      <Stack direction="row" justifyContent="space-between" sx={{ mt: 2 }}>
+        <Button disabled={page === 0} onClick={() => setPage((current) => current - 1)}>Anterior</Button>
+        <Button disabled={list.data.last} onClick={() => setPage((current) => current + 1)}>Próxima</Button>
+      </Stack>
+    )}
+    <DetailDrawer open={!!details} title={`Venda ${details?.numero ?? ''}`} subtitle={details?.clienteNome}
+      onClose={() => setDetails(null)}>
+      {details && <Stack spacing={2.5}>
+        <Box><Typography variant="overline" color="text.secondary">Situação</Typography>
+          <Box><Chip size="small" label={details.status.replace(/_/g, ' ')}
+            color={details.status === 'CONFIRMADA' ? 'success' : details.status === 'CANCELADA' ? 'error' : 'default'} /></Box></Box>
+        <RelatedItemsTable title="Itens vendidos" items={details.itens} />
+        <Box><Typography variant="overline" color="text.secondary">Total</Typography>
+          <Typography variant="h6">{formatCurrency(details.valorTotal)}</Typography></Box>
+        <Box><Typography variant="overline" color="text.secondary">Local de estoque</Typography>
+          <Typography>{details.localEstoqueNome}</Typography></Box>
+        <Box><Typography variant="overline" color="text.secondary">Baixa de estoque</Typography>
+          <Typography variant="body2" color="text.secondary">{details.status === 'CONFIRMADA'
+            ? 'A confirmação baixa o estoque no local informado.' : UNAVAILABLE_API}</Typography></Box>
+        <Box><Typography variant="overline" color="text.secondary">Nota de saída</Typography>
+          <Typography variant="body2" color="text.secondary">{UNAVAILABLE_API}</Typography></Box>
+        <Box><Typography variant="overline" color="text.secondary">Conta a receber</Typography>
+          <Typography variant="body2" color="text.secondary">{details.status === 'CONFIRMADA'
+            ? 'A confirmação gera as contas a receber. O vínculo detalhado não é exposto pela API atual.'
+            : UNAVAILABLE_API}</Typography></Box>
+      </Stack>}
+    </DetailDrawer>
     <ResourceFormDialog open={editing !== undefined} title={editing ? 'Editar venda' : 'Nova venda'}
       fields={fields} initialValues={editing ? toForm(editing) : null} submitting={save.isPending}
       onClose={() => setEditing(undefined)} onSubmit={(values) => save.mutate(values)} />
