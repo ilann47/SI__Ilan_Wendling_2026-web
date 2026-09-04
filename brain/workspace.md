@@ -50,12 +50,15 @@ duplicidade.
 - Consultas disponiveis sempre prevalecem sobre snapshots locais.
 - A chave antiga somente por organizacao nao e migrada, pois reaproveita-la
   poderia expor referencias locais entre usuarios do mesmo navegador.
+- Preferencias visuais (sidebar, favoritos, recentes de navegacao) usam
+  `kaneko.ui.{orgId}.{login}` e nao armazenam token nem payload empresarial.
 
 ## Modulos relacionados
 
 - [[auth]]
 - [[administracao]]
 - [[acesso]]
+- [[listagens]]
 - [[core]]
 
 ## Historico (data + acao)
@@ -64,3 +67,4 @@ duplicidade.
 |---|---|
 | 2026-08-03 | Cria referencias recentes isoladas por organizacao. |
 | 2026-08-03 | Isola referencias tambem por Membership e abandona a chave compartilhada antiga. |
+| 2026-09-04 | Separa preferencias visuais das referencias operacionais do workspace. |

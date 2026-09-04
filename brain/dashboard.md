@@ -1,30 +1,33 @@
-> Links: [[core]] · [[auth]] · [[workspace]] · [[eventos]] · [[acesso]]
+> Links: [[core]] · [[auth]] · [[workspace]] · [[listagens]] · [[eventos]] · [[acesso]]
 
 # Dashboard Operacional
 
 ## Objetivo
 
-Consolidar disponibilidade e decisoes de acesso reais para um evento selecionado.
+Consolidar pendências e atividades reais do tenant ativo.
 
 ## Contexto
 
-Como o backend nao possui endpoint agregado de dashboard nem lista eventos, o
-painel seleciona referencias reais do [[workspace]] e consulta diretamente
-disponibilidade e o feed de tentativas. Contagens locais sao rotuladas como
-referencias deste navegador, nao como indicadores globais.
+O painel usa apenas contratos existentes: pátio, contas a vencer, estoque
+mínimo, eventos, tentativas de acesso e as últimas páginas de ordens e vendas.
+Quando a agregação não cabe em uma única página, a UI declara o recorte.
 
 ## Fluxo (camadas da arquitetura)
 
 ```text
-evento recente -> GET availability (30 s)
-audit:read     -> GET access-attempts limit 20 (20 s)
-respostas      -> KPIs e atalhos por permissao
+permissoes -> relatorios/listagens existentes -> KPIs e atalhos
 ```
 
 ## Endpoints (se houver)
 
-- `GET /api/v1/events/{eventId}/availability`
+- `GET /api/relatorios/patio`
+- `GET /api/relatorios/contas-a-vencer`
+- `GET /api/relatorios/estoque-minimo`
+- `GET /api/v1/events`
 - `GET /api/v1/access-attempts`
+- `GET /api/v1/purchase-orders`
+- `GET /api/v1/administrative-sales`
+- `GET /api/v1/service-orders`
 
 ## Estrutura de Dados (DTOs, Entidades)
 
@@ -53,6 +56,7 @@ Vitest comprova que disponibilidade e decisoes exibidas vieram das APIs reais.
 ## Modulos relacionados
 
 - [[workspace]]
+- [[listagens]]
 - [[eventos]]
 - [[acesso]]
 - [[auth]]
@@ -63,3 +67,4 @@ Vitest comprova que disponibilidade e decisoes exibidas vieram das APIs reais.
 | Data | Acao |
 |---|---|
 | 2026-08-03 | Substitui landing estatica por painel operacional com dados reais. |
+| 2026-09-04 | Amplia o painel com pátio, vencimentos, estoque mínimo e pendências comerciais reais. |

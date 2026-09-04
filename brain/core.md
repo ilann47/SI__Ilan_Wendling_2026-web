@@ -1,4 +1,4 @@
-> Links: [[auth]] · [[acesso]] · [[administracao]] · [[workspace]] · [[instalacoes]] · [[eventos]] · [[vendas]] · [[pagamentos]] · [[clientes]] · [[logistica]] · [[fornecedores]] · [[rh]] · [[conveniencia]] · [[estoque]] · [[dashboard]] · [[bloqueios]] · [[paridade-api]] · [[compatibilidade-legada]] · [[unificacao-multitenant]]
+> Links: [[auth]] · [[acesso]] · [[administracao]] · [[workspace]] · [[listagens]] · [[instalacoes]] · [[eventos]] · [[vendas]] · [[pagamentos]] · [[clientes]] · [[logistica]] · [[fornecedores]] · [[rh]] · [[conveniencia]] · [[estoque]] · [[dashboard]] · [[bloqueios]] · [[paridade-api]] · [[compatibilidade-legada]] · [[unificacao-multitenant]]
 
 # Frontend Kaneko
 
@@ -84,6 +84,8 @@ Testing Library; E2E contra o backend real será acrescentado no recorte própri
 
 - [[auth]]
 - [[acesso]]
+- [[listagens]]
+- [[dashboard]]
 - [[pagamentos]]
 - [[clientes]]
 - [[logistica]]
@@ -122,3 +124,4 @@ Testing Library; E2E contra o backend real será acrescentado no recorte própri
 | 2026-08-04 | Integra Nota de Entrada e Conta a Pagar aos contratos V55. |
 | 2026-08-04 | Integra Nota de Saída e Conta a Receber aos contratos V56. |
 | 2026-08-04 | Integra Nota de Serviço tenant-aware aos contratos V57. |
+| 2026-09-04 | Consolida design system de listagem, detalhes, dashboard operacional, busca por teclado e preferências visuais. |
