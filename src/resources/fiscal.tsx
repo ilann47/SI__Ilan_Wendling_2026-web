@@ -38,7 +38,9 @@ export const notaEntradaConfig: ResourceConfig = {
   requiredAllPermissions: {
     create: ['suppliers:read', 'catalog:read', 'stock:read'],
   },
-  subtitle: 'Entradas de mercadoria (compras) com baixa no estoque e contas a pagar.',
+  subtitle: 'Entradas de mercadoria com estoque e contas a pagar.',
+  searchFilter: 'numero',
+  unavailableRelations: ['Conta a pagar gerada', 'Movimentos de estoque detalhados'],
   canEdit: false,
   canDelete: true,
   columns: [
@@ -124,7 +126,9 @@ export const notaSaidaConfig: ResourceConfig = {
   tenantAware: true,
   permissions: { read: ['fiscal:read'], create: ['fiscal:manage'], delete: ['fiscal:manage'] },
   requiredAllPermissions: { create: ['customers:read', 'catalog:read', 'stock:read'] },
-  subtitle: 'Saídas de mercadoria (vendas) com baixa no estoque e contas a receber.',
+  subtitle: 'Saídas de mercadoria com estoque e contas a receber.',
+  searchFilter: 'numero',
+  unavailableRelations: ['Conta a receber gerada', 'Baixa de estoque detalhada'],
   canEdit: false,
   canDelete: true,
   columns: [
@@ -207,7 +211,9 @@ export const notaServicoConfig: ResourceConfig = {
     update: ['fiscal:manage'], delete: ['fiscal:manage'],
   },
   requiredAllPermissions: { create: ['customers:read', 'catalog:read'] },
-  subtitle: 'Notas fiscais de serviço (NFS-e) com apuração de ISS.',
+  subtitle: 'Notas de serviço com apuração de ISS.',
+  searchFilter: 'numero',
+  unavailableRelations: ['Conta a receber gerada', 'Histórico de emissão'],
   canEdit: true,
   canDelete: true,
   columns: [

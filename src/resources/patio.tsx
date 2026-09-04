@@ -16,6 +16,8 @@ export const tarifasConfig: ResourceConfig = {
   },
   singular: 'Tarifa',
   plural: 'Tarifas',
+  subtitle: 'Valores de hora, diária e mensalidade do pátio.',
+  searchFilter: 'descricao',
   defaultSort: 'descricao,asc',
   columns: [
     cols.id(),
@@ -56,6 +58,9 @@ export const veiculosConfig: ResourceConfig = {
   },
   singular: 'Veículo',
   plural: 'Veículos',
+  searchFilter: 'placa',
+  subtitle: 'Placas vinculadas a clientes do contexto ativo.',
+  unavailableRelations: ['Movimentações do veículo', 'Mensalidade vigente'],
   defaultSort: 'placa,asc',
   columns: [
     cols.id(),
@@ -104,6 +109,12 @@ export const mensalistasConfig: ResourceConfig = {
   },
   singular: 'Mensalista',
   plural: 'Mensalistas',
+  subtitle: 'Contratos mensais de vaga e veículo.',
+  unavailableRelations: ['Cobranças geradas', 'Movimentações do contrato'],
+  filters: [
+    { name: 'clienteId', label: 'Cliente', type: 'reference', reference: { basePath: '/api/clientes', labelField: 'nome' } },
+    { name: 'status', label: 'Situação', type: 'select', options: statusMensalistaOptions },
+  ],
   columns: [
     cols.id(),
     cols.text('clienteNome', 'Cliente'),
@@ -155,6 +166,15 @@ export const movimentacoesConfig: ResourceConfig = {
   permissions: { read: ['operations:read'] },
   singular: 'Movimentação',
   plural: 'Movimentações',
+  subtitle: 'Entradas e saídas do pátio com cobrança disponível.',
+  unavailableRelations: ['Documento de cobrança', 'Pátio de origem detalhado'],
+  filters: [
+    { name: 'status', label: 'Situação', type: 'select', options: [
+      { value: 'ABERTO', label: 'Aberto' },
+      { value: 'FECHADO', label: 'Fechado' },
+      { value: 'CANCELADO', label: 'Cancelado' },
+    ] },
+  ],
   canCreate: false,
   canEdit: false,
   canDelete: false,

@@ -7,6 +7,8 @@ export const cargosConfig: ResourceConfig = {
   basePath: '/api/cargos',
   singular: 'Cargo',
   plural: 'Cargos',
+  subtitle: 'Funções e parâmetros de remuneração.',
+  searchFilter: 'nome',
   tenantAware: true,
   permissions: {
     read: ['workforce:read'],
@@ -42,6 +44,8 @@ export const funcionariosConfig: ResourceConfig = {
   basePath: '/api/funcionarios',
   singular: 'Funcionário',
   plural: 'Funcionários',
+  subtitle: 'Equipe operacional do contexto ativo.',
+  searchFilter: 'nome',
   tenantAware: true,
   permissions: {
     read: ['workforce:read'],

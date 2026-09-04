@@ -16,6 +16,15 @@ export const clientesConfig: ResourceConfig = {
     delete: ['customers:manage'],
   },
   subtitle: 'Pessoas físicas ou jurídicas atendidas.',
+  searchFilter: 'nome',
+  unavailableRelations: [
+    'Mensalidades',
+    'Movimentações',
+    'Vendas administrativas',
+    'Ordens de serviço',
+    'Notas',
+    'Contas a receber',
+  ],
   defaultSort: 'nome,asc',
   columns: [
     cols.id(),
@@ -138,7 +147,7 @@ export const condicoesPagamentoConfig: ResourceConfig = {
   ],
   toFormValues: (row) => ({
     ...row,
-    parcelas: (row.parcelas ?? []).map((p: any) => ({
+    parcelas: (Array.isArray(row.parcelas) ? row.parcelas : []).map((p: any) => ({
       numero: p.numero,
       dias: p.dias,
       percentual: p.percentual,

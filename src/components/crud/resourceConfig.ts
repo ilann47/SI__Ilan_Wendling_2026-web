@@ -55,8 +55,12 @@ export interface ResourceConfig {
   canEdit?: boolean;
   canDelete?: boolean;
   defaultSort?: string;
+  /** Filtro textual usado na busca principal da listagem. */
+  searchFilter?: string;
+  /** Relacoes conhecidas que a API atual nao entrega neste detalhe. */
+  unavailableRelations?: string[];
   /** Converte a linha (Response) em valores iniciais do formulario de edicao. */
-  toFormValues?: (row: Record<string, any>) => Record<string, unknown>;
+  toFormValues?: (row: Record<string, unknown>) => Record<string, unknown>;
 }
 
 export function hasResourceActionPermission(

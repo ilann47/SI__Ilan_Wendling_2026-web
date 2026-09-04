@@ -54,12 +54,12 @@ export const fornecedoresConfig: ResourceConfig = {
   ],
   toFormValues: (row) => ({
     ...row,
-    emails: (row.emails ?? []).map((e: any) => ({
+    emails: (Array.isArray(row.emails) ? row.emails : []).map((e: any) => ({
       email: e.email,
       tipo: e.tipo,
       principal: e.principal,
     })),
-    telefones: (row.telefones ?? []).map((t: any) => ({
+    telefones: (Array.isArray(row.telefones) ? row.telefones : []).map((t: any) => ({
       telefone: t.telefone,
       tipo: t.tipo,
       principal: t.principal,
