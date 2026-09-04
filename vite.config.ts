@@ -21,4 +21,16 @@ export default defineConfig({
       '/actuator': { target: backend, changeOrigin: true },
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules/@mui/x-data-grid')) return 'grid';
+          if (id.includes('node_modules/@mui/x-date-pickers')) return 'pickers';
+          if (id.includes('node_modules/@mui')) return 'mui';
+          if (id.includes('node_modules/@tanstack')) return 'query';
+        },
+      },
+    },
+  },
 });
