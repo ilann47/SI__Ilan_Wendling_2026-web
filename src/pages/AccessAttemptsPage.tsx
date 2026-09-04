@@ -6,7 +6,6 @@ import {
   Button,
   Card,
   CardContent,
-  CircularProgress,
   MenuItem,
   Stack,
   Table,
@@ -26,6 +25,9 @@ import { tenantQueryKey } from '../api/queryKeys';
 import { useAuth } from '../auth/AuthContext';
 import { PageHeader } from '../components/common/PageHeader';
 import { StatusChip } from '../components/common/StatusChip';
+import { EmptyState } from '../components/listing/EmptyState';
+import { ErrorState } from '../components/listing/ErrorState';
+import { ListingSkeleton } from '../components/listing/ListingSkeleton';
 import { formatDateTime } from '../utils/format';
 import { ResourceIdField } from '../components/enterprise/ResourceIdField';
 import { useOperationalWorkspace } from '../workspace/OperationalWorkspaceContext';
@@ -113,6 +115,7 @@ export function AccessAttemptsPage() {
       <PageHeader
         title="Tentativas de acesso"
         subtitle="Feed auditável do tenant ativo, sem exposição do token ou hash do QR."
+        count={query.data?.items.length}
       />
 
       <Card sx={{ mb: 2 }}>
@@ -151,9 +154,11 @@ export function AccessAttemptsPage() {
         </CardContent>
       </Card>
 
-      {query.isError && <Alert severity="error" sx={{ mb: 2 }}>{describeError(query.error)}</Alert>}
+      {query.isError && <Box sx={{ mb: 2 }}><ErrorState message={describeError(query.error)} onRetry={() => void query.refetch()} /></Box>}
       {query.isLoading ? (
-        <Box sx={{ display: 'grid', placeItems: 'center', py: 8 }}><CircularProgress /></Box>
+        <ListingSkeleton />
+      ) : (query.data?.items.length === 0 ? (
+        <EmptyState title="Nenhuma tentativa encontrada" description="Ajuste os filtros de evento, decisão ou motivo." />
       ) : (
         <Card>
           <TableContainer>
@@ -216,7 +221,7 @@ export function AccessAttemptsPage() {
             </Button>
           </Stack>
         </Card>
-      )}
+      ))}
     </Box>
   );
 }

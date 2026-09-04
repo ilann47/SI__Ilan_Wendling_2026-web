@@ -32,7 +32,10 @@ describe('DashboardPage', () => {
 
     render(<MemoryRouter><QueryClientProvider client={client}><DashboardPage /></QueryClientProvider></MemoryRouter>);
 
-    expect(await screen.findByText('23')).toBeInTheDocument();
-    expect(screen.getAllByText('1')).toHaveLength(2);
+    expect(await screen.findByText('1 autorizados nas últimas 20 decisões')).toBeInTheDocument();
+    expect(screen.getByText('Acessos recusados')).toBeInTheDocument();
+    expect(api.get).toHaveBeenCalledWith('/api/v1/access-attempts', expect.objectContaining({
+      params: expect.objectContaining({ limit: 20 }),
+    }));
   });
 });

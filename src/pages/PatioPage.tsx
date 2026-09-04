@@ -6,14 +6,19 @@ import {
   Card,
   CardContent,
   Chip,
-  CircularProgress,
   Stack,
   Typography,
 } from '@mui/material';
 import LoginIcon from '@mui/icons-material/Login';
 import LogoutIcon from '@mui/icons-material/Logout';
 import { api, describeError } from '../api/client';
+import { tenantQueryKey } from '../api/queryKeys';
+import { useAuth } from '../auth/AuthContext';
 import { PageHeader } from '../components/common/PageHeader';
+import { EmptyState } from '../components/listing/EmptyState';
+import { ErrorState } from '../components/listing/ErrorState';
+import { ListingSkeleton } from '../components/listing/ListingSkeleton';
+import { PrimaryButton } from '../components/listing/PrimaryButton';
 import { useSnackbar } from '../components/SnackbarProvider';
 import { ReferenceSelect } from '../components/form/ReferenceSelect';
 import { formatCurrency, formatDateTime, minutesToHuman } from '../utils/format';
@@ -22,15 +27,19 @@ import type { MovimentacaoResponse, PatioAtualResponse } from '../types';
 export function PatioPage() {
   const queryClient = useQueryClient();
   const { notify } = useSnackbar();
+  const { activeOrganization } = useAuth();
   const [veiculoId, setVeiculoId] = useState<number | null>(null);
+  const organizationId = activeOrganization?.organizationId;
+  const patioKey = organizationId ? tenantQueryKey(organizationId, 'rel', 'patio') : ['rel', 'patio'];
 
   const patioQ = useQuery({
-    queryKey: ['rel', 'patio'],
+    queryKey: patioKey,
     queryFn: () => api.get<PatioAtualResponse>('/api/relatorios/patio').then((r) => r.data),
+    enabled: !!organizationId,
     refetchInterval: 15_000,
   });
 
-  const refresh = () => queryClient.invalidateQueries({ queryKey: ['rel', 'patio'] });
+  const refresh = () => queryClient.invalidateQueries({ queryKey: patioKey });
 
   const entrada = useMutation({
     mutationFn: () => api.post<MovimentacaoResponse>('/api/movimentacoes/entrada', { veiculoId }),
@@ -85,14 +94,14 @@ export function PatioPage() {
                 reference={{ basePath: '/api/veiculos', labelField: 'placa', secondaryField: 'modelo' }}
               />
             </Box>
-            <Button
-              variant="contained"
+            <PrimaryButton
               startIcon={<LoginIcon />}
               disabled={!veiculoId || entrada.isPending}
               onClick={() => entrada.mutate()}
+              sx={{ minHeight: 48 }}
             >
               Registrar entrada
-            </Button>
+            </PrimaryButton>
           </Stack>
         </CardContent>
       </Card>
@@ -101,18 +110,11 @@ export function PatioPage() {
         Veículos no pátio
       </Typography>
 
+      {patioQ.isError && <ErrorState message={describeError(patioQ.error)} onRetry={() => void patioQ.refetch()} />}
       {patioQ.isLoading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
-          <CircularProgress />
-        </Box>
+        <ListingSkeleton rows={4} />
       ) : itens.length === 0 ? (
-        <Card>
-          <CardContent>
-            <Typography variant="body2" color="text.secondary" sx={{ py: 4, textAlign: 'center' }}>
-              Nenhum veículo no pátio no momento.
-            </Typography>
-          </CardContent>
-        </Card>
+        <EmptyState title="Nenhum veículo no pátio" description="Registre uma entrada para começar a operação." />
       ) : (
         <Box
           sx={{

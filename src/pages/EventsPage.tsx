@@ -146,8 +146,8 @@ function EventSetup({ catalog, loadingCatalog, catalogError, refreshCatalog }: {
           : catalogError ? <Alert severity="error">{describeError(catalogError)}</Alert>
             : catalog.length === 0 ? <Alert severity="info">Nenhum evento cadastrado.</Alert>
               : <TableContainer><Table size="small"><TableHead><TableRow>
-                <TableCell>Evento</TableCell><TableCell>Inicio</TableCell><TableCell>Status</TableCell>
-                <TableCell>Versao</TableCell><TableCell>Acoes</TableCell>
+                <TableCell>Evento</TableCell><TableCell>Início</TableCell><TableCell>Situação</TableCell>
+                <TableCell>Versão</TableCell><TableCell>Ações</TableCell>
               </TableRow></TableHead><TableBody>{catalog.map((item) => <TableRow key={item.id} hover
                 selected={eventRef.id === String(item.id)}>
                 <TableCell>{item.name}<Typography variant="caption" display="block" color="text.secondary">#{item.id}</Typography></TableCell>
@@ -538,7 +538,9 @@ export function EventsPage() {
   }, [panels.length, tab]);
   return (
     <Box>
-      <PageHeader title="Eventos e ofertas" subtitle="Configure o evento, inventario vendavel, produto e preco antes de abrir vendas." />
+      <PageHeader title="Eventos e ofertas"
+        subtitle="Configure o evento, inventário vendável, produto e preço antes de abrir vendas."
+        count={eventsQuery.data?.totalElements} />
       <Tabs value={tab} onChange={(_, value) => setTab(value)} variant="scrollable" sx={{ mb: 2 }}>
         {panels.map((panel) => <Tab key={panel.label} label={panel.label} />)}
       </Tabs>

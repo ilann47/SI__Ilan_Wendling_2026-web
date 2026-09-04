@@ -53,16 +53,16 @@ export function LoginPage() {
         display: 'grid',
         placeItems: 'center',
         p: 2,
-        background: 'linear-gradient(135deg, #1565c0 0%, #00897b 100%)',
+        bgcolor: 'background.default',
       }}
     >
-      <Card sx={{ width: '100%', maxWidth: 420, boxShadow: 8 }}>
+      <Card sx={{ width: '100%', maxWidth: 420 }}>
         <CardContent sx={{ p: 4 }}>
           <Stack spacing={1} alignItems="center" sx={{ mb: 3 }}>
             <LocalParkingIcon sx={{ fontSize: 48, color: 'primary.main' }} />
             <Typography variant="h5">Estacionamento Kaneko</Typography>
             <Typography variant="body2" color="text.secondary">
-              Acesse com seu usuário
+              Entre com seu login e senha para continuar.
             </Typography>
           </Stack>
           <Box component="form" onSubmit={submit}>
