@@ -30,12 +30,17 @@ import ChevronLeftOutlinedIcon from '@mui/icons-material/ChevronLeftOutlined';
 import ChevronRightOutlinedIcon from '@mui/icons-material/ChevronRightOutlined';
 import ExpandLessOutlinedIcon from '@mui/icons-material/ExpandLessOutlined';
 import ExpandMoreOutlinedIcon from '@mui/icons-material/ExpandMoreOutlined';
+import StarBorderOutlinedIcon from '@mui/icons-material/StarBorderOutlined';
+import StarOutlinedIcon from '@mui/icons-material/StarOutlined';
+import HistoryOutlinedIcon from '@mui/icons-material/HistoryOutlined';
 import { navGroups } from './navigation';
+import { ContextSelector } from './ContextSelector';
 import { useAuth } from '../auth/AuthContext';
 import { useColorMode } from '../context/ColorModeContext';
 import { useSnackbar } from '../components/SnackbarProvider';
 import { describeError } from '../api/client';
 import { GlobalSearch } from '../components/search/GlobalSearch';
+import { useUiPreferences } from '../preferences/useUiPreferences';
 
 const DRAWER_WIDTH = 248;
 const COMPACT_DRAWER_WIDTH = 72;
@@ -44,23 +49,41 @@ export function AppLayout() {
   const theme = useTheme();
   const isDesktop = useMediaQuery(theme.breakpoints.up('md'));
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [compactMenu, setCompactMenu] = useState(false);
   const [anchor, setAnchor] = useState<null | HTMLElement>(null);
   const [switchingOrganizationId, setSwitchingOrganizationId] = useState<number | null>(null);
   const { user, activeOrganization, organizations, permissions, logout, selectOrganization } = useAuth();
   const { mode, toggle } = useColorMode();
   const { notify } = useSnackbar();
+  const { prefs, update, rememberPath, toggleFavorite } = useUiPreferences();
   const location = useLocation();
   const navigate = useNavigate();
+  const compactMenu = prefs.compactMenu;
+  const allItems = navGroups.flatMap((group) => group.items);
   const activeGroup = navGroups.find((group) => group.items.some((item) => item.path === '/app'
     ? location.pathname === item.path : location.pathname.startsWith(item.path)))?.label;
-  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>(
-    () => Object.fromEntries(navGroups.map((group) => [group.label, group.label === activeGroup])),
-  );
+  const expandedGroups = Object.keys(prefs.expandedGroups).length > 0
+    ? prefs.expandedGroups
+    : Object.fromEntries(navGroups.map((group) => [group.label, group.label === activeGroup]));
 
   useEffect(() => {
-    if (activeGroup) setExpandedGroups((current) => ({ ...current, [activeGroup]: true }));
-  }, [activeGroup]);
+    rememberPath(location.pathname);
+  }, [location.pathname, rememberPath]);
+
+  useEffect(() => {
+    if (activeGroup) {
+      update((current) => ({
+        ...current,
+        expandedGroups: { ...current.expandedGroups, [activeGroup]: true },
+      }));
+    }
+  }, [activeGroup, update]);
+
+  const setExpandedGroups = (next: Record<string, boolean> | ((current: Record<string, boolean>) => Record<string, boolean>)) => {
+    update((current) => ({
+      ...current,
+      expandedGroups: typeof next === 'function' ? next(current.expandedGroups) : next,
+    }));
+  };
 
   const drawerContent = (compact: boolean) => (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
@@ -76,13 +99,45 @@ export function AppLayout() {
         </Box>}
         {isDesktop && <Tooltip title={compact ? 'Expandir menu' : 'Recolher menu'}>
           <IconButton size="small" aria-label={compact ? 'Expandir menu' : 'Recolher menu'}
-            onClick={() => setCompactMenu((value) => !value)}>
+            onClick={() => update({ compactMenu: !compact })}>
             {compact ? <ChevronRightOutlinedIcon /> : <ChevronLeftOutlinedIcon />}
           </IconButton>
         </Tooltip>}
       </Toolbar>
       <Divider />
       <Box sx={{ overflowY: 'auto', flexGrow: 1, pb: 2 }}>
+        {!compact && prefs.favoritePaths.length > 0 && (
+          <List dense disablePadding sx={{ px: 1, pt: 1 }}>
+            <Typography variant="overline" color="text.secondary" sx={{ px: 1 }}>Favoritos</Typography>
+            {prefs.favoritePaths.map((path) => {
+              const item = allItems.find((candidate) => candidate.path === path);
+              if (!item) return null;
+              return (
+                <ListItemButton key={path} component={RouterLink} to={path} selected={location.pathname === path}
+                  onClick={() => !isDesktop && setMobileOpen(false)} sx={{ borderRadius: 2 }}>
+                  <ListItemIcon sx={{ minWidth: 36 }}><StarOutlinedIcon fontSize="small" color="warning" /></ListItemIcon>
+                  <ListItemText primary={item.label} primaryTypographyProps={{ fontSize: 14 }} />
+                </ListItemButton>
+              );
+            })}
+          </List>
+        )}
+        {!compact && prefs.recentPaths.length > 0 && (
+          <List dense disablePadding sx={{ px: 1 }}>
+            <Typography variant="overline" color="text.secondary" sx={{ px: 1 }}>Últimas</Typography>
+            {prefs.recentPaths.slice(0, 4).map((path) => {
+              const item = allItems.find((candidate) => candidate.path === path);
+              if (!item) return null;
+              return (
+                <ListItemButton key={`recent-${path}`} component={RouterLink} to={path}
+                  onClick={() => !isDesktop && setMobileOpen(false)} sx={{ borderRadius: 2 }}>
+                  <ListItemIcon sx={{ minWidth: 36 }}><HistoryOutlinedIcon fontSize="small" /></ListItemIcon>
+                  <ListItemText primary={item.label} primaryTypographyProps={{ fontSize: 14 }} />
+                </ListItemButton>
+              );
+            })}
+          </List>
+        )}
         {navGroups.map((group) => {
           const items = group.items.filter((item) => !item.permissions
             || item.permissions.some((permission) => permissions.includes(permission)));
@@ -90,7 +145,7 @@ export function AppLayout() {
           const expanded = expandedGroups[group.label] ?? false;
           if (compact) return <Tooltip key={group.label} title={group.label} placement="right">
             <ListItemButton aria-label={`Abrir ${group.label}`} onClick={() => {
-              setCompactMenu(false);
+              update({ compactMenu: false });
               setExpandedGroups((current) => ({ ...current, [group.label]: true }));
             }} sx={{ mx: 1, my: 0.5, borderRadius: 2, justifyContent: 'center' }}>
               <ListItemIcon sx={{ minWidth: 0 }}>{items[0].icon}</ListItemIcon>
@@ -116,10 +171,23 @@ export function AppLayout() {
                   ? location.pathname === item.path
                   : location.pathname.startsWith(item.path)}
                 onClick={() => !isDesktop && setMobileOpen(false)}
-                sx={{ mx: 1, borderRadius: 2 }}
+                sx={{
+                  mx: 1, borderRadius: 2,
+                  '&.Mui-selected': { bgcolor: 'primary.main', color: 'primary.contrastText',
+                    '& .MuiListItemIcon-root': { color: 'inherit' } },
+                }}
               >
                 <ListItemIcon sx={{ minWidth: 36 }}>{item.icon}</ListItemIcon>
                 <ListItemText primary={item.label} primaryTypographyProps={{ fontSize: 14 }} />
+                <IconButton
+                  size="small"
+                  aria-label={prefs.favoritePaths.includes(item.path) ? `Remover ${item.label} dos favoritos` : `Favoritar ${item.label}`}
+                  onClick={(event) => { event.preventDefault(); event.stopPropagation(); toggleFavorite(item.path); }}
+                >
+                  {prefs.favoritePaths.includes(item.path)
+                    ? <StarOutlinedIcon fontSize="inherit" />
+                    : <StarBorderOutlinedIcon fontSize="inherit" />}
+                </IconButton>
               </ListItemButton>
             ))}
             </Collapse>
@@ -141,21 +209,21 @@ export function AppLayout() {
           transform: 'translateY(-150%)', '&:focus': { transform: 'translateY(0)' },
         }}
       >
-        Ir para o conteudo principal
+        Ir para o conteúdo principal
       </Box>
       <AppBar position="fixed" sx={{ zIndex: theme.zIndex.drawer + 1 }}>
         <Toolbar>
           {!isDesktop && (
-            <IconButton edge="start" aria-label="Abrir menu de navegacao" onClick={() => setMobileOpen(true)} sx={{ mr: 1 }}>
+            <IconButton edge="start" aria-label="Abrir menu de navegação" onClick={() => setMobileOpen(true)} sx={{ mr: 1 }}>
               <MenuIcon />
             </IconButton>
           )}
-          <Typography variant="h6" sx={{ flexGrow: 1, fontSize: { xs: 16, md: 20 } }}>
-            {activeOrganization?.tradeName || activeOrganization?.legalName || 'Estacionamento Kaneko'}
-          </Typography>
+          <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+            <ContextSelector />
+          </Box>
           <GlobalSearch />
           <Tooltip title={mode === 'light' ? 'Modo escuro' : 'Modo claro'}>
-            <IconButton onClick={toggle} color="inherit">
+            <IconButton aria-label={mode === 'light' ? 'Ativar modo escuro' : 'Ativar modo claro'} onClick={toggle} color="inherit">
               {mode === 'light' ? <DarkModeOutlinedIcon /> : <LightModeOutlinedIcon />}
             </IconButton>
           </Tooltip>
@@ -177,7 +245,7 @@ export function AppLayout() {
             {organizations.length > 1 && (
               <>
                 <Typography variant="overline" color="text.secondary" sx={{ px: 2, pt: 1, display: 'block' }}>
-                  Trocar organizacao
+                  Trocar organização
                 </Typography>
                 {organizations
                   .filter((organization) => organization.organizationId !== activeOrganization?.organizationId)
@@ -221,7 +289,7 @@ export function AppLayout() {
         </Toolbar>
       </AppBar>
 
-      <Box component="nav" aria-label="Navegacao principal" sx={{
+      <Box component="nav" aria-label="Navegação principal" sx={{
         width: { md: compactMenu ? COMPACT_DRAWER_WIDTH : DRAWER_WIDTH },
         flexShrink: { md: 0 }, transition: theme.transitions.create('width'),
       }}>

@@ -19,7 +19,14 @@ interface OperationalWorkspaceValue {
   clear: () => void;
 }
 
-const OperationalWorkspaceContext = createContext<OperationalWorkspaceValue>(null!);
+const emptyWorkspace: OperationalWorkspaceValue = {
+  resources: {},
+  recent: () => [],
+  remember: () => undefined,
+  clear: () => undefined,
+};
+
+const OperationalWorkspaceContext = createContext<OperationalWorkspaceValue>(emptyWorkspace);
 
 export function useOperationalWorkspace(): OperationalWorkspaceValue {
   return useContext(OperationalWorkspaceContext);

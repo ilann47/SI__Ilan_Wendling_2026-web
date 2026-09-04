@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -26,8 +26,11 @@ describe('GlobalSearch', () => {
     await userEvent.keyboard('{Control>}k{/Control}');
     await userEvent.type(screen.getByPlaceholderText(/Cliente, CPF/), 'mariana');
 
-    expect(await screen.findByText('Mariana Souza')).toBeInTheDocument();
-    expect(screen.getByText('ABC1D23')).toBeInTheDocument();
+    expect((await screen.findAllByText((_, node) => node?.textContent === 'Mariana Souza')).length).toBeGreaterThan(0);
+    expect(screen.getAllByText((_, node) => node?.textContent === 'ABC1D23').length).toBeGreaterThan(0);
     expect(api.get).toHaveBeenCalledWith('/api/v1/search', { params: { q: 'mariana', limit: 5 } });
+
+    await userEvent.keyboard('{ArrowDown}{Enter}');
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
   });
 });

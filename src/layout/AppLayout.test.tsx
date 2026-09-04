@@ -58,9 +58,9 @@ describe('AppLayout', () => {
 
     renderLayout();
 
-    expect(screen.getByRole('link', { name: 'Ir para o conteudo principal' })).toHaveAttribute('href', '#conteudo-principal');
-    expect(screen.getByRole('button', { name: 'Abrir menu de navegacao' })).toBeInTheDocument();
-    expect(screen.getAllByRole('navigation', { name: 'Navegacao principal' }).length).toBeGreaterThan(0);
+    expect(screen.getByRole('link', { name: 'Ir para o conteúdo principal' })).toHaveAttribute('href', '#conteudo-principal');
+    expect(screen.getByRole('button', { name: 'Abrir menu de navegação' })).toBeInTheDocument();
+    expect(screen.getAllByRole('navigation', { name: 'Navegação principal' }).length).toBeGreaterThan(0);
     fireEvent.click(screen.getByRole('button', { name: 'Recolher Operação' }));
     await waitFor(() => expect(screen.queryByRole('link', { name: 'Visão geral' })).not.toBeInTheDocument());
   });

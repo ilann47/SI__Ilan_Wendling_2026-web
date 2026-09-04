@@ -1,26 +1,58 @@
 import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined';
 import {
-  Box, ButtonBase, Chip, CircularProgress, Dialog, DialogContent, DialogTitle,
-  Divider, InputAdornment, List, ListItemButton, ListItemText, Stack, TextField, Typography,
+  Box, Button, ButtonBase, Chip, Dialog, DialogContent, DialogTitle,
+  Divider, InputAdornment, LinearProgress, List, ListItemButton, ListItemText,
+  Stack, TextField, Typography,
 } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { globalSearchApi } from '../../api/globalSearch';
+import { describeError } from '../../api/client';
+import { globalSearchApi, type GlobalSearchResult } from '../../api/globalSearch';
 import { tenantQueryKey } from '../../api/queryKeys';
 import { useAuth } from '../../auth/AuthContext';
+import { rememberRecentSearch } from '../../preferences/uiPreferences';
+import { highlightTerm } from '../listing/listingUtils';
+import { ErrorState } from '../listing/ErrorState';
+
+const RECENT_KEY = 'kaneko.search.recent';
+
+function readRecent(): string[] {
+  try {
+    const raw = sessionStorage.getItem(RECENT_KEY);
+    return raw ? (JSON.parse(raw) as string[]).filter((item) => typeof item === 'string').slice(0, 8) : [];
+  } catch {
+    return [];
+  }
+}
+
+function Highlight({ text, term }: { text: string; term: string }) {
+  return (
+    <>
+      {highlightTerm(text, term).map((part, index) => (
+        <Box key={`${part.text}-${index}`} component="span" sx={part.match ? { bgcolor: 'warning.light', fontWeight: 700 } : undefined}>
+          {part.text}
+        </Box>
+      ))}
+    </>
+  );
+}
 
 export function GlobalSearch() {
   const { activeOrganization } = useAuth();
   const navigate = useNavigate();
+  const inputRef = useRef<HTMLInputElement>(null);
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState('');
   const [query, setQuery] = useState('');
+  const [selected, setSelected] = useState(0);
+  const [recent, setRecent] = useState<string[]>(readRecent);
 
   useEffect(() => {
-    const listener = (event: KeyboardEvent) => {
+    const listener = (event: globalThis.KeyboardEvent) => {
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
-        event.preventDefault(); setOpen(true);
+        event.preventDefault();
+        setOpen(true);
       }
     };
     window.addEventListener('keydown', listener);
@@ -30,6 +62,12 @@ export function GlobalSearch() {
     const timer = window.setTimeout(() => setQuery(input.trim()), 250);
     return () => window.clearTimeout(timer);
   }, [input]);
+  useEffect(() => {
+    if (open) {
+      setSelected(0);
+      window.setTimeout(() => inputRef.current?.focus(), 0);
+    }
+  }, [open, query]);
 
   const organizationId = activeOrganization?.organizationId;
   const search = useQuery({
@@ -37,43 +75,126 @@ export function GlobalSearch() {
     queryFn: () => globalSearchApi.search(query),
     enabled: open && !!organizationId && query.length >= 2,
   });
-  const close = () => { setOpen(false); setInput(''); setQuery(''); };
 
-  return <>
-    <ButtonBase aria-label="Buscar em toda a plataforma" onClick={() => setOpen(true)} sx={{
-      display: { xs: 'none', sm: 'flex' }, width: { sm: 280, lg: 420 }, mx: 2, px: 1.5, py: 0.8,
-      border: 1, borderColor: 'divider', borderRadius: 2, bgcolor: 'action.hover', justifyContent: 'space-between',
-    }}>
-      <Stack direction="row" spacing={1} alignItems="center"><SearchOutlinedIcon fontSize="small" />
-        <Typography variant="body2" color="text.secondary">Buscar em toda a plataforma…</Typography></Stack>
-      <Chip label="Ctrl K" size="small" variant="outlined" />
-    </ButtonBase>
-    <ButtonBase aria-label="Buscar em toda a plataforma" onClick={() => setOpen(true)}
-      sx={{ display: { xs: 'flex', sm: 'none' }, p: 1, borderRadius: 2 }}><SearchOutlinedIcon /></ButtonBase>
-    <Dialog open={open} onClose={close} maxWidth="sm" fullWidth>
-      <DialogTitle sx={{ pb: 1 }}>Buscar em toda a plataforma</DialogTitle>
-      <DialogContent sx={{ px: 0 }}>
-        <Box sx={{ px: 3, pb: 2 }}><TextField autoFocus fullWidth value={input}
-          onChange={(event) => setInput(event.target.value)}
-          placeholder="Cliente, CPF, placa, pedido, nota, conta ou evento…"
-          slotProps={{ input: { startAdornment: <InputAdornment position="start"><SearchOutlinedIcon /></InputAdornment> } }} /></Box>
-        <Divider />
-        {search.isFetching && <Box sx={{ display: 'grid', placeItems: 'center', py: 4 }}><CircularProgress size={28} /></Box>}
-        {!search.isFetching && query.length < 2 && <Typography color="text.secondary" sx={{ p: 3 }}>
-          Digite ao menos dois caracteres para pesquisar nos módulos permitidos.</Typography>}
-        {!search.isFetching && search.isError && <Typography color="error" sx={{ p: 3 }}>
-          Não foi possível concluir a busca. Tente novamente.</Typography>}
-        {!search.isFetching && !search.isError && search.data?.total === 0 && <Typography color="text.secondary" sx={{ p: 3 }}>
-          Nenhum resultado encontrado.</Typography>}
-        {!search.isFetching && search.data?.grupos.map((group) => <Box key={group.grupo}>
-          <Typography variant="overline" color="text.secondary" sx={{ px: 3, pt: 2, display: 'block' }}>{group.grupo}</Typography>
-          <List disablePadding>{group.resultados.map((result) => <ListItemButton key={`${result.tipo}-${result.id}`}
-            onClick={() => { navigate(result.caminho); close(); }} sx={{ px: 3 }}>
-            <ListItemText primary={result.titulo} secondary={result.subtitulo} />
-            {result.status && <Chip label={result.status.replace(/_/g, ' ')} size="small" variant="outlined" />}
-          </ListItemButton>)}</List>
-        </Box>)}
-      </DialogContent>
-    </Dialog>
-  </>;
+  const flat = useMemo<GlobalSearchResult[]>(
+    () => search.data?.grupos.flatMap((group) => group.resultados) ?? [],
+    [search.data],
+  );
+
+  const close = () => { setOpen(false); setInput(''); setQuery(''); setSelected(0); };
+  const openResult = (result: GlobalSearchResult) => {
+    setRecent((current) => {
+      const next = rememberRecentSearch(current, query || result.titulo);
+      sessionStorage.setItem(RECENT_KEY, JSON.stringify(next));
+      return next;
+    });
+    navigate(result.caminho);
+    close();
+  };
+
+  const onKeyDown = (event: ReactKeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      setSelected((current) => Math.min(current + 1, Math.max(flat.length - 1, 0)));
+    } else if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      setSelected((current) => Math.max(current - 1, 0));
+    } else if (event.key === 'Enter' && flat[selected]) {
+      event.preventDefault();
+      openResult(flat[selected]);
+    } else if (event.key === 'Escape') {
+      close();
+    }
+  };
+
+  return (
+    <>
+      <ButtonBase aria-label="Buscar em toda a plataforma" onClick={() => setOpen(true)} sx={{
+        display: { xs: 'none', sm: 'flex' }, width: { sm: 280, lg: 420 }, mx: 2, px: 1.5, py: 0.8,
+        border: 1, borderColor: 'divider', borderRadius: 2, bgcolor: 'action.hover', justifyContent: 'space-between',
+      }}>
+        <Stack direction="row" spacing={1} alignItems="center">
+          <SearchOutlinedIcon fontSize="small" />
+          <Typography variant="body2" color="text.secondary">Buscar em toda a plataforma…</Typography>
+        </Stack>
+        <Chip label="Ctrl K" size="small" variant="outlined" />
+      </ButtonBase>
+      <ButtonBase aria-label="Buscar em toda a plataforma" onClick={() => setOpen(true)}
+        sx={{ display: { xs: 'flex', sm: 'none' }, p: 1, borderRadius: 2, minWidth: 40, minHeight: 40 }}>
+        <SearchOutlinedIcon />
+      </ButtonBase>
+      <Dialog open={open} onClose={close} maxWidth="sm" fullWidth aria-labelledby="busca-global-titulo">
+        <DialogTitle id="busca-global-titulo" sx={{ pb: 1 }}>Buscar em toda a plataforma</DialogTitle>
+        <DialogContent sx={{ px: 0 }}>
+          <Box sx={{ px: 3, pb: 2 }}>
+            <TextField
+              inputRef={inputRef}
+              autoFocus
+              fullWidth
+              value={input}
+              onChange={(event) => setInput(event.target.value)}
+              onKeyDown={onKeyDown}
+              placeholder="Cliente, CPF, placa, pedido, nota, conta ou evento…"
+              slotProps={{ input: { startAdornment: <InputAdornment position="start"><SearchOutlinedIcon /></InputAdornment> } }}
+            />
+          </Box>
+          {search.isFetching && <LinearProgress aria-label="Buscando" />}
+          <Divider />
+          {query.length < 2 && recent.length > 0 && (
+            <Box sx={{ px: 3, py: 2 }}>
+              <Typography variant="overline" color="text.secondary">Pesquisas recentes</Typography>
+              <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap" sx={{ mt: 1 }}>
+                {recent.map((term) => (
+                  <Chip key={term} label={term} size="small" onClick={() => setInput(term)} />
+                ))}
+              </Stack>
+            </Box>
+          )}
+          {!search.isFetching && query.length < 2 && recent.length === 0 && (
+            <Typography color="text.secondary" sx={{ p: 3 }}>
+              Digite ao menos dois caracteres para pesquisar nos módulos permitidos.
+            </Typography>
+          )}
+          {search.isError && (
+            <Box sx={{ p: 3 }}>
+              <ErrorState message={describeError(search.error) || 'Não foi possível concluir a busca. Tente novamente.'}
+                onRetry={() => void search.refetch()} />
+            </Box>
+          )}
+          {!search.isFetching && !search.isError && search.data?.total === 0 && (
+            <Typography color="text.secondary" sx={{ p: 3 }}>Nenhum resultado encontrado.</Typography>
+          )}
+          {!search.isError && search.data?.grupos.map((group) => (
+            <Box key={group.grupo}>
+              <Typography variant="overline" color="text.secondary" sx={{ px: 3, pt: 2, display: 'block' }}>{group.grupo}</Typography>
+              <List disablePadding>
+                {group.resultados.map((result) => {
+                  const index = flat.findIndex((item) => item.tipo === result.tipo && item.id === result.id);
+                  return (
+                    <ListItemButton
+                      key={`${result.tipo}-${result.id}`}
+                      selected={index === selected}
+                      onClick={() => openResult(result)}
+                      sx={{ px: 3 }}
+                    >
+                      <ListItemText
+                        primary={<Highlight text={result.titulo} term={query} />}
+                        secondary={result.subtitulo ? <Highlight text={result.subtitulo} term={query} /> : undefined}
+                      />
+                      {result.status && <Chip label={result.status.replace(/_/g, ' ')} size="small" variant="outlined" />}
+                    </ListItemButton>
+                  );
+                })}
+              </List>
+            </Box>
+          ))}
+          {search.isError && (
+            <Box sx={{ px: 3, pb: 2 }}>
+              <Button onClick={() => void search.refetch()}>Tentar novamente</Button>
+            </Box>
+          )}
+        </DialogContent>
+      </Dialog>
+    </>
+  );
 }
