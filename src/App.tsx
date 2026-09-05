@@ -8,6 +8,8 @@ import { AppLayout } from './layout/AppLayout';
 import { LoginPage } from './pages/LoginPage';
 import { allConfigs } from './resources';
 
+const HubHomePage = lazy(() => import('./pages/HubHomePage')
+  .then((module) => ({ default: module.HubHomePage })));
 const DashboardPage = lazy(() => import('./pages/DashboardPage')
   .then((module) => ({ default: module.DashboardPage })));
 const EventAccessPage = lazy(() => import('./pages/EventAccessPage')
@@ -60,7 +62,8 @@ export function App() {
             </ProtectedRoute>
           }
         >
-          <Route index element={<DashboardPage />} />
+          <Route index element={<HubHomePage />} />
+          <Route path="visao-geral" element={<DashboardPage />} />
           <Route path="acesso-eventos" element={
             <PermissionRoute anyOf={['access:validate', 'access:checkin', 'access:checkout', 'credentials:block']}>
               <EventAccessPage />

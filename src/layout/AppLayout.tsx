@@ -4,7 +4,6 @@ import {
   AppBar,
   Avatar,
   Box,
-  Collapse,
   Divider,
   Drawer,
   IconButton,
@@ -27,13 +26,17 @@ import LogoutIcon from '@mui/icons-material/Logout';
 import BusinessOutlinedIcon from '@mui/icons-material/BusinessOutlined';
 import ChevronLeftOutlinedIcon from '@mui/icons-material/ChevronLeftOutlined';
 import ChevronRightOutlinedIcon from '@mui/icons-material/ChevronRightOutlined';
-import ExpandLessOutlinedIcon from '@mui/icons-material/ExpandLessOutlined';
-import ExpandMoreOutlinedIcon from '@mui/icons-material/ExpandMoreOutlined';
+import HomeOutlinedIcon from '@mui/icons-material/HomeOutlined';
+import AppsOutlinedIcon from '@mui/icons-material/AppsOutlined';
 import StarBorderOutlinedIcon from '@mui/icons-material/StarBorderOutlined';
 import StarOutlinedIcon from '@mui/icons-material/StarOutlined';
-import HistoryOutlinedIcon from '@mui/icons-material/HistoryOutlined';
-import { navGroups } from './navigation';
 import { ContextSelector } from './ContextSelector';
+import {
+  canOpenHubModule,
+  hubModules,
+  moduleNavItems,
+  resolveHubModule,
+} from './hubModules';
 import { useAuth } from '../auth/AuthContext';
 import { useColorMode } from '../context/ColorModeContext';
 import { useSnackbar } from '../components/SnackbarProvider';
@@ -52,6 +55,7 @@ export function AppLayout() {
   const isDesktop = useMediaQuery(theme.breakpoints.up('md'));
   const [mobileOpen, setMobileOpen] = useState(false);
   const [anchor, setAnchor] = useState<null | HTMLElement>(null);
+  const [launcherAnchor, setLauncherAnchor] = useState<null | HTMLElement>(null);
   const [switchingOrganizationId, setSwitchingOrganizationId] = useState<number | null>(null);
   const { user, activeOrganization, organizations, permissions, logout, selectOrganization } = useAuth();
   const { mode, toggle } = useColorMode();
@@ -61,32 +65,25 @@ export function AppLayout() {
   const location = useLocation();
   const navigate = useNavigate();
   const compactMenu = prefs.compactMenu;
-  const allItems = navGroups.flatMap((group) => group.items);
-  const activeGroup = navGroups.find((group) => group.items.some((item) => item.path === '/app'
-    ? location.pathname === item.path : location.pathname.startsWith(item.path)))?.label;
-  const expandedGroups = Object.keys(prefs.expandedGroups).length > 0
-    ? prefs.expandedGroups
-    : Object.fromEntries(navGroups.map((group) => [group.label, group.label === activeGroup]));
+  const isHubHome = location.pathname === '/app' || location.pathname === '/app/';
+  const activeModule = resolveHubModule(location.pathname);
+  const moduleItems = activeModule ? moduleNavItems(activeModule, permissions) : [];
+  const showSidebar = !isHubHome && moduleItems.length > 0;
+  const drawerWidth = showSidebar ? (compactMenu ? COMPACT_DRAWER_WIDTH : DRAWER_WIDTH) : 0;
+  const launcherModules = hubModules.filter((module) => canOpenHubModule(module, permissions));
 
   useEffect(() => {
-    rememberPath(location.pathname);
-  }, [location.pathname, rememberPath]);
+    if (!isHubHome) rememberPath(location.pathname);
+  }, [isHubHome, location.pathname, rememberPath]);
 
-  useEffect(() => {
-    if (activeGroup) {
-      update((current) => ({
-        ...current,
-        expandedGroups: { ...current.expandedGroups, [activeGroup]: true },
-      }));
-    }
-  }, [activeGroup, update]);
-
-  const setExpandedGroups = (next: Record<string, boolean> | ((current: Record<string, boolean>) => Record<string, boolean>)) => {
-    update((current) => ({
-      ...current,
-      expandedGroups: typeof next === 'function' ? next(current.expandedGroups) : next,
-    }));
-  };
+  const iconBtnSx = {
+    color: 'inherit',
+    bgcolor: 'transparent',
+    borderRadius: 1.25,
+    width: 36,
+    height: 36,
+    flexShrink: 0,
+  } as const;
 
   const navItemSx = (selected: boolean) => ({
     mx: compactMenu ? 0.75 : 1,
@@ -139,7 +136,7 @@ export function AppLayout() {
               color: colors.purple,
             }}
           >
-            Navegação
+            {activeModule?.label ?? 'Navegação'}
           </Typography>
         )}
         {isDesktop && (
@@ -156,129 +153,47 @@ export function AppLayout() {
         )}
       </Box>
       <Box sx={{ overflowY: 'auto', flexGrow: 1, py: 1 }}>
-        {!compact && prefs.favoritePaths.length > 0 && (
-          <List dense disablePadding>
-            <Typography variant="overline" sx={{ px: 2, color: colors.textMuted }}>Favoritos</Typography>
-            {prefs.favoritePaths.map((path) => {
-              const item = allItems.find((candidate) => candidate.path === path);
-              if (!item) return null;
-              const selected = location.pathname === path;
-              return (
-                <ListItemButton
-                  key={path}
-                  component={RouterLink}
-                  to={path}
-                  selected={selected}
-                  onClick={() => !isDesktop && setMobileOpen(false)}
-                  sx={navItemSx(selected)}
-                >
-                  <ListItemIcon><StarOutlinedIcon fontSize="small" /></ListItemIcon>
-                  <ListItemText primary={item.label} primaryTypographyProps={{ fontSize: '0.82rem', fontWeight: selected ? 800 : 600 }} />
-                </ListItemButton>
-              );
-            })}
-          </List>
-        )}
-        {!compact && prefs.recentPaths.length > 0 && (
-          <List dense disablePadding>
-            <Typography variant="overline" sx={{ px: 2, color: colors.textMuted }}>Últimas</Typography>
-            {prefs.recentPaths.slice(0, 4).map((path) => {
-              const item = allItems.find((candidate) => candidate.path === path);
-              if (!item) return null;
-              return (
-                <ListItemButton
-                  key={`recent-${path}`}
-                  component={RouterLink}
-                  to={path}
-                  onClick={() => !isDesktop && setMobileOpen(false)}
-                  sx={navItemSx(false)}
-                >
-                  <ListItemIcon><HistoryOutlinedIcon fontSize="small" /></ListItemIcon>
-                  <ListItemText primary={item.label} primaryTypographyProps={{ fontSize: '0.82rem', fontWeight: 600 }} />
-                </ListItemButton>
-              );
-            })}
-          </List>
-        )}
-        {navGroups.map((group) => {
-          const items = group.items.filter((item) => !item.permissions
-            || item.permissions.some((permission) => permissions.includes(permission)));
-          if (items.length === 0) return null;
-          const expanded = expandedGroups[group.label] ?? false;
-          if (compact) {
-            return (
-              <Tooltip key={group.label} title={group.label} placement="right">
-                <ListItemButton
-                  aria-label={`Abrir ${group.label}`}
-                  onClick={() => {
-                    update({ compactMenu: false });
-                    setExpandedGroups((current) => ({ ...current, [group.label]: true }));
-                  }}
-                  sx={navItemSx(false)}
-                >
-                  <ListItemIcon>{items[0].icon}</ListItemIcon>
-                </ListItemButton>
-              </Tooltip>
+        <List dense disablePadding>
+          {moduleItems.map((item) => {
+            const selected = location.pathname === item.path || location.pathname.startsWith(`${item.path}/`);
+            const content = (
+              <ListItemButton
+                key={item.path}
+                component={RouterLink}
+                to={item.path}
+                selected={selected}
+                onClick={() => !isDesktop && setMobileOpen(false)}
+                sx={navItemSx(selected)}
+              >
+                <ListItemIcon>{item.icon}</ListItemIcon>
+                {!compact && (
+                  <>
+                    <ListItemText
+                      primary={item.label}
+                      primaryTypographyProps={{ fontSize: '0.82rem', fontWeight: selected ? 800 : 600 }}
+                    />
+                    <IconButton
+                      size="small"
+                      aria-label={prefs.favoritePaths.includes(item.path) ? `Remover ${item.label} dos favoritos` : `Favoritar ${item.label}`}
+                      onClick={(event) => { event.preventDefault(); event.stopPropagation(); toggleFavorite(item.path); }}
+                      sx={{ color: selected ? colors.purple : colors.textMuted }}
+                    >
+                      {prefs.favoritePaths.includes(item.path)
+                        ? <StarOutlinedIcon fontSize="inherit" />
+                        : <StarBorderOutlinedIcon fontSize="inherit" />}
+                    </IconButton>
+                  </>
+                )}
+              </ListItemButton>
             );
-          }
-          return (
-            <Box key={group.label}>
-              <List dense disablePadding>
-                <ListItemButton
-                  aria-label={`${expanded ? 'Recolher' : 'Expandir'} ${group.label}`}
-                  onClick={() => setExpandedGroups((current) => ({ ...current, [group.label]: !expanded }))}
-                  sx={{ px: 2, py: 0.75, color: colors.textMuted }}
-                >
-                  <ListItemText
-                    primary={group.label}
-                    primaryTypographyProps={{
-                      fontWeight: 800, letterSpacing: 0.8, fontSize: '0.72rem', textTransform: 'uppercase',
-                    }}
-                  />
-                  {expanded ? <ExpandLessOutlinedIcon fontSize="small" /> : <ExpandMoreOutlinedIcon fontSize="small" />}
-                </ListItemButton>
-                <Collapse in={expanded} timeout="auto" unmountOnExit>
-                  {items.map((item) => {
-                    const selected = item.path === '/app'
-                      ? location.pathname === item.path
-                      : location.pathname.startsWith(item.path);
-                    return (
-                      <ListItemButton
-                        key={item.path}
-                        component={RouterLink}
-                        to={item.path}
-                        selected={selected}
-                        onClick={() => !isDesktop && setMobileOpen(false)}
-                        sx={navItemSx(selected)}
-                      >
-                        <ListItemIcon>{item.icon}</ListItemIcon>
-                        <ListItemText
-                          primary={item.label}
-                          primaryTypographyProps={{ fontSize: '0.82rem', fontWeight: selected ? 800 : 600 }}
-                        />
-                        <IconButton
-                          size="small"
-                          aria-label={prefs.favoritePaths.includes(item.path) ? `Remover ${item.label} dos favoritos` : `Favoritar ${item.label}`}
-                          onClick={(event) => { event.preventDefault(); event.stopPropagation(); toggleFavorite(item.path); }}
-                          sx={{ color: selected ? colors.purple : colors.textMuted }}
-                        >
-                          {prefs.favoritePaths.includes(item.path)
-                            ? <StarOutlinedIcon fontSize="inherit" />
-                            : <StarBorderOutlinedIcon fontSize="inherit" />}
-                        </IconButton>
-                      </ListItemButton>
-                    );
-                  })}
-                </Collapse>
-              </List>
-            </Box>
-          );
-        })}
+            return compact ? (
+              <Tooltip key={item.path} title={item.label} placement="right">{content}</Tooltip>
+            ) : content;
+          })}
+        </List>
       </Box>
     </Box>
   );
-
-  const drawerWidth = compactMenu ? COMPACT_DRAWER_WIDTH : DRAWER_WIDTH;
 
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: colors.background }}>
@@ -294,7 +209,16 @@ export function AppLayout() {
         Ir para o conteúdo principal
       </Box>
 
-      <AppBar position="fixed" elevation={0} sx={{ zIndex: 1500, bgcolor: colors.appBar, color: colors.text }}>
+      <AppBar
+        position="fixed"
+        elevation={0}
+        sx={{
+          zIndex: 1500,
+          bgcolor: colors.appBar,
+          color: colors.text,
+          borderBottom: `1px solid ${colors.border}`,
+        }}
+      >
         <Toolbar
           disableGutters
           sx={{
@@ -311,11 +235,67 @@ export function AppLayout() {
           }}
         >
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, minWidth: 0 }}>
-            {!isDesktop && (
-              <IconButton edge="start" aria-label="Abrir menu de navegação" onClick={() => setMobileOpen(true)}>
-                <MenuIcon />
-              </IconButton>
+            {showSidebar && (
+              <Box
+                sx={{
+                  width: 40,
+                  height: 40,
+                  display: { xs: 'flex', md: 'none' },
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <IconButton edge="start" aria-label="Abrir menu de navegação" onClick={() => setMobileOpen(true)}>
+                  <MenuIcon />
+                </IconButton>
+              </Box>
             )}
+
+            <Tooltip title="Hub de módulos">
+              <IconButton
+                aria-label="Hub de módulos"
+                onClick={() => navigate('/app')}
+                sx={{
+                  ...iconBtnSx,
+                  color: colors.purple,
+                  bgcolor: colors.brandHover,
+                  '&:hover': { bgcolor: colors.brandHover },
+                }}
+              >
+                <HomeOutlinedIcon sx={{ fontSize: 20 }} />
+              </IconButton>
+            </Tooltip>
+
+            <Tooltip title="Abrir módulos">
+              <IconButton
+                aria-label="Abrir módulos"
+                onClick={(event) => setLauncherAnchor(event.currentTarget)}
+                sx={iconBtnSx}
+              >
+                <AppsOutlinedIcon sx={{ fontSize: 20 }} />
+              </IconButton>
+            </Tooltip>
+            <Menu
+              anchorEl={launcherAnchor}
+              open={!!launcherAnchor}
+              onClose={() => setLauncherAnchor(null)}
+              anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+            >
+              {launcherModules.map((module) => (
+                <MenuItem
+                  key={module.id}
+                  selected={activeModule?.id === module.id}
+                  onClick={() => {
+                    setLauncherAnchor(null);
+                    navigate(module.homePath);
+                  }}
+                >
+                  <ListItemIcon sx={{ color: colors.purple }}>{module.icon}</ListItemIcon>
+                  {module.label}
+                </MenuItem>
+              ))}
+            </Menu>
+
             <BrandMark size={34} showName onClick={() => navigate('/app')} />
             <Box sx={{ display: { xs: 'none', lg: 'block' }, minWidth: 0 }}>
               <ContextSelector />
@@ -396,51 +376,53 @@ export function AppLayout() {
         </Toolbar>
       </AppBar>
 
-      <Box
-        component="nav"
-        aria-label="Navegação principal"
-        sx={{
-          width: { md: drawerWidth },
-          flexShrink: { md: 0 },
-          transition: theme.transitions.create('width'),
-        }}
-      >
-        <Drawer
-          variant="temporary"
-          open={mobileOpen}
-          onClose={() => setMobileOpen(false)}
-          ModalProps={{ keepMounted: true }}
+      {showSidebar && (
+        <Box
+          component="nav"
+          aria-label="Navegação principal"
           sx={{
-            display: { xs: 'block', md: 'none' },
-            '& .MuiDrawer-paper': {
-              width: DRAWER_WIDTH,
-              top: HEADER_HEIGHT,
-              height: `calc(100vh - ${HEADER_HEIGHT}px)`,
-              bgcolor: colors.appBar,
-            },
+            width: { md: drawerWidth },
+            flexShrink: { md: 0 },
+            transition: theme.transitions.create('width'),
           }}
         >
-          {drawerContent(false)}
-        </Drawer>
-        <Drawer
-          variant="permanent"
-          open
-          sx={{
-            display: { xs: 'none', md: 'block' },
-            '& .MuiDrawer-paper': {
-              width: drawerWidth,
-              top: HEADER_HEIGHT,
-              height: `calc(100vh - ${HEADER_HEIGHT}px)`,
-              bgcolor: colors.appBar,
-              borderRight: `1px solid ${colors.border}`,
-              transition: theme.transitions.create('width'),
-              overflowX: 'hidden',
-            },
-          }}
-        >
-          {drawerContent(compactMenu)}
-        </Drawer>
-      </Box>
+          <Drawer
+            variant="temporary"
+            open={mobileOpen}
+            onClose={() => setMobileOpen(false)}
+            ModalProps={{ keepMounted: true }}
+            sx={{
+              display: { xs: 'block', md: 'none' },
+              '& .MuiDrawer-paper': {
+                width: DRAWER_WIDTH,
+                top: HEADER_HEIGHT,
+                height: `calc(100vh - ${HEADER_HEIGHT}px)`,
+                bgcolor: colors.appBar,
+              },
+            }}
+          >
+            {drawerContent(false)}
+          </Drawer>
+          <Drawer
+            variant="permanent"
+            open
+            sx={{
+              display: { xs: 'none', md: 'block' },
+              '& .MuiDrawer-paper': {
+                width: drawerWidth,
+                top: HEADER_HEIGHT,
+                height: `calc(100vh - ${HEADER_HEIGHT}px)`,
+                bgcolor: colors.appBar,
+                borderRight: `1px solid ${colors.border}`,
+                transition: theme.transitions.create('width'),
+                overflowX: 'hidden',
+              },
+            }}
+          >
+            {drawerContent(compactMenu)}
+          </Drawer>
+        </Box>
+      )}
 
       <Box
         component="main"
@@ -448,7 +430,7 @@ export function AppLayout() {
         tabIndex={-1}
         sx={{
           flexGrow: 1,
-          width: { md: `calc(100% - ${drawerWidth}px)` },
+          width: { md: showSidebar ? `calc(100% - ${drawerWidth}px)` : '100%' },
           minHeight: '100vh',
           bgcolor: colors.background,
           transition: theme.transitions.create('width'),
@@ -458,9 +440,13 @@ export function AppLayout() {
         <Box sx={{ display: { xs: 'block', lg: 'none' }, px: 2, pt: 1 }}>
           <ContextSelector />
         </Box>
-        <Box sx={{ p: { xs: 2, md: 3 }, maxWidth: 1440, mx: 'auto' }}>
+        {isHubHome ? (
           <Outlet />
-        </Box>
+        ) : (
+          <Box sx={{ p: { xs: 2, md: 3 }, maxWidth: 1440, mx: 'auto' }}>
+            <Outlet />
+          </Box>
+        )}
       </Box>
     </Box>
   );

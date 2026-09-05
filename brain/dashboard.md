@@ -4,18 +4,23 @@
 
 ## Objetivo
 
-Consolidar pendências e atividades reais do tenant ativo.
+Consolidar pendências e atividades reais do tenant ativo — e servir a home Hub
+de módulos no padrão YES7.
 
 ## Contexto
 
-O painel usa apenas contratos existentes: pátio, contas a vencer, estoque
-mínimo, eventos, tentativas de acesso e as últimas páginas de ordens e vendas.
-Quando a agregação não cabe em uma única página, a UI declara o recorte.
+A rota `/app` é a **Hub home** (`HubHomePage`): grade de módulos + painel de
+pendências com dados reais. O dashboard operacional detalhado fica em
+`/app/visao-geral` (`DashboardPage`) e usa apenas contratos existentes: pátio,
+contas a vencer, estoque mínimo, eventos, tentativas de acesso e últimas
+páginas de ordens e vendas.
 
 ## Fluxo (camadas da arquitetura)
 
 ```text
-permissoes -> relatorios/listagens existentes -> KPIs e atalhos
+/app -> HubHomePage (módulos + pendências)
+/app/visao-geral -> DashboardPage (KPIs e atalhos)
+permissoes -> relatorios/listagens existentes
 ```
 
 ## Endpoints (se houver)
@@ -68,3 +73,4 @@ Vitest comprova que disponibilidade e decisoes exibidas vieram das APIs reais.
 |---|---|
 | 2026-08-03 | Substitui landing estatica por painel operacional com dados reais. |
 | 2026-09-04 | Amplia o painel com pátio, vencimentos, estoque mínimo e pendências comerciais reais. |
+| 2026-09-04 | Separa Hub home (`/app`) do dashboard operacional (`/app/visao-geral`). |

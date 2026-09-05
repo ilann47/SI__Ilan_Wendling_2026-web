@@ -13,12 +13,18 @@ vi.mock('../context/ColorModeContext', () => ({
 describe('AppLayout', () => {
   beforeEach(() => vi.mocked(useAuth).mockReset());
 
-  const renderLayout = () => {
+  const renderLayout = (path = '/app') => {
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     return render(
       <QueryClientProvider client={queryClient}>
-        <MemoryRouter initialEntries={['/app']}>
-          <Routes><Route path="/app" element={<AppLayout />} /></Routes>
+        <MemoryRouter initialEntries={[path]}>
+          <Routes>
+            <Route path="/app" element={<AppLayout />}>
+              <Route index element={<div>Hub</div>} />
+              <Route path="patio" element={<div>Patio</div>} />
+              <Route path="movimentacoes" element={<div>Movimentacoes</div>} />
+            </Route>
+          </Routes>
         </MemoryRouter>
       </QueryClientProvider>,
     );
@@ -46,7 +52,7 @@ describe('AppLayout', () => {
     await waitFor(() => expect(selectOrganization).toHaveBeenCalledWith(11));
   });
 
-  it('oferece atalhos, rotulos e secoes recolhiveis', async () => {
+  it('na home do hub nao exibe sidebar de modulo', () => {
     vi.mocked(useAuth).mockReturnValue({
       user: { login: 'operador', perfil: 'OPERADOR' },
       activeOrganization: { organizationId: 10, legalName: 'Kaneko A' },
@@ -56,12 +62,30 @@ describe('AppLayout', () => {
       selectOrganization: vi.fn(),
     } as unknown as ReturnType<typeof useAuth>);
 
-    renderLayout();
+    renderLayout('/app');
 
     expect(screen.getByRole('link', { name: 'Ir para o conteúdo principal' })).toHaveAttribute('href', '#conteudo-principal');
-    expect(screen.getByRole('button', { name: 'Abrir menu de navegação' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Hub de módulos' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Abrir módulos' })).toBeInTheDocument();
+    expect(screen.queryByRole('navigation', { name: 'Navegação principal' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Abrir menu de navegação' })).not.toBeInTheDocument();
+  });
+
+  it('dentro de um modulo mostra apenas a navegacao do modulo', () => {
+    vi.mocked(useAuth).mockReturnValue({
+      user: { login: 'operador', perfil: 'OPERADOR' },
+      activeOrganization: { organizationId: 10, legalName: 'Kaneko A' },
+      organizations: [{ organizationId: 10, legalName: 'Kaneko A' }],
+      permissions: ['operations:read'],
+      logout: vi.fn(),
+      selectOrganization: vi.fn(),
+    } as unknown as ReturnType<typeof useAuth>);
+
+    renderLayout('/app/movimentacoes');
+
     expect(screen.getAllByRole('navigation', { name: 'Navegação principal' }).length).toBeGreaterThan(0);
-    fireEvent.click(screen.getByRole('button', { name: 'Recolher Operação' }));
-    await waitFor(() => expect(screen.queryByRole('link', { name: 'Visão geral' })).not.toBeInTheDocument());
+    expect(screen.getByRole('link', { name: /Movimentações/ })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Recolher Operação' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Ordens de Compra' })).not.toBeInTheDocument();
   });
 });

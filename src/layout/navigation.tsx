@@ -54,7 +54,7 @@ export const navGroups: NavGroup[] = [
   {
     label: 'Operação',
     items: [
-      { label: 'Visão geral', path: '/app', icon: <SpaceDashboardOutlinedIcon fontSize="small" /> },
+      { label: 'Visão geral', path: '/app/visao-geral', icon: <SpaceDashboardOutlinedIcon fontSize="small" /> },
       {
         label: 'Acesso de eventos',
         path: '/app/acesso-eventos',

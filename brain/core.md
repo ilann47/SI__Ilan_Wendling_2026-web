@@ -20,8 +20,10 @@ projeto Java e preserva as telas legadas durante a adoção gradual de `/api/v1`
 
 ```text
 App -> ProtectedRoute -> AuthContext -> organização ativa
-    -> AppLayout/navegação filtrada por permissões
-    -> páginas -> api/client -> backend /api
+    -> AppLayout (header Hub)
+         -> /app = HubHome (grade de módulos, sem sidebar)
+         -> /app/* = sidebar só do módulo ativo + página
+    -> api/client -> backend /api
 ```
 
 ## Endpoints (se houver)
@@ -56,6 +58,8 @@ Testing Library; E2E contra o backend real será acrescentado no recorte própri
 ## Decisões Técnicas
 
 - A navegação é filtrada pelas permissões retornadas pelo backend.
+- O shell segue o modelo Hub YES7: home de módulos em `/app` e sidebar
+  contextual apenas dentro do módulo (não ERP com todos os grupos na lateral).
 - A tela de seleção troca o contexto emitindo novo JWT; IDs de tenant não são
   enviados por header.
 - O login continua emitindo JWT global compatível com as APIs legadas.
@@ -127,3 +131,4 @@ Testing Library; E2E contra o backend real será acrescentado no recorte própri
 | 2026-09-04 | Consolida design system de listagem, detalhes, dashboard operacional, busca por teclado e preferências visuais. |
 | 2026-09-04 | Aproxima login split-screen e shell (pill ativo, marca Hub) do padrão visual YES7. |
 | 2026-09-04 | Porta tokens, HexMark, LoginHeroDiagram, login e shell a partir do repositório yes7one-frontend. |
+| 2026-09-04 | Adota home Hub (`HubHomePage`) com grade de módulos e pendências; dashboard operacional em `/app/visao-geral`. |
