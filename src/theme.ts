@@ -4,30 +4,36 @@ import { ptBR } from '@mui/material/locale';
 export type AppColorMode = 'light' | 'dark';
 
 /**
- * Tema MUI da aplicacao. Visual moderno: cantos arredondados, tipografia Inter,
- * AppBar/Drawer claros, cards com borda sutil. Suporta modo claro/escuro.
+ * Tema alinhado ao Hub operacional YES7: fundo slate, azul só em ação primária,
+ * cards limpos e item de navegação em pill suave.
  */
 export function createAppTheme(mode: AppColorMode) {
   const isLight = mode === 'light';
   const scrollThumb = isLight ? 'rgba(15,23,42,0.25)' : 'rgba(255,255,255,0.22)';
   const scrollThumbHover = isLight ? 'rgba(15,23,42,0.42)' : 'rgba(255,255,255,0.40)';
+  const border = isLight ? 'rgba(15,23,42,0.08)' : 'rgba(255,255,255,0.10)';
   const options: ThemeOptions = {
     palette: {
       mode,
-      primary: { main: '#1565c0' },
+      primary: { main: '#1565c0', dark: '#0d47a1', light: '#42a5f5' },
       secondary: { main: '#475569' },
       success: { main: '#2e7d32' },
       warning: { main: '#ed6c02' },
       error: { main: '#d32f2f' },
       info: { main: '#1565c0' },
+      text: isLight
+        ? { primary: '#0f172a', secondary: '#64748b' }
+        : { primary: '#f8fafc', secondary: 'rgba(248,250,252,0.72)' },
+      divider: border,
       background: isLight
-        ? { default: '#f8fafc', paper: '#ffffff' }
+        ? { default: '#f1f5f9', paper: '#ffffff' }
         : { default: '#0f141a', paper: '#161c24' },
     },
-    shape: { borderRadius: 10 },
+    shape: { borderRadius: 12 },
     typography: {
       fontFamily: 'system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
-      h4: { fontWeight: 700 },
+      h3: { fontWeight: 700, letterSpacing: -0.6 },
+      h4: { fontWeight: 700, letterSpacing: -0.4 },
       h5: { fontWeight: 700, letterSpacing: -0.3 },
       h6: { fontWeight: 600 },
       subtitle1: { fontWeight: 600 },
@@ -62,9 +68,13 @@ export function createAppTheme(mode: AppColorMode) {
       MuiButton: {
         defaultProps: { disableElevation: true },
         styleOverrides: {
-          root: { minHeight: 40, borderRadius: 8, paddingLeft: 16, paddingRight: 16 },
+          root: { minHeight: 40, borderRadius: 10, paddingLeft: 16, paddingRight: 16 },
           sizeSmall: { minHeight: 36, minWidth: 36 },
-          containedPrimary: { boxShadow: 'none' },
+          sizeLarge: { minHeight: 44, borderRadius: 10 },
+          containedPrimary: {
+            boxShadow: 'none',
+            '&:hover': { boxShadow: 'none', bgcolor: isLight ? '#0d47a1' : undefined },
+          },
         },
       },
       MuiIconButton: {
@@ -76,20 +86,24 @@ export function createAppTheme(mode: AppColorMode) {
         styleOverrides: {
           root: {
             border: '1px solid',
-            borderColor: isLight ? 'rgba(15,23,42,0.06)' : 'rgba(255,255,255,0.08)',
+            borderColor: border,
             boxShadow: isLight ? '0 1px 2px rgba(15,23,42,0.04)' : 'none',
+            borderRadius: 14,
           },
         },
       },
       MuiDialog: {
         defaultProps: { fullWidth: true },
         styleOverrides: {
-          paper: { borderRadius: 12 },
+          paper: { borderRadius: 14 },
         },
       },
       MuiDrawer: {
         styleOverrides: {
-          paper: { border: 'none' },
+          paper: {
+            border: 'none',
+            backgroundColor: isLight ? '#ffffff' : '#161c24',
+          },
         },
       },
       MuiChip: {
@@ -101,16 +115,36 @@ export function createAppTheme(mode: AppColorMode) {
         defaultProps: { elevation: 0, color: 'default' },
         styleOverrides: {
           root: {
-            backgroundColor: isLight ? '#ffffff' : '#161c24',
+            backgroundColor: isLight ? 'rgba(255,255,255,0.92)' : 'rgba(22,28,36,0.92)',
+            backdropFilter: 'blur(10px)',
             borderBottom: '1px solid',
-            borderColor: isLight ? 'rgba(15,23,42,0.08)' : 'rgba(255,255,255,0.08)',
+            borderColor: border,
+          },
+        },
+      },
+      MuiListItemButton: {
+        styleOverrides: {
+          root: {
+            borderRadius: 10,
+            '&.Mui-selected': {
+              backgroundColor: isLight ? 'rgba(21,101,192,0.10)' : 'rgba(66,165,245,0.16)',
+              color: isLight ? '#0d47a1' : '#90caf9',
+              '& .MuiListItemIcon-root': { color: 'inherit' },
+              '&:hover': {
+                backgroundColor: isLight ? 'rgba(21,101,192,0.14)' : 'rgba(66,165,245,0.22)',
+              },
+            },
           },
         },
       },
       MuiTextField: { defaultProps: { size: 'small' } },
       MuiOutlinedInput: {
         styleOverrides: {
-          root: { borderRadius: 8, minHeight: 40 },
+          root: {
+            borderRadius: 10,
+            minHeight: 44,
+            backgroundColor: isLight ? '#ffffff' : undefined,
+          },
         },
       },
       MuiTableHead: {
@@ -128,8 +162,8 @@ export function createAppTheme(mode: AppColorMode) {
         styleOverrides: {
           root: {
             borderColor: isLight ? 'rgba(15,23,42,0.06)' : 'rgba(255,255,255,0.06)',
-            paddingTop: 10,
-            paddingBottom: 10,
+            paddingTop: 12,
+            paddingBottom: 12,
           },
         },
       },

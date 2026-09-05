@@ -87,14 +87,27 @@ export function AppLayout() {
 
   const drawerContent = (compact: boolean) => (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      <Toolbar sx={{ gap: 1.5, justifyContent: compact ? 'center' : 'flex-start', px: compact ? 1 : 2 }}>
-        <LocalParkingIcon color="primary" />
-        {!compact && <Box sx={{ flexGrow: 1 }}>
-          <Typography variant="subtitle1" lineHeight={1.1}>
+      <Toolbar sx={{ gap: 1.5, justifyContent: compact ? 'center' : 'flex-start', px: compact ? 1 : 2, minHeight: 72 }}>
+        <Box
+          sx={{
+            width: 36,
+            height: 36,
+            borderRadius: 2,
+            bgcolor: 'primary.main',
+            color: 'primary.contrastText',
+            display: 'grid',
+            placeItems: 'center',
+            flexShrink: 0,
+          }}
+        >
+          <LocalParkingIcon fontSize="small" />
+        </Box>
+        {!compact && <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+          <Typography variant="subtitle1" fontWeight={700} lineHeight={1.1}>
             Kaneko
           </Typography>
-          <Typography variant="caption" color="text.secondary">
-            Estacionamento
+          <Typography variant="caption" color="text.secondary" letterSpacing={0.5} textTransform="uppercase">
+            Hub operacional
           </Typography>
         </Box>}
         {isDesktop && <Tooltip title={compact ? 'Expandir menu' : 'Recolher menu'}>
@@ -172,9 +185,9 @@ export function AppLayout() {
                   : location.pathname.startsWith(item.path)}
                 onClick={() => !isDesktop && setMobileOpen(false)}
                 sx={{
-                  mx: 1, borderRadius: 2,
-                  '&.Mui-selected': { bgcolor: 'primary.main', color: 'primary.contrastText',
-                    '& .MuiListItemIcon-root': { color: 'inherit' } },
+                  mx: 1,
+                  borderRadius: 2.5,
+                  py: 0.85,
                 }}
               >
                 <ListItemIcon sx={{ minWidth: 36 }}>{item.icon}</ListItemIcon>

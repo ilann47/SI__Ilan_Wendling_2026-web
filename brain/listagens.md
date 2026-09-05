@@ -68,3 +68,4 @@ As páginas CRUD existentes continuam passando pela suíte Vitest.
 | Data | Ação |
 |---|---|
 | 2026-09-04 | Cria o shell de listagem/detalhe e alinha o tema ao Hub YES7. |
+| 2026-09-04 | Reforça login split-screen, sidebar com marca e item ativo em pill suave. |

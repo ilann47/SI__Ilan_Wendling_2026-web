@@ -18,14 +18,20 @@ export function PageHeader({ title, subtitle, count, action }: Props) {
       sx={{ mb: 3 }}
     >
       <Box>
-        <Typography variant="h5" component="h1">{title}</Typography>
+        <Typography variant="h5" component="h1" sx={{ letterSpacing: -0.4 }}>
+          {title}
+        </Typography>
         {subtitle && (
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.75, maxWidth: 640, lineHeight: 1.5 }}>
             {subtitle}
           </Typography>
         )}
         {count !== undefined && (
-          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.75 }}>
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            sx={{ display: 'inline-block', mt: 1, px: 1, py: 0.25, borderRadius: 1, bgcolor: 'action.hover' }}
+          >
             {count} {count === 1 ? 'registro' : 'registros'}
           </Typography>
         )}
