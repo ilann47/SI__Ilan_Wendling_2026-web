@@ -110,14 +110,18 @@ export function GlobalSearch() {
   return (
     <>
       <ButtonBase aria-label="Buscar em toda a plataforma" onClick={() => setOpen(true)} sx={{
-        display: { xs: 'none', sm: 'flex' }, width: { sm: 280, lg: 420 }, mx: 2, px: 1.5, py: 0.8,
-        border: 1, borderColor: 'divider', borderRadius: 2, bgcolor: 'action.hover', justifyContent: 'space-between',
+        display: { xs: 'none', sm: 'flex' }, width: '100%', maxWidth: 520, px: 1.75, py: 0.85,
+        border: '1px solid', borderColor: 'divider', borderRadius: 999,
+        bgcolor: 'background.default', justifyContent: 'space-between',
+        '&:hover': { borderColor: 'primary.light', bgcolor: 'action.hover' },
       }}>
         <Stack direction="row" spacing={1} alignItems="center">
-          <SearchOutlinedIcon fontSize="small" />
-          <Typography variant="body2" color="text.secondary">Buscar em toda a plataforma…</Typography>
+          <SearchOutlinedIcon fontSize="small" sx={{ color: 'text.secondary' }} />
+          <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.85rem' }}>
+            Buscar em toda a plataforma…
+          </Typography>
         </Stack>
-        <Chip label="Ctrl K" size="small" variant="outlined" />
+        <Chip label="Ctrl K" size="small" variant="outlined" sx={{ height: 22, fontWeight: 700, fontSize: '0.7rem' }} />
       </ButtonBase>
       <ButtonBase aria-label="Buscar em toda a plataforma" onClick={() => setOpen(true)}
         sx={{ display: { xs: 'flex', sm: 'none' }, p: 1, borderRadius: 2, minWidth: 40, minHeight: 40 }}>

@@ -68,6 +68,9 @@ Validação disponível por `npm run typecheck` e `npm run build`.
 - A seleção permite pesquisa e destaca somente uma organização recente que ainda
   esteja presente na projeção acessível retornada pelo servidor.
 - O login permite revelar a senha de forma acessível sem registrar seu valor.
+- A apresentação do login segue a identidade visual do Hub Kaneko e comunica
+  somente capacidades verificáveis. Não há opção de persistência adicional da
+  sessão enquanto esse comportamento não existir no fluxo de autenticação.
 
 ## Módulos relacionados
 
@@ -82,3 +85,4 @@ Validação disponível por `npm run typecheck` e `npm run build`.
 | 2026-08-02 | Isola o cache remoto no logout e na troca de organização. |
 | 2026-08-02 | Torna a troca de tenant atômica e fecha rotas por permissão efetiva. |
 | 2026-08-03 | Adiciona pesquisa, preferência recente e controle acessível de senha. |
+| 2026-09-04 | Consolida a identidade do Hub no login sem promessas ou controles sem comportamento real. |

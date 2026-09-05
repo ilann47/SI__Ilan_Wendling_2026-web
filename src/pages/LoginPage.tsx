@@ -1,45 +1,71 @@
 import { useState, type FormEvent } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import {
-  Alert,
   Box,
   Button,
-  Card,
-  CardContent,
-  CircularProgress,
   IconButton,
   InputAdornment,
-  Stack,
   TextField,
   Typography,
 } from '@mui/material';
-import ArrowForwardOutlinedIcon from '@mui/icons-material/ArrowForwardOutlined';
-import LocalParkingIcon from '@mui/icons-material/LocalParking';
+import ArrowForwardRoundedIcon from '@mui/icons-material/ArrowForwardRounded';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import PersonOutlineOutlinedIcon from '@mui/icons-material/PersonOutlineOutlined';
 import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
 import VisibilityOffOutlinedIcon from '@mui/icons-material/VisibilityOffOutlined';
+import DarkModeOutlinedIcon from '@mui/icons-material/DarkModeOutlined';
+import LightModeOutlinedIcon from '@mui/icons-material/LightModeOutlined';
+import ShieldOutlinedIcon from '@mui/icons-material/ShieldOutlined';
+import CloudOutlinedIcon from '@mui/icons-material/CloudOutlined';
+import BoltOutlinedIcon from '@mui/icons-material/BoltOutlined';
 import { useAuth } from '../auth/AuthContext';
 import { describeError } from '../api/client';
+import { BrandMark } from '../components/brand/BrandMark';
+import { LoginHeroDiagram } from '../components/brand/LoginHeroDiagram';
+import { getThemeTokens } from '../theme/hubTokens';
+import { useColorMode } from '../context/ColorModeContext';
 
-const MODULES = ['Pátio', 'Eventos', 'Comercial', 'Financeiro', 'Estoque', 'Acesso'] as const;
+const PURPLE = '#6B46FE';
 
 export function LoginPage() {
   const { login, isAuthenticated } = useAuth();
+  const { mode, toggle } = useColorMode();
+  const colors = getThemeTokens(mode);
   const navigate = useNavigate();
   const location = useLocation();
   const [loginName, setLoginName] = useState('');
   const [senha, setSenha] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
   if (isAuthenticated) return <Navigate to="/app" replace />;
 
-  const submit = async (e: FormEvent) => {
-    e.preventDefault();
+  const fieldSx = {
+    '& .MuiOutlinedInput-root': {
+      borderRadius: '12px',
+      bgcolor: colors.card,
+      height: 48,
+      '& fieldset': { borderColor: colors.border },
+      '&:hover fieldset': { borderColor: colors.purpleSoft },
+      '&.Mui-focused fieldset': { borderColor: PURPLE, borderWidth: 1.5 },
+    },
+    '& .MuiInputBase-input': {
+      fontSize: '0.92rem',
+      color: colors.text,
+      backgroundColor: 'transparent',
+      '&::placeholder': { color: colors.textMuted, opacity: 1 },
+    },
+  };
+
+  const submit = async (event: FormEvent) => {
+    event.preventDefault();
+    setError('');
+    if (!loginName.trim() || !senha.trim()) {
+      setError('Informe usuário e senha para continuar.');
+      return;
+    }
     setLoading(true);
-    setError(null);
     try {
       await login(loginName, senha);
       const from = (location.state as { from?: { pathname?: string } } | null)?.from?.pathname;
@@ -51,181 +77,221 @@ export function LoginPage() {
     }
   };
 
+  const features = [
+    { icon: ShieldOutlinedIcon, title: 'Segurança', desc: 'Dados protegidos com criptografia' },
+    { icon: CloudOutlinedIcon, title: 'Confiabilidade', desc: 'Infraestrutura operacional estável' },
+    { icon: BoltOutlinedIcon, title: 'Performance', desc: 'Busca rápida entre módulos permitidos' },
+    { icon: LockOutlinedIcon, title: 'Acesso contextual por organização', desc: 'JWT e permissões pelo tenant ativo' },
+  ];
+
   return (
     <Box
       sx={{
         minHeight: '100vh',
-        display: 'grid',
-        gridTemplateColumns: { xs: '1fr', md: '1.1fr 0.9fr' },
-        bgcolor: 'background.default',
+        display: 'flex',
+        flexDirection: { xs: 'column', md: 'row' },
+        bgcolor: colors.background,
+        position: 'relative',
       }}
     >
+      <Box sx={{ position: 'absolute', top: 14, right: 14, zIndex: 4 }}>
+        <IconButton
+          onClick={toggle}
+          size="small"
+          sx={{ color: '#9AA3B2' }}
+          aria-label={mode === 'light' ? 'Ativar modo escuro' : 'Ativar modo claro'}
+        >
+          {mode === 'light' ? <DarkModeOutlinedIcon sx={{ fontSize: 18 }} /> : <LightModeOutlinedIcon sx={{ fontSize: 18 }} />}
+        </IconButton>
+      </Box>
+
       <Box
         sx={{
-          display: { xs: 'none', md: 'flex' },
+          flex: { md: 1.15 },
+          display: 'flex',
           flexDirection: 'column',
-          justifyContent: 'center',
-          px: { md: 6, lg: 10 },
-          py: 6,
-          borderRight: '1px solid',
-          borderColor: 'divider',
-          background: 'linear-gradient(165deg, #f8fafc 0%, #eef4fb 55%, #e8f0f8 100%)',
+          justifyContent: 'space-between',
+          px: { xs: 3, md: 6, lg: 8 },
+          py: { xs: 4, md: 6 },
+          background:
+            mode === 'dark'
+              ? 'linear-gradient(165deg, #161B32 0%, #1B2140 55%, #0F1324 100%)'
+              : 'linear-gradient(165deg, #F6F1FF 0%, #EEF4FF 55%, #F7F8FC 100%)',
         }}
       >
-        <Typography variant="h3" sx={{ fontWeight: 700, letterSpacing: -0.8, maxWidth: 520, lineHeight: 1.15 }}>
-          Bem-vindo ao{' '}
-          <Box component="span" sx={{ color: 'primary.main' }}>
-            Estacionamento Kaneko
-          </Box>
-        </Typography>
-        <Typography variant="body1" color="text.secondary" sx={{ mt: 2, maxWidth: 480, lineHeight: 1.6 }}>
-          Operação de pátio, eventos, compras e financeiro no mesmo contexto organizacional.
-          Decisões com dados reais da API — sem inventar indicadores.
-        </Typography>
-
-        <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mt: 5, mb: 3 }}>
-          <Box
+        <Box>
+          <Typography sx={{ fontWeight: 800, fontSize: { md: '2rem', lg: '2.35rem' }, color: colors.text, lineHeight: 1.15 }}>
+            Bem-vindo ao
+          </Typography>
+          <Typography
+            component="h1"
             sx={{
-              width: 44,
-              height: 44,
-              borderRadius: 2,
-              bgcolor: 'primary.main',
-              color: 'primary.contrastText',
-              display: 'grid',
-              placeItems: 'center',
+              fontWeight: 800,
+              fontSize: { md: '2rem', lg: '2.35rem' },
+              color: PURPLE,
+              lineHeight: 1.15,
+              mb: 1.5,
             }}
           >
-            <LocalParkingIcon />
-          </Box>
-          <Box>
-            <Typography variant="subtitle1" fontWeight={700} lineHeight={1.1}>
-              Kaneko
-            </Typography>
-            <Typography variant="caption" color="text.secondary" letterSpacing={0.6} textTransform="uppercase">
-              Hub operacional
-            </Typography>
-          </Box>
-        </Stack>
+            Hub Operacional Kaneko
+          </Typography>
+          <Typography sx={{ maxWidth: 460, color: colors.textMuted, fontSize: '0.95rem', lineHeight: 1.55, mb: 3 }}>
+            Centralize seus processos, conecte áreas e tome decisões mais inteligentes.
+            Tudo o que você precisa, em um só lugar para operar sua empresa com eficiência.
+          </Typography>
+          <BrandMark size={56} showName />
+        </Box>
 
-        <Box
-          sx={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
-            gap: 1.25,
-            maxWidth: 420,
-          }}
-        >
-          {MODULES.map((label) => (
-            <Box
-              key={label}
-              sx={{
-                px: 1.5,
-                py: 1.25,
-                borderRadius: 2,
-                bgcolor: 'background.paper',
-                border: '1px solid',
-                borderColor: 'divider',
-                textAlign: 'center',
-              }}
-            >
-              <Typography variant="body2" fontWeight={600}>
-                {label}
-              </Typography>
-            </Box>
-          ))}
+        <LoginHeroDiagram />
+
+        <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2, maxWidth: 560 }}>
+          {features.map((item) => {
+            const Icon = item.icon;
+            return (
+              <Box key={item.title} sx={{ display: 'flex', gap: 1.1, alignItems: 'flex-start' }}>
+                <Icon sx={{ fontSize: 20, color: PURPLE, mt: 0.15 }} />
+                <Box>
+                  <Typography sx={{ fontWeight: 800, fontSize: '0.82rem', color: colors.text }}>
+                    {item.title}
+                  </Typography>
+                  <Typography sx={{ fontSize: '0.72rem', color: colors.textMuted, lineHeight: 1.35 }}>
+                    {item.desc}
+                  </Typography>
+                </Box>
+              </Box>
+            );
+          })}
         </Box>
       </Box>
 
       <Box
         sx={{
-          display: 'grid',
-          placeItems: 'center',
-          px: { xs: 2, sm: 4 },
-          py: { xs: 4, md: 6 },
+          flex: { md: 0.85 },
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          px: 2,
+          py: { xs: 6, md: 4 },
+          bgcolor: colors.background,
         }}
       >
-        <Card sx={{ width: '100%', maxWidth: 420, boxShadow: '0 10px 40px rgba(15,23,42,0.06)' }}>
-          <CardContent sx={{ p: { xs: 3, sm: 4 } }}>
-            <Stack spacing={0.75} sx={{ mb: 3 }}>
-              <Stack direction="row" alignItems="center" spacing={1}>
-                <LocalParkingIcon color="primary" />
-                <Typography variant="subtitle2" fontWeight={700}>
-                  Kaneko
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
-                  Hub operacional
-                </Typography>
-              </Stack>
-              <Typography variant="h5" component="h1">
-                Acesse sua conta
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Entre com seu login e senha para continuar.
-              </Typography>
-            </Stack>
+        <Box
+          sx={{
+            width: '100%',
+            maxWidth: 420,
+            bgcolor: colors.card,
+            borderRadius: '24px',
+            px: { xs: 2.75, sm: 4 },
+            py: { xs: 3.5, sm: 4.25 },
+            boxShadow: '0 16px 48px rgba(27, 33, 64, 0.08)',
+            border: `1px solid ${colors.border}`,
+          }}
+        >
+          <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2.25 }}>
+            <BrandMark size={44} showName />
+          </Box>
+          <Typography sx={{ fontWeight: 800, fontSize: '1.35rem', color: colors.text, textAlign: 'center' }}>
+            Acesse sua conta
+          </Typography>
+          <Typography sx={{ mt: 0.6, mb: 3, textAlign: 'center', color: colors.textMuted, fontSize: '0.88rem' }}>
+            Entre com seu login e senha para continuar.
+          </Typography>
 
-            <Box component="form" onSubmit={submit}>
-              <Stack spacing={2}>
-                {error && <Alert severity="error">{error}</Alert>}
-                <TextField
-                  label="Login"
-                  value={loginName}
-                  onChange={(e) => setLoginName(e.target.value)}
-                  autoFocus
-                  required
-                  fullWidth
-                  size="medium"
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <PersonOutlineOutlinedIcon fontSize="small" color="action" />
-                      </InputAdornment>
-                    ),
-                  }}
-                />
-                <TextField
-                  label="Senha"
-                  type={showPassword ? 'text' : 'password'}
-                  value={senha}
-                  onChange={(e) => setSenha(e.target.value)}
-                  required
-                  fullWidth
-                  size="medium"
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <LockOutlinedIcon fontSize="small" color="action" />
-                      </InputAdornment>
-                    ),
-                    endAdornment: (
-                      <InputAdornment position="end">
-                        <IconButton
-                          edge="end"
-                          aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
-                          aria-pressed={showPassword}
-                          onClick={() => setShowPassword((visible) => !visible)}
-                        >
-                          {showPassword ? <VisibilityOffOutlinedIcon /> : <VisibilityOutlinedIcon />}
-                        </IconButton>
-                      </InputAdornment>
-                    ),
-                  }}
-                />
-                <Button
-                  type="submit"
-                  variant="contained"
-                  size="large"
-                  fullWidth
-                  disabled={loading}
-                  endIcon={loading ? <CircularProgress size={18} color="inherit" /> : <ArrowForwardOutlinedIcon />}
-                  sx={{ mt: 0.5, minHeight: 44 }}
-                >
-                  Entrar
-                </Button>
-              </Stack>
-            </Box>
-          </CardContent>
-        </Card>
+          <Box component="form" onSubmit={submit} noValidate>
+            <Typography sx={{ fontWeight: 700, fontSize: '0.84rem', color: colors.text, mb: 0.7 }}>
+              Login
+            </Typography>
+            <TextField
+              placeholder="seu usuário"
+              value={loginName}
+              onChange={(e) => setLoginName(e.target.value)}
+              fullWidth
+              autoFocus
+              required
+              autoComplete="username"
+              inputProps={{ 'aria-label': 'Login' }}
+              sx={{ mb: 2, ...fieldSx }}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <PersonOutlineOutlinedIcon sx={{ fontSize: 20, color: '#B0B7C3' }} />
+                  </InputAdornment>
+                ),
+              }}
+            />
+
+            <Typography sx={{ fontWeight: 700, fontSize: '0.84rem', color: colors.text, mb: 0.7 }}>
+              Senha
+            </Typography>
+            <TextField
+              placeholder="Sua senha"
+              type={showPassword ? 'text' : 'password'}
+              value={senha}
+              onChange={(e) => setSenha(e.target.value)}
+              fullWidth
+              required
+              autoComplete="current-password"
+              inputProps={{ 'aria-label': 'Senha' }}
+              sx={{ mb: 1.25, ...fieldSx }}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <LockOutlinedIcon sx={{ fontSize: 20, color: '#B0B7C3' }} />
+                  </InputAdornment>
+                ),
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      onClick={() => setShowPassword((prev) => !prev)}
+                      edge="end"
+                      size="small"
+                      aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                      aria-pressed={showPassword}
+                      sx={{ color: '#B0B7C3' }}
+                    >
+                      {showPassword ? <VisibilityOffOutlinedIcon /> : <VisibilityOutlinedIcon />}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
+            />
+
+            {error ? (
+              <Typography sx={{ color: colors.danger, fontSize: '0.82rem', mb: 1.25 }}>
+                {error}
+              </Typography>
+            ) : null}
+
+            <Button
+              type="submit"
+              fullWidth
+              disabled={loading}
+              endIcon={<ArrowForwardRoundedIcon sx={{ fontSize: 20 }} />}
+              sx={{
+                py: 1.45,
+                fontWeight: 700,
+                fontSize: '0.98rem',
+                color: '#fff',
+                borderRadius: '12px',
+                textTransform: 'none',
+                bgcolor: PURPLE,
+                boxShadow: 'none',
+                '&:hover': { bgcolor: '#5B3AE8', boxShadow: 'none' },
+                '&.Mui-disabled': { color: '#fff', bgcolor: PURPLE, opacity: 0.65 },
+              }}
+            >
+              {loading ? 'Entrando…' : 'Entrar'}
+            </Button>
+          </Box>
+        </Box>
+
+        <Typography sx={{ mt: 2.5, fontSize: '0.72rem', color: colors.textMuted, textAlign: 'center' }}>
+          Estacionamento Kaneko
+        </Typography>
+        <Typography sx={{ mt: 0.4, fontSize: '0.72rem', color: colors.textMuted, textAlign: 'center' }}>
+          © {new Date().getFullYear()} Kaneko · Hub operacional
+        </Typography>
       </Box>
     </Box>
   );

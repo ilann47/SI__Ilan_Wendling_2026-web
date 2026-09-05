@@ -126,3 +126,4 @@ Testing Library; E2E contra o backend real será acrescentado no recorte própri
 | 2026-08-04 | Integra Nota de Serviço tenant-aware aos contratos V57. |
 | 2026-09-04 | Consolida design system de listagem, detalhes, dashboard operacional, busca por teclado e preferências visuais. |
 | 2026-09-04 | Aproxima login split-screen e shell (pill ativo, marca Hub) do padrão visual YES7. |
+| 2026-09-04 | Porta tokens, HexMark, LoginHeroDiagram, login e shell a partir do repositório yes7one-frontend. |
