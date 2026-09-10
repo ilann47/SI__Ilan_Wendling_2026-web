@@ -16,6 +16,8 @@ import {
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { useState, type ReactNode } from 'react';
+import { useColorMode } from '../../context/ColorModeContext';
+import { getThemeTokens } from '../../theme/hubTokens';
 import type { FilterConfig } from '../crud/resourceConfig';
 
 interface Props {
@@ -28,9 +30,10 @@ interface Props {
   onClear?: () => void;
 }
 
+/** Toolbar de listagem no padrão ERPGrid do Hub (busca pill + filtros). */
 export function ListingToolbar({
   searchValue,
-  searchLabel = 'Buscar',
+  searchLabel = 'Buscar…',
   onSearchChange,
   filterForm,
   appliedCount,
@@ -38,6 +41,8 @@ export function ListingToolbar({
 }: Props) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const { mode } = useColorMode();
+  const colors = getThemeTokens(mode);
   const [open, setOpen] = useState(false);
   const count = appliedCount ?? 0;
 
@@ -47,7 +52,7 @@ export function ListingToolbar({
         <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="sm" aria-labelledby="filtros-titulo">
           <DialogTitle id="filtros-titulo">Filtros</DialogTitle>
           <DialogContent>{filterForm}</DialogContent>
-          <DialogActions sx={{ px: 3, pb: 2 }}>
+          <DialogActions>
             {onClear && <Button color="inherit" onClick={onClear}>Limpar filtros</Button>}
             <Button variant="contained" onClick={() => setOpen(false)}>Aplicar</Button>
           </DialogActions>
@@ -57,11 +62,18 @@ export function ListingToolbar({
           anchor="right"
           open={open}
           onClose={() => setOpen(false)}
-          PaperProps={{ sx: { width: 400, p: 1 } }}
+          PaperProps={{
+            sx: {
+              width: 400,
+              top: 64,
+              height: 'calc(100% - 64px)',
+              borderLeft: `1px solid ${colors.border}`,
+            },
+          }}
         >
           <DialogTitle id="filtros-titulo">Filtros</DialogTitle>
           <DialogContent>{filterForm}</DialogContent>
-          <DialogActions sx={{ px: 3, pb: 2 }}>
+          <DialogActions>
             {onClear && <Button color="inherit" onClick={onClear}>Limpar filtros</Button>}
             <Button variant="contained" onClick={() => setOpen(false)}>Aplicar</Button>
           </DialogActions>
@@ -71,19 +83,27 @@ export function ListingToolbar({
   );
 
   return (
-    <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} sx={{ mb: 2 }}>
+    <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.25} sx={{ mb: 2 }} alignItems={{ sm: 'center' }}>
       <TextField
         value={searchValue}
         onChange={(event) => onSearchChange(event.target.value)}
         placeholder={searchLabel}
         aria-label={searchLabel}
         fullWidth
+        size="small"
         InputProps={{
           startAdornment: (
             <InputAdornment position="start">
-              <SearchOutlinedIcon fontSize="small" />
+              <SearchOutlinedIcon sx={{ fontSize: 18, color: colors.textMuted }} />
             </InputAdornment>
           ),
+        }}
+        sx={{
+          '& .MuiOutlinedInput-root': {
+            borderRadius: 999,
+            bgcolor: colors.background,
+            fontSize: '0.85rem',
+          },
         }}
       />
       {filterForm && (
@@ -91,10 +111,18 @@ export function ListingToolbar({
           <Badge badgeContent={count} color="primary" invisible={count === 0}>
             <Button
               variant="outlined"
-              color="inherit"
               startIcon={<FilterListOutlinedIcon />}
               onClick={() => setOpen(true)}
               aria-label={count > 0 ? `Filtros, ${count} aplicados` : 'Filtros'}
+              sx={{
+                borderRadius: 999,
+                borderColor: colors.border,
+                color: colors.text,
+                bgcolor: colors.card,
+                px: 2,
+                minHeight: 40,
+                '&:hover': { borderColor: colors.purpleSoft, bgcolor: colors.brandHover },
+              }}
             >
               Filtros
             </Button>

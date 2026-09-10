@@ -1,56 +1,66 @@
 import { type ReactNode } from 'react';
-import { Avatar, Card, CardContent, Stack, Typography } from '@mui/material';
-import { hub } from '../../theme/hubTokens';
+import { Box, Card, CardContent, Typography } from '@mui/material';
+import { useColorMode } from '../../context/ColorModeContext';
+import { getThemeTokens } from '../../theme/hubTokens';
 
 interface Props {
   title: string;
   value: ReactNode;
   subtitle?: ReactNode;
   icon: ReactNode;
+  /** Cor do ícone; fundo pastel derivado automaticamente. */
   color?: string;
+  iconBg?: string;
 }
 
-export function KpiCard({ title, value, subtitle, icon, color = hub.purple }: Props) {
+/** KPI no padrão MetricCard do Hub YES7 (ícone pastel, tipografia densa). */
+export function KpiCard({
+  title,
+  value,
+  subtitle,
+  icon,
+  color,
+  iconBg,
+}: Props) {
+  const { mode } = useColorMode();
+  const colors = getThemeTokens(mode);
+  const accent = color ?? colors.purple;
+  const softBg = iconBg ?? (mode === 'dark' ? 'rgba(107,70,254,0.18)' : '#F3F0FA');
+
   return (
-    <Card
-      sx={{
-        height: '100%',
-        transition: 'transform .15s ease, box-shadow .15s ease',
-        '&:hover': { transform: 'translateY(-2px)', boxShadow: '0 12px 32px rgba(26, 31, 44, 0.10)' },
-      }}
-    >
+    <Card sx={{ height: '100%', borderRadius: 2.5 }}>
       <CardContent sx={{ p: 2.5, '&:last-child': { pb: 2.5 } }}>
-        <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={1.5}>
-          <Stack spacing={0.75} sx={{ minWidth: 0 }}>
-            <Typography
-              variant="caption"
-              color="text.secondary"
-              sx={{ textTransform: 'uppercase', letterSpacing: 0.7, fontWeight: 700 }}
-            >
-              {title}
-            </Typography>
-            <Typography variant="h4" sx={{ fontWeight: 800, letterSpacing: -0.6, lineHeight: 1.1 }}>
-              {value}
-            </Typography>
-            {subtitle && (
-              <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.4 }}>
-                {subtitle}
-              </Typography>
-            )}
-          </Stack>
-          <Avatar
-            variant="rounded"
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
+          <Box
             sx={{
-              bgcolor: color,
-              width: 48,
-              height: 48,
-              borderRadius: 2.5,
-              boxShadow: '0 8px 18px rgba(107,70,254,0.22)',
+              width: 40,
+              height: 40,
+              borderRadius: 1.5,
+              bgcolor: softBg,
+              color: accent,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              '& .MuiSvgIcon-root': { fontSize: 22 },
             }}
           >
             {icon}
-          </Avatar>
-        </Stack>
+          </Box>
+        </Box>
+        <Typography
+          variant="caption"
+          sx={{ color: colors.textMuted, fontWeight: 700, letterSpacing: 0.6 }}
+        >
+          {title}
+        </Typography>
+        <Typography variant="h5" sx={{ fontWeight: 750, mt: 0.75, color: colors.text, letterSpacing: -0.4 }}>
+          {value}
+        </Typography>
+        {subtitle ? (
+          <Typography variant="caption" sx={{ display: 'block', mt: 1.1, color: colors.textMuted, fontWeight: 600 }}>
+            {subtitle}
+          </Typography>
+        ) : null}
       </CardContent>
     </Card>
   );

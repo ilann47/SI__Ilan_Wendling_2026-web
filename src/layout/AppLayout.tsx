@@ -1,199 +1,118 @@
-import { useEffect, useState } from 'react';
-import { Link as RouterLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import {
-  AppBar,
-  Avatar,
-  Box,
-  Divider,
-  Drawer,
-  IconButton,
-  List,
-  ListItemButton,
-  ListItemIcon,
-  ListItemText,
-  Menu,
-  MenuItem,
-  Toolbar,
-  Tooltip,
-  Typography,
-  useMediaQuery,
-} from '@mui/material';
+import { useEffect, useMemo, useState } from 'react';
+import { Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { Box, Toolbar, useMediaQuery } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
-import MenuIcon from '@mui/icons-material/Menu';
-import DarkModeOutlinedIcon from '@mui/icons-material/DarkModeOutlined';
-import LightModeOutlinedIcon from '@mui/icons-material/LightModeOutlined';
-import LogoutIcon from '@mui/icons-material/Logout';
-import BusinessOutlinedIcon from '@mui/icons-material/BusinessOutlined';
-import ChevronLeftOutlinedIcon from '@mui/icons-material/ChevronLeftOutlined';
-import ChevronRightOutlinedIcon from '@mui/icons-material/ChevronRightOutlined';
-import HomeOutlinedIcon from '@mui/icons-material/HomeOutlined';
-import AppsOutlinedIcon from '@mui/icons-material/AppsOutlined';
-import StarBorderOutlinedIcon from '@mui/icons-material/StarBorderOutlined';
-import StarOutlinedIcon from '@mui/icons-material/StarOutlined';
+import { AppHeader } from './AppHeader';
+import { AppSidebar } from './AppSidebar';
 import { ContextSelector } from './ContextSelector';
 import {
-  canOpenHubModule,
   hubModules,
   moduleNavItems,
   resolveHubModule,
+  type HubModule,
 } from './hubModules';
+import {
+  APP_HEADER_HEIGHT,
+  APP_SIDEBAR_COLLAPSED_WIDTH,
+  APP_SIDEBAR_WIDTH,
+} from './layoutMetrics';
+import { ModuleSubnav } from './ModuleSubnav';
+import { OpenModulesBar } from './OpenModulesBar';
 import { useAuth } from '../auth/AuthContext';
 import { useColorMode } from '../context/ColorModeContext';
-import { useSnackbar } from '../components/SnackbarProvider';
-import { describeError } from '../api/client';
-import { GlobalSearch } from '../components/search/GlobalSearch';
 import { useUiPreferences } from '../preferences/useUiPreferences';
-import { BrandMark } from '../components/brand/BrandMark';
 import { getThemeTokens } from '../theme/hubTokens';
 
-const DRAWER_WIDTH = 228;
-const COMPACT_DRAWER_WIDTH = 72;
-const HEADER_HEIGHT = 64;
+const OPEN_MODULES_KEY = 'kaneko.hub.openModules';
 
+function readOpenModules(): string[] {
+  try {
+    const raw = sessionStorage.getItem(OPEN_MODULES_KEY);
+    const parsed = raw ? JSON.parse(raw) as string[] : [];
+    return Array.isArray(parsed) ? parsed.filter((id) => typeof id === 'string') : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeOpenModules(ids: string[]) {
+  sessionStorage.setItem(OPEN_MODULES_KEY, JSON.stringify(ids));
+}
+
+/**
+ * Shell no padrão Hub YES7: header + launcher + abas de módulos + sidebar contextual.
+ */
 export function AppLayout() {
   const theme = useTheme();
   const isDesktop = useMediaQuery(theme.breakpoints.up('md'));
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [anchor, setAnchor] = useState<null | HTMLElement>(null);
-  const [launcherAnchor, setLauncherAnchor] = useState<null | HTMLElement>(null);
-  const [switchingOrganizationId, setSwitchingOrganizationId] = useState<number | null>(null);
-  const { user, activeOrganization, organizations, permissions, logout, selectOrganization } = useAuth();
-  const { mode, toggle } = useColorMode();
+  const [openModuleIds, setOpenModuleIds] = useState<string[]>(readOpenModules);
+  const { permissions } = useAuth();
+  const { mode } = useColorMode();
   const colors = getThemeTokens(mode);
-  const { notify } = useSnackbar();
-  const { prefs, update, rememberPath, toggleFavorite } = useUiPreferences();
+  const { prefs, update, rememberPath } = useUiPreferences();
   const location = useLocation();
   const navigate = useNavigate();
   const compactMenu = prefs.compactMenu;
   const isHubHome = location.pathname === '/app' || location.pathname === '/app/';
   const activeModule = resolveHubModule(location.pathname);
-  const moduleItems = activeModule ? moduleNavItems(activeModule, permissions) : [];
+  const moduleItems = useMemo(
+    () => (activeModule ? moduleNavItems(activeModule, permissions) : []),
+    [activeModule, permissions],
+  );
   const showSidebar = !isHubHome && moduleItems.length > 0;
-  const drawerWidth = showSidebar ? (compactMenu ? COMPACT_DRAWER_WIDTH : DRAWER_WIDTH) : 0;
-  const launcherModules = hubModules.filter((module) => canOpenHubModule(module, permissions));
+  const drawerWidth = showSidebar
+    ? (compactMenu ? APP_SIDEBAR_COLLAPSED_WIDTH : APP_SIDEBAR_WIDTH)
+    : 0;
+
+  const selectedNavId = useMemo(() => {
+    if (!activeModule) return null;
+    const match = moduleItems
+      .filter((item) => location.pathname === item.path || location.pathname.startsWith(`${item.path}/`))
+      .sort((a, b) => b.path.length - a.path.length)[0];
+    return match?.path ?? null;
+  }, [activeModule, location.pathname, moduleItems]);
 
   useEffect(() => {
     if (!isHubHome) rememberPath(location.pathname);
   }, [isHubHome, location.pathname, rememberPath]);
 
-  const iconBtnSx = {
-    color: 'inherit',
-    bgcolor: 'transparent',
-    borderRadius: 1.25,
-    width: 36,
-    height: 36,
-    flexShrink: 0,
-  } as const;
+  useEffect(() => {
+    if (!activeModule) return;
+    setOpenModuleIds((current) => {
+      if (current.includes(activeModule.id)) return current;
+      const next = [...current, activeModule.id];
+      writeOpenModules(next);
+      return next;
+    });
+  }, [activeModule]);
 
-  const navItemSx = (selected: boolean) => ({
-    mx: compactMenu ? 0.75 : 1,
-    my: 0.2,
-    borderRadius: 1.5,
-    py: 0.85,
-    px: compactMenu ? 0 : 1.25,
-    justifyContent: compactMenu ? 'center' : 'flex-start',
-    color: selected ? colors.purple : colors.text,
-    bgcolor: selected ? colors.brandHover : 'transparent',
-    fontWeight: selected ? 800 : 600,
-    '&:hover': {
-      bgcolor: selected ? colors.brandHover : colors.sidebarHover,
-      color: selected ? colors.purple : colors.text,
-    },
-    '&.Mui-selected': {
-      bgcolor: colors.brandHover,
-      color: colors.purple,
-      '&:hover': { bgcolor: colors.brandHover },
-      '& .MuiListItemIcon-root': { color: colors.purple },
-    },
-    '& .MuiListItemIcon-root': {
-      color: selected ? colors.purple : colors.textMuted,
-      minWidth: compactMenu ? 0 : 36,
-      justifyContent: 'center',
-    },
-  });
+  const openTabs = openModuleIds
+    .map((id) => hubModules.find((module) => module.id === id))
+    .filter((module): module is HubModule => Boolean(module));
 
-  const drawerContent = (compact: boolean) => (
-    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', bgcolor: colors.appBar }}>
-      <Box
-        sx={{
-          px: compact ? 0.75 : 2,
-          py: 1.5,
-          minHeight: 48,
-          borderBottom: `1px solid ${colors.border}`,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: compact ? 'center' : 'space-between',
-          gap: 1,
-        }}
-      >
-        {!compact && (
-          <Typography
-            sx={{
-              fontWeight: 800,
-              fontSize: '0.72rem',
-              letterSpacing: 0.8,
-              textTransform: 'uppercase',
-              color: colors.purple,
-            }}
-          >
-            {activeModule?.label ?? 'Navegação'}
-          </Typography>
-        )}
-        {isDesktop && (
-          <Tooltip title={compact ? 'Expandir menu' : 'Recolher menu'}>
-            <IconButton
-              size="small"
-              aria-label={compact ? 'Expandir menu' : 'Recolher menu'}
-              onClick={() => update({ compactMenu: !compact })}
-              sx={{ color: colors.textMuted }}
-            >
-              {compact ? <ChevronRightOutlinedIcon fontSize="small" /> : <ChevronLeftOutlinedIcon fontSize="small" />}
-            </IconButton>
-          </Tooltip>
-        )}
-      </Box>
-      <Box sx={{ overflowY: 'auto', flexGrow: 1, py: 1 }}>
-        <List dense disablePadding>
-          {moduleItems.map((item) => {
-            const selected = location.pathname === item.path || location.pathname.startsWith(`${item.path}/`);
-            const content = (
-              <ListItemButton
-                key={item.path}
-                component={RouterLink}
-                to={item.path}
-                selected={selected}
-                onClick={() => !isDesktop && setMobileOpen(false)}
-                sx={navItemSx(selected)}
-              >
-                <ListItemIcon>{item.icon}</ListItemIcon>
-                {!compact && (
-                  <>
-                    <ListItemText
-                      primary={item.label}
-                      primaryTypographyProps={{ fontSize: '0.82rem', fontWeight: selected ? 800 : 600 }}
-                    />
-                    <IconButton
-                      size="small"
-                      aria-label={prefs.favoritePaths.includes(item.path) ? `Remover ${item.label} dos favoritos` : `Favoritar ${item.label}`}
-                      onClick={(event) => { event.preventDefault(); event.stopPropagation(); toggleFavorite(item.path); }}
-                      sx={{ color: selected ? colors.purple : colors.textMuted }}
-                    >
-                      {prefs.favoritePaths.includes(item.path)
-                        ? <StarOutlinedIcon fontSize="inherit" />
-                        : <StarBorderOutlinedIcon fontSize="inherit" />}
-                    </IconButton>
-                  </>
-                )}
-              </ListItemButton>
-            );
-            return compact ? (
-              <Tooltip key={item.path} title={item.label} placement="right">{content}</Tooltip>
-            ) : content;
-          })}
-        </List>
-      </Box>
-    </Box>
-  );
+  const goHome = () => navigate('/app');
+  const openModule = (module: HubModule) => {
+    setOpenModuleIds((current) => {
+      const next = current.includes(module.id) ? current : [...current, module.id];
+      writeOpenModules(next);
+      return next;
+    });
+    navigate(module.homePath);
+  };
+  const closeModuleTab = (moduleId: string) => {
+    setOpenModuleIds((current) => {
+      const next = current.filter((id) => id !== moduleId);
+      writeOpenModules(next);
+      if (activeModule?.id === moduleId) {
+        const fallback = next
+          .map((id) => hubModules.find((module) => module.id === id))
+          .find(Boolean);
+        navigate(fallback?.homePath ?? '/app');
+      }
+      return next;
+    });
+  };
 
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: colors.background }}>
@@ -209,219 +128,29 @@ export function AppLayout() {
         Ir para o conteúdo principal
       </Box>
 
-      <AppBar
-        position="fixed"
-        elevation={0}
-        sx={{
-          zIndex: 1500,
-          bgcolor: colors.appBar,
-          color: colors.text,
-          borderBottom: `1px solid ${colors.border}`,
-        }}
-      >
-        <Toolbar
-          disableGutters
-          sx={{
-            minHeight: `${HEADER_HEIGHT}px !important`,
-            height: HEADER_HEIGHT,
-            px: { xs: 1.5, sm: 2.25 },
-            display: 'grid',
-            gridTemplateColumns: {
-              xs: 'minmax(0, 1fr) auto',
-              md: 'minmax(0, 1fr) minmax(200px, 520px) minmax(0, 1fr)',
-            },
-            columnGap: 1.5,
-            alignItems: 'center',
-          }}
-        >
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, minWidth: 0 }}>
-            {showSidebar && (
-              <Box
-                sx={{
-                  width: 40,
-                  height: 40,
-                  display: { xs: 'flex', md: 'none' },
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <IconButton edge="start" aria-label="Abrir menu de navegação" onClick={() => setMobileOpen(true)}>
-                  <MenuIcon />
-                </IconButton>
-              </Box>
-            )}
-
-            <Tooltip title="Hub de módulos">
-              <IconButton
-                aria-label="Hub de módulos"
-                onClick={() => navigate('/app')}
-                sx={{
-                  ...iconBtnSx,
-                  color: colors.purple,
-                  bgcolor: colors.brandHover,
-                  '&:hover': { bgcolor: colors.brandHover },
-                }}
-              >
-                <HomeOutlinedIcon sx={{ fontSize: 20 }} />
-              </IconButton>
-            </Tooltip>
-
-            <Tooltip title="Abrir módulos">
-              <IconButton
-                aria-label="Abrir módulos"
-                onClick={(event) => setLauncherAnchor(event.currentTarget)}
-                sx={iconBtnSx}
-              >
-                <AppsOutlinedIcon sx={{ fontSize: 20 }} />
-              </IconButton>
-            </Tooltip>
-            <Menu
-              anchorEl={launcherAnchor}
-              open={!!launcherAnchor}
-              onClose={() => setLauncherAnchor(null)}
-              anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
-            >
-              {launcherModules.map((module) => (
-                <MenuItem
-                  key={module.id}
-                  selected={activeModule?.id === module.id}
-                  onClick={() => {
-                    setLauncherAnchor(null);
-                    navigate(module.homePath);
-                  }}
-                >
-                  <ListItemIcon sx={{ color: colors.purple }}>{module.icon}</ListItemIcon>
-                  {module.label}
-                </MenuItem>
-              ))}
-            </Menu>
-
-            <BrandMark size={34} showName onClick={() => navigate('/app')} />
-            <Box sx={{ display: { xs: 'none', lg: 'block' }, minWidth: 0 }}>
-              <ContextSelector />
-            </Box>
-          </Box>
-
-          <Box sx={{ display: { xs: 'none', md: 'flex' }, justifyContent: 'center', width: '100%' }}>
-            <GlobalSearch />
-          </Box>
-
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 0.5 }}>
-            <Box sx={{ display: { xs: 'flex', md: 'none' } }}>
-              <GlobalSearch />
-            </Box>
-            <Tooltip title={mode === 'light' ? 'Modo escuro' : 'Modo claro'}>
-              <IconButton aria-label={mode === 'light' ? 'Ativar modo escuro' : 'Ativar modo claro'} onClick={toggle}>
-                {mode === 'light' ? <DarkModeOutlinedIcon /> : <LightModeOutlinedIcon />}
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="Conta">
-              <IconButton aria-label="Conta" onClick={(e) => setAnchor(e.currentTarget)}>
-                <Avatar sx={{ width: 34, height: 34, bgcolor: colors.purple, fontSize: 14, fontWeight: 700 }}>
-                  {user?.login?.[0]?.toUpperCase() ?? '?'}
-                </Avatar>
-              </IconButton>
-            </Tooltip>
-            <Menu anchorEl={anchor} open={!!anchor} onClose={() => setAnchor(null)}>
-              <Box sx={{ px: 2, py: 1 }}>
-                <Typography variant="subtitle2">{user?.login}</Typography>
-                <Typography variant="caption" color="text.secondary">
-                  {user?.perfil === 'ADMIN' ? 'Administrador' : 'Operador'}
-                </Typography>
-              </Box>
-              <Divider />
-              {organizations.length > 1 && (
-                <>
-                  <Typography variant="overline" color="text.secondary" sx={{ px: 2, pt: 1, display: 'block' }}>
-                    Trocar organização
-                  </Typography>
-                  {organizations
-                    .filter((organization) => organization.organizationId !== activeOrganization?.organizationId)
-                    .map((organization) => (
-                      <MenuItem
-                        key={organization.organizationId}
-                        disabled={switchingOrganizationId !== null}
-                        onClick={async () => {
-                          setSwitchingOrganizationId(organization.organizationId);
-                          try {
-                            await selectOrganization(organization.organizationId);
-                            setAnchor(null);
-                            navigate('/app');
-                          } catch (cause) {
-                            notify(describeError(cause), 'error');
-                          } finally {
-                            setSwitchingOrganizationId(null);
-                          }
-                        }}
-                      >
-                        <ListItemIcon><BusinessOutlinedIcon fontSize="small" /></ListItemIcon>
-                        {organization.tradeName || organization.legalName}
-                      </MenuItem>
-                    ))}
-                  <Divider />
-                </>
-              )}
-              <MenuItem
-                onClick={() => {
-                  setAnchor(null);
-                  logout();
-                  navigate('/login');
-                }}
-              >
-                <ListItemIcon><LogoutIcon fontSize="small" /></ListItemIcon>
-                Sair
-              </MenuItem>
-            </Menu>
-          </Box>
-        </Toolbar>
-      </AppBar>
+      <AppHeader
+        onGoHome={goHome}
+        onSelectModule={openModule}
+        onOpenSidebar={() => setMobileOpen(true)}
+        showSidebarToggle={showSidebar && !isDesktop}
+        activeModuleId={activeModule?.id}
+      />
 
       {showSidebar && (
-        <Box
-          component="nav"
-          aria-label="Navegação principal"
-          sx={{
-            width: { md: drawerWidth },
-            flexShrink: { md: 0 },
-            transition: theme.transitions.create('width'),
-          }}
-        >
-          <Drawer
-            variant="temporary"
-            open={mobileOpen}
-            onClose={() => setMobileOpen(false)}
-            ModalProps={{ keepMounted: true }}
-            sx={{
-              display: { xs: 'block', md: 'none' },
-              '& .MuiDrawer-paper': {
-                width: DRAWER_WIDTH,
-                top: HEADER_HEIGHT,
-                height: `calc(100vh - ${HEADER_HEIGHT}px)`,
-                bgcolor: colors.appBar,
-              },
-            }}
-          >
-            {drawerContent(false)}
-          </Drawer>
-          <Drawer
-            variant="permanent"
-            open
-            sx={{
-              display: { xs: 'none', md: 'block' },
-              '& .MuiDrawer-paper': {
-                width: drawerWidth,
-                top: HEADER_HEIGHT,
-                height: `calc(100vh - ${HEADER_HEIGHT}px)`,
-                bgcolor: colors.appBar,
-                borderRight: `1px solid ${colors.border}`,
-                transition: theme.transitions.create('width'),
-                overflowX: 'hidden',
-              },
-            }}
-          >
-            {drawerContent(compactMenu)}
-          </Drawer>
-        </Box>
+        <AppSidebar
+          moduleLabel={activeModule?.label}
+          items={moduleItems.map((item) => ({
+            id: item.path,
+            label: item.label,
+            icon: item.icon,
+          }))}
+          selectedId={selectedNavId}
+          onSelect={(path) => navigate(path)}
+          mobileOpen={mobileOpen}
+          onMobileClose={() => setMobileOpen(false)}
+          collapsed={compactMenu}
+          onToggleCollapsed={() => update({ compactMenu: !compactMenu })}
+        />
       )}
 
       <Box
@@ -431,19 +160,41 @@ export function AppLayout() {
         sx={{
           flexGrow: 1,
           width: { md: showSidebar ? `calc(100% - ${drawerWidth}px)` : '100%' },
+          ml: { md: showSidebar ? `${drawerWidth}px` : 0 },
           minHeight: '100vh',
           bgcolor: colors.background,
-          transition: theme.transitions.create('width'),
+          transition: theme.transitions.create(['width', 'margin']),
         }}
       >
-        <Toolbar sx={{ minHeight: `${HEADER_HEIGHT}px !important` }} />
+        <Toolbar sx={{ minHeight: `${APP_HEADER_HEIGHT}px !important` }} />
+        {!isHubHome && openTabs.length > 0 && (
+          <OpenModulesBar
+            modules={openTabs.map((module) => ({
+              id: module.id,
+              label: module.label,
+              icon: module.icon,
+            }))}
+            activeId={activeModule?.id ?? ''}
+            onSelect={(id) => {
+              const module = hubModules.find((candidate) => candidate.id === id);
+              if (module) openModule(module);
+            }}
+            onClose={closeModuleTab}
+          />
+        )}
         <Box sx={{ display: { xs: 'block', lg: 'none' }, px: 2, pt: 1 }}>
           <ContextSelector />
         </Box>
         {isHubHome ? (
           <Outlet />
         ) : (
-          <Box sx={{ p: { xs: 2, md: 3 }, maxWidth: 1440, mx: 'auto' }}>
+          <Box sx={{ p: { xs: 2, md: 3 } }}>
+            {activeModule && (
+              <ModuleSubnav
+                title={moduleItems.find((item) => item.path === selectedNavId)?.label ?? activeModule.label}
+                variant="crumb"
+              />
+            )}
             <Outlet />
           </Box>
         )}

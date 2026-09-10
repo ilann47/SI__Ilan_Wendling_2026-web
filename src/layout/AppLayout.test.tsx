@@ -84,8 +84,9 @@ describe('AppLayout', () => {
     renderLayout('/app/movimentacoes');
 
     expect(screen.getAllByRole('navigation', { name: 'Navegação principal' }).length).toBeGreaterThan(0);
-    expect(screen.getByRole('link', { name: /Movimentações/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Movimentações' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Recolher Operação' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: 'Ordens de Compra' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Ordens de Compra' })).not.toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /Operação/ })).toBeInTheDocument();
   });
 });

@@ -1,6 +1,8 @@
 import InboxOutlinedIcon from '@mui/icons-material/InboxOutlined';
 import { Box, Button, Typography } from '@mui/material';
 import type { ReactNode } from 'react';
+import { useColorMode } from '../../context/ColorModeContext';
+import { getThemeTokens } from '../../theme/hubTokens';
 
 interface Props {
   title: string;
@@ -9,6 +11,9 @@ interface Props {
 }
 
 export function EmptyState({ title, description, action }: Props) {
+  const { mode } = useColorMode();
+  const colors = getThemeTokens(mode);
+
   return (
     <Box
       role="status"
@@ -21,10 +26,23 @@ export function EmptyState({ title, description, action }: Props) {
         gap: 1,
       }}
     >
-      <InboxOutlinedIcon color="disabled" sx={{ fontSize: 40, mb: 1 }} />
-      <Typography variant="subtitle1">{title}</Typography>
+      <Box
+        sx={{
+          width: 56,
+          height: 56,
+          borderRadius: 2,
+          bgcolor: colors.brandHover,
+          color: colors.purple,
+          display: 'grid',
+          placeItems: 'center',
+          mb: 1,
+        }}
+      >
+        <InboxOutlinedIcon sx={{ fontSize: 28 }} />
+      </Box>
+      <Typography sx={{ fontWeight: 800, color: colors.text }}>{title}</Typography>
       {description && (
-        <Typography variant="body2" color="text.secondary" sx={{ maxWidth: 420 }}>
+        <Typography variant="body2" sx={{ maxWidth: 420, color: colors.textMuted }}>
           {description}
         </Typography>
       )}

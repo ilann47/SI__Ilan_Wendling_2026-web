@@ -60,6 +60,9 @@ Testing Library; E2E contra o backend real será acrescentado no recorte própri
 - A navegação é filtrada pelas permissões retornadas pelo backend.
 - O shell segue o modelo Hub YES7: home de módulos em `/app` e sidebar
   contextual apenas dentro do módulo (não ERP com todos os grupos na lateral).
+- Componentes de chrome portados do yes7one-frontend: `AppHeader`, `AppSidebar`,
+  `HubLauncherButton`, `OpenModulesBar`, `ModuleSubnav`, `UserAccountMenu` e
+  métricas de layout (`layoutMetrics`).
 - A tela de seleção troca o contexto emitindo novo JWT; IDs de tenant não são
   enviados por header.
 - O login continua emitindo JWT global compatível com as APIs legadas.
@@ -132,3 +135,4 @@ Testing Library; E2E contra o backend real será acrescentado no recorte própri
 | 2026-09-04 | Aproxima login split-screen e shell (pill ativo, marca Hub) do padrão visual YES7. |
 | 2026-09-04 | Porta tokens, HexMark, LoginHeroDiagram, login e shell a partir do repositório yes7one-frontend. |
 | 2026-09-04 | Adota home Hub (`HubHomePage`) com grade de módulos e pendências; dashboard operacional em `/app/visao-geral`. |
+| 2026-09-09 | Porta componentes de shell do Hub (`AppHeader`, `AppSidebar`, `HubLauncherButton`, `OpenModulesBar`, tema/dialogs/DataGrid). |
