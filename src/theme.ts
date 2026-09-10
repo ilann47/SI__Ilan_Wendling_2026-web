@@ -40,7 +40,13 @@ export function createAppTheme(mode: AppColorMode) {
       MuiCssBaseline: {
         styleOverrides: {
           html: { colorScheme: isDark ? 'dark' : 'light' },
-          body: { backgroundColor: c.background, color: c.text, fontFamily: FONT },
+          body: {
+            backgroundColor: c.background,
+            color: c.text,
+            fontFamily: FONT,
+            overflowX: 'hidden',
+            WebkitTextSizeAdjust: '100%',
+          },
           '*': { scrollbarWidth: 'thin', scrollbarColor: `${scrollThumb} transparent` },
           ':focus-visible': { outline: `3px solid ${c.purpleSoft}`, outlineOffset: 2 },
           'input:-webkit-autofill, input:-webkit-autofill:hover, input:-webkit-autofill:focus, input:-webkit-autofill:active, textarea:-webkit-autofill':
@@ -105,21 +111,26 @@ export function createAppTheme(mode: AppColorMode) {
         styleOverrides: {
           root: {
             zIndex: 1600,
-            top: APP_HEADER_HEIGHT,
-            '& .MuiBackdrop-root': { top: APP_HEADER_HEIGHT },
+            // Desktop: dialogs abaixo do header. Mobile/fullscreen: viewport inteiro.
+            '@media (min-width: 900px)': {
+              top: APP_HEADER_HEIGHT,
+              '& .MuiBackdrop-root': { top: APP_HEADER_HEIGHT },
+            },
           },
           container: {
             alignItems: 'center',
             justifyContent: 'center',
             paddingTop: DIALOG_VIEWPORT_GAP,
-            paddingBottom: DIALOG_VIEWPORT_GAP,
+            paddingBottom: `max(${DIALOG_VIEWPORT_GAP}px, env(safe-area-inset-bottom))`,
             paddingLeft: 16,
             paddingRight: 16,
             boxSizing: 'border-box',
             overflow: 'auto',
-            '@media (max-height: 640px)': {
+            '@media (max-width: 899.95px)': {
               paddingTop: 12,
-              paddingBottom: 12,
+              paddingBottom: `max(12px, env(safe-area-inset-bottom))`,
+              paddingLeft: 12,
+              paddingRight: 12,
             },
           },
           paper: {
@@ -129,15 +140,23 @@ export function createAppTheme(mode: AppColorMode) {
             borderRadius: 16,
             overflow: 'hidden',
             margin: 0,
-            maxHeight: `calc(100dvh - ${APP_HEADER_HEIGHT}px - ${DIALOG_VIEWPORT_GAP * 2}px)`,
-            '@media (max-height: 640px)': {
-              maxHeight: `calc(100dvh - ${APP_HEADER_HEIGHT}px - 24px)`,
+            width: '100%',
+            maxWidth: '100%',
+            maxHeight: `calc(100dvh - ${DIALOG_VIEWPORT_GAP * 2}px)`,
+            '@media (min-width: 900px)': {
+              maxHeight: `calc(100dvh - ${APP_HEADER_HEIGHT}px - ${DIALOG_VIEWPORT_GAP * 2}px)`,
             },
           },
           paperFullScreen: {
             margin: 0,
-            maxHeight: '100%',
+            width: '100%',
+            maxWidth: '100%',
+            maxHeight: '100dvh',
+            height: '100dvh',
             borderRadius: 0,
+            border: 'none',
+            paddingTop: 'env(safe-area-inset-top)',
+            paddingBottom: 'env(safe-area-inset-bottom)',
           },
         },
       },

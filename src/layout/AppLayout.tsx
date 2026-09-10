@@ -115,7 +115,14 @@ export function AppLayout() {
   };
 
   return (
-    <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: colors.background }}>
+    <Box
+      sx={{
+        display: 'flex',
+        minHeight: '100dvh',
+        bgcolor: colors.background,
+        overflowX: 'hidden',
+      }}
+    >
       <Box
         component="a"
         href="#conteudo-principal"
@@ -161,12 +168,19 @@ export function AppLayout() {
           flexGrow: 1,
           width: { md: showSidebar ? `calc(100% - ${drawerWidth}px)` : '100%' },
           ml: { md: showSidebar ? `${drawerWidth}px` : 0 },
-          minHeight: '100vh',
+          minHeight: '100dvh',
+          minWidth: 0,
           bgcolor: colors.background,
           transition: theme.transitions.create(['width', 'margin']),
+          pb: 'env(safe-area-inset-bottom)',
         }}
       >
-        <Toolbar sx={{ minHeight: `${APP_HEADER_HEIGHT}px !important` }} />
+        <Toolbar
+          sx={{
+            minHeight: `${APP_HEADER_HEIGHT}px !important`,
+            pt: 'env(safe-area-inset-top)',
+          }}
+        />
         {!isHubHome && openTabs.length > 0 && (
           <OpenModulesBar
             modules={openTabs.map((module) => ({
@@ -182,13 +196,20 @@ export function AppLayout() {
             onClose={closeModuleTab}
           />
         )}
-        <Box sx={{ display: { xs: 'block', lg: 'none' }, px: 2, pt: 1 }}>
+        <Box
+          sx={{
+            display: { xs: 'block', lg: 'none' },
+            px: { xs: 1.5, sm: 2 },
+            pt: 1,
+            pb: 0.5,
+          }}
+        >
           <ContextSelector />
         </Box>
         {isHubHome ? (
           <Outlet />
         ) : (
-          <Box sx={{ p: { xs: 2, md: 3 } }}>
+          <Box sx={{ p: { xs: 1.5, sm: 2, md: 3 }, minWidth: 0 }}>
             {activeModule && (
               <ModuleSubnav
                 title={moduleItems.find((item) => item.path === selectedNavId)?.label ?? activeModule.label}

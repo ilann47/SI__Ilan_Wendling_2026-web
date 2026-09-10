@@ -11,7 +11,9 @@ import {
   Typography,
 } from '@mui/material';
 import BusinessOutlinedIcon from '@mui/icons-material/BusinessOutlined';
+import DarkModeOutlinedIcon from '@mui/icons-material/DarkModeOutlined';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
+import LightModeOutlinedIcon from '@mui/icons-material/LightModeOutlined';
 import PowerSettingsNewIcon from '@mui/icons-material/PowerSettingsNew';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
@@ -28,7 +30,7 @@ type Props = {
 export function UserAccountMenu({ variant = 'header' }: Props) {
   const navigate = useNavigate();
   const { notify } = useSnackbar();
-  const { mode } = useColorMode();
+  const { mode, toggle } = useColorMode();
   const colors = getThemeTokens(mode);
   const { user, activeOrganization, organizations, logout, selectOrganization } = useAuth();
   const [anchor, setAnchor] = useState<null | HTMLElement>(null);
@@ -45,7 +47,7 @@ export function UserAccountMenu({ variant = 'header' }: Props) {
     <>
       <Button
         onClick={handleOpen}
-        endIcon={<KeyboardArrowDownIcon />}
+        endIcon={<KeyboardArrowDownIcon sx={{ display: { xs: 'none', sm: 'inline-flex' } }} />}
         aria-label="Conta"
         aria-haspopup="menu"
         aria-expanded={open ? 'true' : undefined}
@@ -53,17 +55,18 @@ export function UserAccountMenu({ variant = 'header' }: Props) {
           color: colors.text,
           fontWeight: 600,
           fontSize: variant === 'hub' ? '0.875rem' : '0.8rem',
-          px: 1,
+          px: { xs: 0.5, sm: 1 },
+          minWidth: 44,
+          minHeight: 44,
           gap: 1,
           textTransform: 'none',
-          minWidth: 0,
           '&:hover': { bgcolor: colors.sidebarHover },
         }}
       >
         <Avatar
           sx={{
-            width: variant === 'hub' ? 34 : 30,
-            height: variant === 'hub' ? 34 : 30,
+            width: 34,
+            height: 34,
             background: colors.brandGradient,
             color: '#fff',
             fontSize: '0.72rem',
@@ -92,7 +95,8 @@ export function UserAccountMenu({ variant = 'header' }: Props) {
           paper: {
             sx: {
               mt: 1,
-              minWidth: 240,
+              minWidth: 260,
+              maxWidth: 'calc(100vw - 24px)',
               borderRadius: 2,
               border: `1px solid ${colors.border}`,
               boxShadow: '0 12px 32px rgba(15, 23, 42, 0.14)',
@@ -110,6 +114,18 @@ export function UserAccountMenu({ variant = 'header' }: Props) {
           )}
         </Box>
         <Divider />
+        <MenuItem
+          onClick={() => {
+            toggle();
+            close();
+          }}
+          sx={{ display: { xs: 'flex', sm: 'none' }, minHeight: 48 }}
+        >
+          <ListItemIcon>
+            {mode === 'light' ? <DarkModeOutlinedIcon fontSize="small" /> : <LightModeOutlinedIcon fontSize="small" />}
+          </ListItemIcon>
+          <ListItemText primary={mode === 'light' ? 'Modo escuro' : 'Modo claro'} />
+        </MenuItem>
         {organizations.length > 1 && (
           <>
             <Typography variant="overline" color="text.secondary" sx={{ px: 2, pt: 1, display: 'block' }}>
@@ -121,6 +137,7 @@ export function UserAccountMenu({ variant = 'header' }: Props) {
                 <MenuItem
                   key={organization.organizationId}
                   disabled={switchingOrganizationId !== null}
+                  sx={{ minHeight: 48 }}
                   onClick={async () => {
                     setSwitchingOrganizationId(organization.organizationId);
                     try {
@@ -142,6 +159,7 @@ export function UserAccountMenu({ variant = 'header' }: Props) {
           </>
         )}
         <MenuItem
+          sx={{ minHeight: 48 }}
           onClick={() => {
             close();
             logout();

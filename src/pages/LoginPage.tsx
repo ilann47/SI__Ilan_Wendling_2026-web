@@ -108,11 +108,11 @@ export function LoginPage() {
       <Box
         sx={{
           flex: { md: 1.15 },
-          display: 'flex',
+          display: { xs: 'none', md: 'flex' },
           flexDirection: 'column',
           justifyContent: 'space-between',
-          px: { xs: 3, md: 6, lg: 8 },
-          py: { xs: 4, md: 6 },
+          px: { md: 6, lg: 8 },
+          py: { md: 6 },
           background:
             mode === 'dark'
               ? 'linear-gradient(165deg, #161B32 0%, #1B2140 55%, #0F1324 100%)'
@@ -167,15 +167,21 @@ export function LoginPage() {
       <Box
         sx={{
           flex: { md: 0.85 },
+          flexGrow: 1,
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          justifyContent: 'center',
+          justifyContent: { xs: 'flex-start', md: 'center' },
           px: 2,
-          py: { xs: 6, md: 4 },
+          pt: { xs: 'max(24px, env(safe-area-inset-top))', md: 4 },
+          pb: { xs: 'max(24px, env(safe-area-inset-bottom))', md: 4 },
           bgcolor: colors.background,
+          minHeight: { xs: '100dvh', md: 'auto' },
         }}
       >
+        <Box sx={{ display: { xs: 'flex', md: 'none' }, mb: 2.5, mt: 1 }}>
+          <BrandMark size={40} showName />
+        </Box>
         <Box
           sx={{
             width: '100%',
@@ -188,7 +194,7 @@ export function LoginPage() {
             border: `1px solid ${colors.border}`,
           }}
         >
-          <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2.25 }}>
+          <Box sx={{ display: { xs: 'none', md: 'flex' }, justifyContent: 'center', mb: 2.25 }}>
             <BrandMark size={44} showName />
           </Box>
           <Typography sx={{ fontWeight: 800, fontSize: '1.35rem', color: colors.text, textAlign: 'center' }}>

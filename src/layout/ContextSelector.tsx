@@ -27,8 +27,10 @@ export function ContextSelector() {
         aria-haspopup="true"
         onClick={(eventClick) => setAnchor(eventClick.currentTarget)}
         sx={{
-          maxWidth: { xs: 180, sm: 320, md: 420 },
-          px: 1.25, py: 0.75, borderRadius: 2, textAlign: 'left',
+          maxWidth: { xs: '100%', sm: 320, md: 420 },
+          width: { xs: '100%', sm: 'auto' },
+          px: 1.25, py: 1, borderRadius: 2, textAlign: 'left',
+          minHeight: 48,
         }}
       >
         <Stack spacing={0.15} sx={{ minWidth: 0 }}>

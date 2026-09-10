@@ -153,7 +153,7 @@ export function DashboardPage() {
           />
         )}
 
-        <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: 2 }}>
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(auto-fit, minmax(180px, 1fr))' }, gap: 1.5 }}>
           {canOperations && (
             <Box component={RouterLink} to="/app/patio" sx={{ textDecoration: 'none' }}>
               <KpiCard title="Veículos no pátio" value={patio.data?.resumo.totalVeiculos ?? '—'}

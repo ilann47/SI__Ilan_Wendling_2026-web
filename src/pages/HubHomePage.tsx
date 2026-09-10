@@ -13,7 +13,6 @@ import { api } from '../api/client';
 import { purchaseApi } from '../api/purchases';
 import { tenantQueryKey } from '../api/queryKeys';
 import { useAuth } from '../auth/AuthContext';
-import { BrandMark } from '../components/brand/BrandMark';
 import { HexMark } from '../components/brand/HexMark';
 import { getThemeTokens } from '../theme/hubTokens';
 import { useColorMode } from '../context/ColorModeContext';
@@ -121,23 +120,41 @@ export function HubHomePage() {
   };
 
   return (
-    <Box sx={{ minHeight: 'calc(100vh - 64px)', bgcolor: colors.background, px: { xs: 2, md: 3.5 }, py: { xs: 2.5, md: 3.5 } }}>
+    <Box
+      sx={{
+        minHeight: 'calc(100dvh - 64px)',
+        bgcolor: colors.background,
+        px: { xs: 1.5, sm: 2, md: 3.5 },
+        py: { xs: 2, md: 3.5 },
+        pb: { xs: 'max(24px, env(safe-area-inset-bottom))', md: 3.5 },
+      }}
+    >
       <Box
         sx={{
           display: 'flex',
           flexDirection: { xs: 'column', lg: 'row' },
           alignItems: { xs: 'stretch', lg: 'flex-start' },
-          gap: 3,
+          gap: { xs: 2.5, lg: 3 },
         }}
       >
-        <Box sx={{ flex: 1, minWidth: 0, maxWidth: { lg: 920 } }}>
-          <Typography sx={{ color: colors.purple, fontWeight: 800, fontSize: { xs: '1.55rem', md: '1.85rem' }, letterSpacing: -0.3 }}>
+        <Box sx={{ flex: 1, minWidth: 0, maxWidth: { lg: 920 }, order: { xs: 1, lg: 1 } }}>
+          <Typography sx={{ color: colors.purple, fontWeight: 800, fontSize: { xs: '1.35rem', md: '1.85rem' }, letterSpacing: -0.3 }}>
             Olá, {firstName} 👋
           </Typography>
-          <Typography variant="h4" sx={{ fontWeight: 800, color: colors.text, mt: 0.35, mb: 0.5, fontSize: { xs: '1.35rem', md: '1.55rem' } }}>
+          <Typography
+            variant="h4"
+            sx={{
+              fontWeight: 800,
+              color: colors.text,
+              mt: 0.35,
+              mb: 0.5,
+              fontSize: { xs: '1.15rem', md: '1.55rem' },
+              lineHeight: 1.25,
+            }}
+          >
             O que você deseja fazer hoje?
           </Typography>
-          <Typography variant="body1" sx={{ color: colors.textMuted, mb: 3, maxWidth: 520 }}>
+          <Typography variant="body1" sx={{ color: colors.textMuted, mb: { xs: 2, md: 3 }, maxWidth: 520, fontSize: { xs: '0.9rem', md: '1rem' } }}>
             Escolha um módulo para começar.
           </Typography>
 
@@ -150,7 +167,7 @@ export function HubHomePage() {
                 md: 'repeat(4, minmax(0, 1fr))',
                 xl: 'repeat(5, minmax(0, 1fr))',
               },
-              gap: 1.25,
+              gap: { xs: 1, md: 1.25 },
             }}
           >
             {visibleModules.map((module) => (
@@ -166,8 +183,8 @@ export function HubHomePage() {
                   cursor: 'pointer',
                   textAlign: 'center',
                   borderRadius: 2.5,
-                  minHeight: { xs: 108, md: 118 },
-                  p: 1.75,
+                  minHeight: { xs: 96, md: 118 },
+                  p: { xs: 1.25, md: 1.75 },
                   bgcolor: colors.card,
                   color: colors.text,
                   boxShadow: '0 4px 14px rgba(27, 33, 64, 0.04)',
@@ -175,11 +192,16 @@ export function HubHomePage() {
                   flexDirection: 'column',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: 1,
+                  gap: 0.75,
+                  WebkitTapHighlightColor: 'transparent',
                   transition: 'transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease',
                   '&:hover': {
                     transform: 'translateY(-3px)',
                     boxShadow: '0 10px 24px rgba(107, 70, 254, 0.12)',
+                    borderColor: colors.purpleSoft,
+                  },
+                  '&:active': {
+                    transform: 'scale(0.98)',
                     borderColor: colors.purpleSoft,
                   },
                   '&:focus-visible': { outline: `2px solid ${colors.purple}`, outlineOffset: 3 },
@@ -187,19 +209,19 @@ export function HubHomePage() {
               >
                 <Box
                   sx={{
-                    width: 44,
-                    height: 44,
+                    width: { xs: 40, md: 44 },
+                    height: { xs: 40, md: 44 },
                     borderRadius: 2,
                     bgcolor: colors.brandHover,
                     color: colors.purple,
                     display: 'grid',
                     placeItems: 'center',
-                    '& .MuiSvgIcon-root': { fontSize: 24 },
+                    '& .MuiSvgIcon-root': { fontSize: { xs: 22, md: 24 } },
                   }}
                 >
                   {module.icon}
                 </Box>
-                <Typography sx={{ fontWeight: 800, fontSize: '0.84rem', lineHeight: 1.2 }}>
+                <Typography sx={{ fontWeight: 800, fontSize: { xs: '0.78rem', md: '0.84rem' }, lineHeight: 1.2 }}>
                   {module.label}
                 </Typography>
               </Box>
@@ -208,13 +230,13 @@ export function HubHomePage() {
 
           <Box
             sx={{
-              mt: 3,
-              p: { xs: 2.25, md: 2.75 },
+              mt: 2.5,
+              p: { xs: 1.75, md: 2.75 },
               borderRadius: 2.5,
               bgcolor: colors.card,
               border: `1px solid ${colors.border}`,
               boxShadow: '0 4px 14px rgba(27, 33, 64, 0.04)',
-              display: 'flex',
+              display: { xs: 'none', sm: 'flex' },
               alignItems: 'center',
               gap: 2,
             }}
@@ -233,18 +255,18 @@ export function HubHomePage() {
           </Box>
         </Box>
 
-        <Box sx={{ width: { xs: '100%', lg: 340 }, flexShrink: 0 }}>
+        <Box sx={{ width: { xs: '100%', lg: 340 }, flexShrink: 0, order: { xs: 2, lg: 2 } }}>
           <Box
             sx={{
               bgcolor: colors.card,
-              borderRadius: 4,
-              p: { xs: 2.5, md: 3 },
+              borderRadius: { xs: 3, md: 4 },
+              p: { xs: 2, md: 3 },
               border: `1px solid ${colors.border}`,
               boxShadow: '0 8px 28px rgba(26, 31, 44, 0.06)',
               minHeight: { lg: 280 },
               display: 'flex',
               flexDirection: 'column',
-              gap: 2,
+              gap: 1.5,
             }}
           >
             <Box>
@@ -254,7 +276,7 @@ export function HubHomePage() {
                   Pendências
                 </Typography>
               </Box>
-              <Typography variant="h5" sx={{ fontWeight: 800, color: colors.text, mt: 0.5, mb: 0.5 }}>
+              <Typography sx={{ fontWeight: 800, color: colors.text, mt: 0.25, mb: 0.35, fontSize: { xs: '1.15rem', md: '1.35rem' } }}>
                 Pendências
               </Typography>
               <Typography variant="body2" sx={{ color: colors.textMuted, lineHeight: 1.5 }}>
@@ -269,7 +291,7 @@ export function HubHomePage() {
                     flex: 1,
                     display: 'grid',
                     placeItems: 'center',
-                    py: 4,
+                    py: 3,
                     px: 2,
                     textAlign: 'center',
                     borderRadius: 2.5,
@@ -288,68 +310,56 @@ export function HubHomePage() {
                 pendencies.map((item) => {
                   const tone = toneStyles[item.tone];
                   return (
-                    <Box
+                    <ButtonBase
                       key={item.id}
+                      onClick={() => navigate(item.path)}
                       sx={{
                         display: 'flex',
                         alignItems: 'center',
-                        gap: 1,
+                        gap: 1.25,
+                        width: '100%',
+                        minHeight: 64,
                         borderRadius: 2.5,
                         px: 1.25,
-                        py: 1,
+                        py: 1.1,
                         border: `1px solid ${colors.border}`,
                         bgcolor: colors.background,
+                        textAlign: 'left',
+                        WebkitTapHighlightColor: 'transparent',
+                        '&:active': { bgcolor: colors.brandHover },
                       }}
                     >
-                      <ButtonBase
-                        onClick={() => navigate(item.path)}
+                      <Box
                         sx={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 1.25,
-                          flex: 1,
-                          minWidth: 0,
-                          textAlign: 'left',
+                          width: 40,
+                          height: 40,
                           borderRadius: 2,
-                          py: 0.25,
+                          bgcolor: tone.bg,
+                          color: tone.color,
+                          display: 'grid',
+                          placeItems: 'center',
+                          flexShrink: 0,
+                          '& .MuiSvgIcon-root': { fontSize: 22 },
                         }}
                       >
-                        <Box
-                          sx={{
-                            width: 40,
-                            height: 40,
-                            borderRadius: 2,
-                            bgcolor: tone.bg,
-                            color: tone.color,
-                            display: 'grid',
-                            placeItems: 'center',
-                            flexShrink: 0,
-                            '& .MuiSvgIcon-root': { fontSize: 22 },
-                          }}
-                        >
-                          {pendencyIcon(item.tone, item.title)}
-                        </Box>
-                        <Box sx={{ flex: 1, minWidth: 0 }}>
-                          <Typography sx={{ fontWeight: 700, fontSize: '0.88rem', color: colors.text, lineHeight: 1.25 }}>
-                            {item.title}
-                          </Typography>
-                          <Typography sx={{ fontSize: '0.75rem', color: colors.textMuted, lineHeight: 1.35, mt: 0.2 }}>
-                            {item.message}
-                          </Typography>
-                        </Box>
-                        <ArrowForwardRoundedIcon sx={{ color: colors.textMuted, fontSize: 20, flexShrink: 0 }} />
-                      </ButtonBase>
-                    </Box>
+                        {pendencyIcon(item.tone, item.title)}
+                      </Box>
+                      <Box sx={{ flex: 1, minWidth: 0 }}>
+                        <Typography sx={{ fontWeight: 700, fontSize: '0.88rem', color: colors.text, lineHeight: 1.25 }}>
+                          {item.title}
+                        </Typography>
+                        <Typography sx={{ fontSize: '0.75rem', color: colors.textMuted, lineHeight: 1.35, mt: 0.2 }}>
+                          {item.message}
+                        </Typography>
+                      </Box>
+                      <ArrowForwardRoundedIcon sx={{ color: colors.textMuted, fontSize: 20, flexShrink: 0 }} />
+                    </ButtonBase>
                   );
                 })
               )}
             </Box>
           </Box>
         </Box>
-      </Box>
-
-      <Box sx={{ mt: 4, display: 'flex', justifyContent: { xs: 'center', lg: 'flex-start' } }}>
-        <BrandMark size={28} showName />
       </Box>
     </Box>
   );

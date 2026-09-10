@@ -1,9 +1,11 @@
 import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined';
 import {
-  Box, Button, ButtonBase, Chip, Dialog, DialogContent, DialogTitle,
+  Box, Button, ButtonBase, Chip, Dialog, DialogContent, DialogTitle, IconButton,
   Divider, InputAdornment, LinearProgress, List, ListItemButton, ListItemText,
-  Stack, TextField, Typography,
+  Stack, TextField, Typography, useMediaQuery,
 } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
+import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 import { useQuery } from '@tanstack/react-query';
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -39,6 +41,8 @@ function Highlight({ text, term }: { text: string; term: string }) {
 }
 
 export function GlobalSearch() {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const { activeOrganization } = useAuth();
   const navigate = useNavigate();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -109,8 +113,20 @@ export function GlobalSearch() {
 
   return (
     <>
+      <ButtonBase aria-label="Buscar em toda a plataforma" onClick={() => setOpen(true)}
+        sx={{
+          display: { xs: 'inline-flex', md: 'none' },
+          width: 44,
+          height: 44,
+          borderRadius: 1.25,
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <SearchOutlinedIcon />
+      </ButtonBase>
       <ButtonBase aria-label="Buscar em toda a plataforma" onClick={() => setOpen(true)} sx={{
-        display: { xs: 'none', sm: 'flex' }, width: '100%', maxWidth: 520, px: 1.75, py: 0.85,
+        display: { xs: 'none', md: 'flex' }, width: '100%', maxWidth: 520, px: 1.75, py: 0.85,
         border: '1px solid', borderColor: 'divider', borderRadius: 999,
         bgcolor: 'background.default', justifyContent: 'space-between',
         fontSize: '0.85rem',
@@ -126,12 +142,31 @@ export function GlobalSearch() {
           Ctrl + K
         </Typography>
       </ButtonBase>
-      <ButtonBase aria-label="Buscar em toda a plataforma" onClick={() => setOpen(true)}
-        sx={{ display: { xs: 'flex', sm: 'none' }, p: 1, borderRadius: 2, minWidth: 40, minHeight: 40 }}>
-        <SearchOutlinedIcon />
-      </ButtonBase>
-      <Dialog open={open} onClose={close} maxWidth="sm" fullWidth aria-labelledby="busca-global-titulo">
-        <DialogTitle id="busca-global-titulo" sx={{ pb: 1 }}>Buscar em toda a plataforma</DialogTitle>
+      <Dialog
+        open={open}
+        onClose={close}
+        maxWidth="sm"
+        fullWidth
+        fullScreen={isMobile}
+        aria-labelledby="busca-global-titulo"
+      >
+        <DialogTitle
+          id="busca-global-titulo"
+          sx={{
+            pb: 1,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 1,
+          }}
+        >
+          Buscar em toda a plataforma
+          {isMobile ? (
+            <IconButton aria-label="Fechar busca" onClick={close} sx={{ width: 44, height: 44 }}>
+              <CloseRoundedIcon />
+            </IconButton>
+          ) : null}
+        </DialogTitle>
         <DialogContent sx={{ px: 0 }}>
           <Box sx={{ px: 3, pb: 2 }}>
             <TextField
@@ -182,7 +217,7 @@ export function GlobalSearch() {
                       key={`${result.tipo}-${result.id}`}
                       selected={index === selected}
                       onClick={() => openResult(result)}
-                      sx={{ px: 3 }}
+                      sx={{ px: 3, minHeight: 56 }}
                     >
                       <ListItemText
                         primary={<Highlight text={result.titulo} term={query} />}

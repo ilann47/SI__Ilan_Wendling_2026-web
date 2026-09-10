@@ -136,3 +136,4 @@ Testing Library; E2E contra o backend real será acrescentado no recorte própri
 | 2026-09-04 | Porta tokens, HexMark, LoginHeroDiagram, login e shell a partir do repositório yes7one-frontend. |
 | 2026-09-04 | Adota home Hub (`HubHomePage`) com grade de módulos e pendências; dashboard operacional em `/app/visao-geral`. |
 | 2026-09-09 | Porta componentes de shell do Hub (`AppHeader`, `AppSidebar`, `HubLauncherButton`, `OpenModulesBar`, tema/dialogs/DataGrid). |
+| 2026-09-09 | Prioriza responsividade mobile: header compacto, login form-first, launcher bottom sheet, dialogs fullscreen, safe-area. |

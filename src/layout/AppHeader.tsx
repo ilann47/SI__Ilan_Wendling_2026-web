@@ -33,12 +33,12 @@ const iconBtnSx = {
   color: 'inherit',
   bgcolor: 'transparent',
   borderRadius: 1.25,
-  width: 36,
-  height: 36,
+  width: 44,
+  height: 44,
   flexShrink: 0,
 } as const;
 
-/** Header global — mesmo grid e slots do Hub YES7 (`AppHeader`). */
+/** Header global — compacto no mobile, grid Hub no desktop. */
 export function AppHeader({
   onGoHome,
   onSelectModule,
@@ -61,6 +61,7 @@ export function AppHeader({
         borderBottom: `1px solid ${colors.border}`,
         zIndex: 1500,
         overflow: 'visible',
+        pt: 'env(safe-area-inset-top)',
       }}
     >
       <Toolbar
@@ -74,18 +75,18 @@ export function AppHeader({
             md: 'minmax(0, 1fr) minmax(200px, 520px) minmax(0, 1fr)',
           },
           alignItems: 'center',
-          columnGap: 1.5,
-          px: APP_HEADER_PX,
-          overflow: 'visible',
+          columnGap: { xs: 0.75, md: 1.5 },
+          px: { xs: 1, sm: APP_HEADER_PX.sm },
+          overflow: 'hidden',
         }}
       >
         <Box
           sx={{
             display: 'flex',
             alignItems: 'center',
-            gap: 1.25,
+            gap: { xs: 0.35, sm: 0.75, md: 1.25 },
             minWidth: 0,
-            overflow: 'visible',
+            overflow: 'hidden',
             justifySelf: 'start',
           }}
         >
@@ -104,7 +105,7 @@ export function AppHeader({
             <IconButton
               onClick={onOpenSidebar}
               aria-label="Abrir menu de navegação"
-              sx={{ color: colors.text }}
+              sx={{ color: colors.text, width: 44, height: 44 }}
             >
               <MenuIcon />
             </IconButton>
@@ -121,7 +122,7 @@ export function AppHeader({
                 '&:hover': { bgcolor: colors.brandHover },
               }}
             >
-              <HomeOutlinedIcon sx={{ fontSize: 20 }} />
+              <HomeOutlinedIcon sx={{ fontSize: 22 }} />
             </IconButton>
           </Tooltip>
 
@@ -131,7 +132,12 @@ export function AppHeader({
             activeModuleId={activeModuleId}
           />
 
-          <BrandMark size={APP_HEADER_BRAND_SIZE} showName onClick={onGoHome} />
+          <Box sx={{ minWidth: 0, display: { xs: 'none', sm: 'block' } }}>
+            <BrandMark size={APP_HEADER_BRAND_SIZE} showName onClick={onGoHome} />
+          </Box>
+          <Box sx={{ display: { xs: 'block', sm: 'none' }, flexShrink: 0 }}>
+            <BrandMark size={30} onClick={onGoHome} />
+          </Box>
           <Box sx={{ display: { xs: 'none', lg: 'block' }, minWidth: 0 }}>
             {contextSlot ?? <ContextSelector />}
           </Box>
@@ -154,7 +160,7 @@ export function AppHeader({
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'flex-end',
-            gap: 0.25,
+            gap: 0,
             flexShrink: 0,
             justifySelf: 'end',
           }}
@@ -166,7 +172,12 @@ export function AppHeader({
             <IconButton
               aria-label={mode === 'light' ? 'Ativar modo escuro' : 'Ativar modo claro'}
               onClick={toggle}
-              sx={{ color: colors.textMuted }}
+              sx={{
+                color: colors.textMuted,
+                width: 44,
+                height: 44,
+                display: { xs: 'none', sm: 'inline-flex' },
+              }}
             >
               {mode === 'light' ? <DarkModeOutlinedIcon /> : <LightModeOutlinedIcon />}
             </IconButton>

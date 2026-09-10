@@ -486,10 +486,11 @@ export function CrudResourcePage({ config }: { config: ResourceConfig }) {
             />
           </Card>
           {isMobile && (
-            <Stack direction="row" justifyContent="space-between" sx={{ mt: 2 }}>
+            <Stack direction="row" spacing={1} sx={{ mt: 2 }}>
               <PrimaryButton
                 variant="outlined"
                 color="inherit"
+                fullWidth
                 disabled={pagination.page === 0}
                 onClick={() => setPagination((current) => ({ ...current, page: current.page - 1 }))}
               >
@@ -498,6 +499,7 @@ export function CrudResourcePage({ config }: { config: ResourceConfig }) {
               <PrimaryButton
                 variant="outlined"
                 color="inherit"
+                fullWidth
                 disabled={(listQuery.data?.last ?? true)}
                 onClick={() => setPagination((current) => ({ ...current, page: current.page + 1 }))}
               >

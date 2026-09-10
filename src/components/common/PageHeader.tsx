@@ -48,12 +48,27 @@ export function PageHeader({ title, subtitle, count, action, hubCrumb = false }:
         ) : null}
         <Typography
           component="h1"
-          sx={{ fontWeight: 800, fontSize: '1.45rem', color: colors.text, lineHeight: 1.2, letterSpacing: -0.3 }}
+          sx={{
+            fontWeight: 800,
+            fontSize: { xs: '1.25rem', sm: '1.45rem' },
+            color: colors.text,
+            lineHeight: 1.2,
+            letterSpacing: -0.3,
+          }}
         >
           {title}
         </Typography>
         {subtitle && (
-          <Typography variant="body2" sx={{ mt: 0.35, maxWidth: 680, lineHeight: 1.5, color: colors.textMuted }}>
+          <Typography
+            variant="body2"
+            sx={{
+              mt: 0.35,
+              maxWidth: 680,
+              lineHeight: 1.5,
+              color: colors.textMuted,
+              display: { xs: 'none', sm: 'block' },
+            }}
+          >
             {subtitle}
           </Typography>
         )}
@@ -75,7 +90,16 @@ export function PageHeader({ title, subtitle, count, action, hubCrumb = false }:
           </Typography>
         )}
       </Box>
-      {action && <Box sx={{ alignSelf: { xs: 'stretch', sm: 'center' } }}>{action}</Box>}
+      {action && (
+        <Box
+          sx={{
+            alignSelf: { xs: 'stretch', sm: 'center' },
+            '& .MuiButton-root': { width: { xs: '100%', sm: 'auto' }, minHeight: 44 },
+          }}
+        >
+          {action}
+        </Box>
+      )}
     </Stack>
   );
 }
