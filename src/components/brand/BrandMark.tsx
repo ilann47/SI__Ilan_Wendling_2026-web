@@ -1,6 +1,7 @@
 import { Box, Typography } from '@mui/material';
 import { HexMark } from './HexMark';
-import { hub } from '../../theme/hubTokens';
+import { useColorMode } from '../../context/ColorModeContext';
+import { getThemeTokens } from '../../theme/hubTokens';
 
 type Props = {
   size?: number;
@@ -11,8 +12,10 @@ type Props = {
 
 export function BrandMark({ size = 36, showName = false, inverted = false, onClick }: Props) {
   const interactive = Boolean(onClick);
-  const titleColor = inverted ? '#fff' : hub.navy;
-  const subColor = inverted ? 'rgba(255,255,255,0.78)' : hub.navy;
+  const { mode } = useColorMode();
+  const colors = getThemeTokens(mode);
+  const titleColor = inverted ? '#fff' : colors.text;
+  const subColor = inverted ? 'rgba(255,255,255,0.78)' : colors.textMuted;
 
   return (
     <Box
