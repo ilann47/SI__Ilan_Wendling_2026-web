@@ -249,7 +249,7 @@ export function HubHomePage() {
                 Hub operacional Kaneko
               </Typography>
               <Typography sx={{ fontSize: '0.82rem', color: colors.textMuted, mt: 0.5, lineHeight: 1.45 }}>
-                Pátio, eventos, compras e financeiro no mesmo contexto organizacional — só com dados reais da API.
+                Pátio, acessos, mensalistas, eventos e cobrança no mesmo contexto — só com dados reais da API.
               </Typography>
             </Box>
           </Box>

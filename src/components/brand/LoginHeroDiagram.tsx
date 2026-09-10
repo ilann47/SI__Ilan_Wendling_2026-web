@@ -1,19 +1,21 @@
 import { Box, Typography } from '@mui/material';
-import ShoppingCartOutlinedIcon from '@mui/icons-material/ShoppingCartOutlined';
-import AttachMoneyOutlinedIcon from '@mui/icons-material/AttachMoneyOutlined';
-import LocalShippingOutlinedIcon from '@mui/icons-material/LocalShippingOutlined';
-import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined';
-import GroupsOutlinedIcon from '@mui/icons-material/GroupsOutlined';
-import TrendingUpOutlinedIcon from '@mui/icons-material/TrendingUpOutlined';
-import { HexMark } from '../brand/HexMark';
+import LocalParkingOutlinedIcon from '@mui/icons-material/LocalParkingOutlined';
+import QrCodeScannerOutlinedIcon from '@mui/icons-material/QrCodeScannerOutlined';
+import EventOutlinedIcon from '@mui/icons-material/EventOutlined';
+import CardMembershipOutlinedIcon from '@mui/icons-material/CardMembershipOutlined';
+import DirectionsCarOutlinedIcon from '@mui/icons-material/DirectionsCarOutlined';
+import AccountBalanceWalletOutlinedIcon from '@mui/icons-material/AccountBalanceWalletOutlined';
+import type { SvgIconComponent } from '@mui/icons-material';
+import { HexMark } from './HexMark';
 
+/** Nós do diagrama — capacidades reais do estacionamento Kaneko. */
 const NODES = [
-  { id: 'compras', label: 'Compras', Icon: ShoppingCartOutlinedIcon, x: 18, y: 18 },
-  { id: 'financeiro', label: 'Financeiro', Icon: AttachMoneyOutlinedIcon, x: 50, y: 6 },
-  { id: 'logistica', label: 'Logística', Icon: LocalShippingOutlinedIcon, x: 82, y: 18 },
-  { id: 'estoque', label: 'Estoque', Icon: Inventory2OutlinedIcon, x: 18, y: 78 },
-  { id: 'rh', label: 'RH', Icon: GroupsOutlinedIcon, x: 50, y: 90 },
-  { id: 'vendas', label: 'Vendas', Icon: TrendingUpOutlinedIcon, x: 82, y: 78 },
+  { id: 'patio', label: 'Pátio', Icon: LocalParkingOutlinedIcon, x: 18, y: 18 },
+  { id: 'acessos', label: 'Acessos', Icon: QrCodeScannerOutlinedIcon, x: 50, y: 6 },
+  { id: 'eventos', label: 'Eventos', Icon: EventOutlinedIcon, x: 82, y: 18 },
+  { id: 'veiculos', label: 'Veículos', Icon: DirectionsCarOutlinedIcon, x: 18, y: 78 },
+  { id: 'mensalistas', label: 'Mensalistas', Icon: CardMembershipOutlinedIcon, x: 50, y: 90 },
+  { id: 'cobranca', label: 'Cobrança', Icon: AccountBalanceWalletOutlinedIcon, x: 82, y: 78 },
 ] as const;
 
 function HexTile({
@@ -26,7 +28,7 @@ function HexTile({
   x: number;
   y: number;
   label?: string;
-  Icon?: typeof ShoppingCartOutlinedIcon;
+  Icon?: SvgIconComponent;
   center?: boolean;
 }) {
   const size = center ? 78 : 58;
@@ -57,7 +59,7 @@ function HexTile({
       ) : Icon ? (
         <>
           <Icon sx={{ fontSize: 18, color: '#6B46FE' }} />
-          <Typography sx={{ fontSize: '0.58rem', fontWeight: 800, color: '#1B2140', lineHeight: 1 }}>
+          <Typography sx={{ fontSize: '0.52rem', fontWeight: 800, color: '#1B2140', lineHeight: 1.05, px: 0.25, textAlign: 'center' }}>
             {label}
           </Typography>
         </>
@@ -66,10 +68,12 @@ function HexTile({
   );
 }
 
-/** Diagrama de módulos do painel esquerdo da login (portado do Hub). */
+/** Diagrama do login: hub do estacionamento (pátio, acessos, eventos, cobrança). */
 export function LoginHeroDiagram() {
   return (
     <Box
+      role="img"
+      aria-label="Hub do estacionamento: pátio, acessos, eventos, veículos, mensalistas e cobrança"
       sx={{
         position: 'relative',
         width: '100%',

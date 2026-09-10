@@ -30,7 +30,7 @@ export const hubModules: HubModule[] = [
   {
     id: 'comercial',
     label: 'Comercial',
-    description: 'Compras, vendas e ordens de serviço',
+    description: 'Compras da conveniência, vendas administrativas e OS',
     icon: <ShoppingCartCheckoutOutlinedIcon />,
     homePath: '/app/ordens-compra',
     groupLabel: 'Comercial',
@@ -38,7 +38,7 @@ export const hubModules: HubModule[] = [
   {
     id: 'financeiro',
     label: 'Financeiro',
-    description: 'Notas, contas a pagar e a receber',
+    description: 'Cobrança do pátio, notas e contas a pagar/receber',
     icon: <AccountBalanceWalletOutlinedIcon />,
     homePath: '/app/contas-pagar',
     groupLabel: 'Fiscal e financeiro',
@@ -46,7 +46,7 @@ export const hubModules: HubModule[] = [
   {
     id: 'clientes',
     label: 'Cadastros',
-    description: 'Clientes, veículos, fornecedores e tarifas',
+    description: 'Clientes, veículos, mensalistas, tarifas e parceiros',
     icon: <PeopleOutlinedIcon />,
     homePath: '/app/clientes',
     groupLabel: 'Clientes e parceiros',
@@ -54,7 +54,7 @@ export const hubModules: HubModule[] = [
   {
     id: 'estoque',
     label: 'Estoque',
-    description: 'Produtos, posição e catálogo',
+    description: 'Conveniência do pátio: produtos e posição de estoque',
     icon: <Inventory2OutlinedIcon />,
     homePath: '/app/estoque',
     groupLabel: 'Produtos e estoque',
@@ -62,7 +62,7 @@ export const hubModules: HubModule[] = [
   {
     id: 'admin',
     label: 'Administração',
-    description: 'Usuários, instalações, eventos e bloqueios',
+    description: 'Usuários, instalações, eventos, vagas e bloqueios',
     icon: <AdminPanelSettingsOutlinedIcon />,
     homePath: '/app/administracao',
     groupLabel: 'Administração',

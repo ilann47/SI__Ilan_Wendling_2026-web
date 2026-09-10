@@ -15,9 +15,10 @@ import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
 import VisibilityOffOutlinedIcon from '@mui/icons-material/VisibilityOffOutlined';
 import DarkModeOutlinedIcon from '@mui/icons-material/DarkModeOutlined';
 import LightModeOutlinedIcon from '@mui/icons-material/LightModeOutlined';
-import ShieldOutlinedIcon from '@mui/icons-material/ShieldOutlined';
-import CloudOutlinedIcon from '@mui/icons-material/CloudOutlined';
-import BoltOutlinedIcon from '@mui/icons-material/BoltOutlined';
+import LocalParkingOutlinedIcon from '@mui/icons-material/LocalParkingOutlined';
+import QrCodeScannerOutlinedIcon from '@mui/icons-material/QrCodeScannerOutlined';
+import EventOutlinedIcon from '@mui/icons-material/EventOutlined';
+import BusinessOutlinedIcon from '@mui/icons-material/BusinessOutlined';
 import { useAuth } from '../auth/AuthContext';
 import { describeError } from '../api/client';
 import { BrandMark } from '../components/brand/BrandMark';
@@ -78,10 +79,10 @@ export function LoginPage() {
   };
 
   const features = [
-    { icon: ShieldOutlinedIcon, title: 'Segurança', desc: 'Dados protegidos com criptografia' },
-    { icon: CloudOutlinedIcon, title: 'Confiabilidade', desc: 'Infraestrutura operacional estável' },
-    { icon: BoltOutlinedIcon, title: 'Performance', desc: 'Busca rápida entre módulos permitidos' },
-    { icon: LockOutlinedIcon, title: 'Acesso contextual por organização', desc: 'JWT e permissões pelo tenant ativo' },
+    { icon: LocalParkingOutlinedIcon, title: 'Pátio em tempo real', desc: 'Entradas, saídas e ocupação do estacionamento' },
+    { icon: QrCodeScannerOutlinedIcon, title: 'Controle de acesso', desc: 'Validação de credenciais e check-in de eventos' },
+    { icon: EventOutlinedIcon, title: 'Eventos e vagas', desc: 'Instalações, setores e ofertas por evento' },
+    { icon: BusinessOutlinedIcon, title: 'Acesso contextual por organização', desc: 'JWT e permissões pelo tenant ativo' },
   ];
 
   return (
@@ -135,9 +136,9 @@ export function LoginPage() {
           >
             Hub Operacional Kaneko
           </Typography>
-          <Typography sx={{ maxWidth: 460, color: colors.textMuted, fontSize: '0.95rem', lineHeight: 1.55, mb: 3 }}>
-            Centralize seus processos, conecte áreas e tome decisões mais inteligentes.
-            Tudo o que você precisa, em um só lugar para operar sua empresa com eficiência.
+          <Typography sx={{ maxWidth: 480, color: colors.textMuted, fontSize: '0.95rem', lineHeight: 1.55, mb: 3 }}>
+            Opere pátio, acessos, mensalistas, eventos e cobrança no mesmo hub —
+            com contexto por organização e só com dados reais da operação.
           </Typography>
           <BrandMark size={56} showName />
         </Box>
