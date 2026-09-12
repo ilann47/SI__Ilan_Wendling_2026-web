@@ -4,6 +4,7 @@ import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import HistoryOutlinedIcon from '@mui/icons-material/HistoryOutlined';
 import InventoryOutlinedIcon from '@mui/icons-material/InventoryOutlined';
+import NoteAddOutlinedIcon from '@mui/icons-material/NoteAddOutlined';
 import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
 import {
   Alert, Box, Button, Card, Chip, CircularProgress, Dialog, DialogActions,
@@ -12,14 +13,22 @@ import {
 } from '@mui/material';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
+import { useLinkedDetail } from '../hooks/useLinkedDetail';
+import { Link as RouterLink } from 'react-router-dom';
 import { EmptyState } from '../components/listing/EmptyState';
 import { ErrorState } from '../components/listing/ErrorState';
 import { ListingSkeleton } from '../components/listing/ListingSkeleton';
+import { ListingCards } from '../components/listing/ListingCards';
 import { ListingToolbar } from '../components/listing/ListingToolbar';
 import { AppliedFilterChips } from '../components/listing/AppliedFilterChips';
 import { DetailDrawer } from '../components/listing/DetailDrawer';
 import { PrimaryButton } from '../components/listing/PrimaryButton';
+import { SecondaryActionsMenu, type SecondaryAction } from '../components/listing/SecondaryActionsMenu';
 import { UNAVAILABLE_API } from '../components/listing/listingUtils';
+import {
+  inboundNoteFromReceiptPath,
+  PurchaseProcessStrip,
+} from '../components/purchases/PurchaseProcessStrip';
 import { FilterBar } from '../components/crud/FilterBar';
 import type { FilterConfig } from '../components/crud/resourceConfig';
 import { describeError } from '../api/client';
@@ -91,7 +100,11 @@ export function PurchaseOrdersPage() {
   const [approving, setApproving] = useState<PurchaseOrder | null>(null);
   const [cancelling, setCancelling] = useState<PurchaseOrder | null>(null);
   const [receiving, setReceiving] = useState<PurchaseOrder | null>(null);
-  const [details, setDetails] = useState<PurchaseOrder | null>(null);
+  const [received, setReceived] = useState<{ orderId: number; receiptId: number } | null>(null);
+  const [selectedDetails, setDetails] = useState<PurchaseOrder | null>(null);
+  const linked = useLinkedDetail(organizationId, 'purchase-orders', purchaseApi.get, permissions.includes('purchases:read'));
+  const details = selectedDetails ?? linked.data ?? null;
+  const closeDetails = () => { setDetails(null); if (linked.requested) linked.close(); };
   const [history, setHistory] = useState<PurchaseOrder | null>(null);
   const [search, setSearch] = useState('');
   const [filters, setFilters] = useState<Record<string, unknown>>({});
@@ -122,7 +135,8 @@ export function PurchaseOrdersPage() {
   });
   const invalidate = () => organizationId
     && queryClient.invalidateQueries({ queryKey: key(organizationId) });
-  const success = (message: string) => { notify(message, 'success'); void invalidate(); };
+  const success = (message: string) => { notify(message, 'success'); closeDetails(); void invalidate();
+    if (organizationId) void queryClient.invalidateQueries({ queryKey: tenantQueryKey(organizationId, 'dashboard', 'purchase-orders') }); };
   const failure = (error: unknown) => notify(describeError(error), 'error');
 
   const save = useMutation({
@@ -147,13 +161,17 @@ export function PurchaseOrdersPage() {
     mutationFn: (values: Record<string, unknown>) => purchaseApi.receive(
       receiving!.id, buildPurchaseReceiptPayload(values), receiving!.version,
       crypto.randomUUID()),
-    onSuccess: () => { setReceiving(null); success('Recebimento registrado no estoque.'); },
+    onSuccess: (receipt) => {
+      if (receiving) setReceived({ orderId: receiving.id, receiptId: receipt.id });
+      setReceiving(null);
+      success('Mercadoria recebida e estoque atualizado.');
+    },
     onError: failure,
   });
   const receiptFields = useMemo<FieldConfig[]>(() => receiving ? [
     { name: 'localEstoqueId', label: 'Local de estoque', type: 'reference', required: true,
       reference: { basePath: '/api/v1/stock-locations', labelField: 'nome', params: { ativo: true } } },
-    { name: 'observacao', label: 'Observacao do recebimento', type: 'textarea' },
+    { name: 'observacao', label: 'Observação do recebimento', type: 'textarea' },
     { name: 'itens', label: 'Itens recebidos', type: 'subitems', subFields: [
       { name: 'itemOrdemCompraId', label: 'Item pendente', type: 'select', required: true, cols: 8,
         options: receiving.itens.filter((item) => item.quantidadePendente > 0).map((item) => ({
@@ -169,12 +187,52 @@ export function PurchaseOrdersPage() {
 
   const orders = list.data?.content ?? [];
   const clearFilters = () => { setSearch(''); setFilters({}); setPage(0); };
+  const secondaryActions = (order: PurchaseOrder): SecondaryAction[] => [
+    ...(canManage && order.status === 'RASCUNHO' ? [{
+      key: 'edit', label: 'Editar ordem', icon: <EditOutlinedIcon fontSize="small" />,
+      onClick: () => setEditing(order),
+    }] : []),
+    ...(canManage && order.status === 'RASCUNHO' ? [{
+      key: 'approve', label: 'Aprovar para receber', icon: <CheckCircleOutlineIcon fontSize="small" />,
+      onClick: () => setApproving(order),
+    }] : []),
+    ...(canManage && ['RASCUNHO', 'APROVADA'].includes(order.status) ? [{
+      key: 'cancel', label: 'Cancelar ordem', icon: <CancelOutlinedIcon fontSize="small" />,
+      danger: true, onClick: () => setCancelling(order),
+    }] : []),
+    ...(canManage && ['APROVADA', 'PARCIALMENTE_RECEBIDA'].includes(order.status) ? [{
+      key: 'receive', label: 'Receber mercadoria', icon: <InventoryOutlinedIcon fontSize="small" />,
+      onClick: () => setReceiving(order),
+    }] : []),
+    {
+      key: 'details', label: 'Ver detalhes', icon: <VisibilityOutlinedIcon fontSize="small" />,
+      onClick: () => setDetails(order),
+    },
+    {
+      key: 'history', label: 'Ver recebimentos', icon: <HistoryOutlinedIcon fontSize="small" />,
+      onClick: () => setHistory(order),
+    },
+  ];
 
   return <Box>
     <PageHeader title="Ordens de Compra" subtitle="Aprovação e recebimentos parciais integrados à razão de estoque."
       count={list.data?.totalElements}
       action={canManage ? <PrimaryButton startIcon={<AddOutlinedIcon />}
         onClick={() => setEditing(null)}>Nova ordem</PrimaryButton> : undefined} />
+    <PurchaseProcessStrip active="ordem" />
+    {linked.requested && linked.isLoading && <ListingSkeleton />}
+    {linked.requested && linked.isError && <ErrorState message={describeError(linked.error)} onRetry={() => void linked.refetch()} />}
+    <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ mb: 2 }}>
+      <Button component={RouterLink} to="/app/recebimentos" size="small" variant="outlined">
+        Ir para recebimentos
+      </Button>
+      <Button component={RouterLink} to="/app/notas-entrada" size="small" variant="outlined">
+        Ir para notas de entrada
+      </Button>
+      <Button component={RouterLink} to="/app/contas-pagar" size="small" variant="outlined">
+        Ir para contas a pagar
+      </Button>
+    </Stack>
     <ListingToolbar
       searchValue={search}
       searchLabel="Buscar por número"
@@ -199,25 +257,31 @@ export function PurchaseOrdersPage() {
       <TableCell>{formatDate(order.dataEmissao)}</TableCell>
       <TableCell><Chip size="small" label={order.status.replace(/_/g, ' ')} color={statusColor(order.status)} /></TableCell>
       <TableCell align="right">{formatCurrency(order.valorTotal)}</TableCell>
-      <TableCell onClick={(event) => event.stopPropagation()}><Stack direction="row" spacing={0.5} flexWrap="wrap">
-        {canManage && order.status === 'RASCUNHO' && <Button size="small" startIcon={<EditOutlinedIcon />} onClick={() => setEditing(order)}>Editar</Button>}
-        {canManage && order.status === 'RASCUNHO' && <Button size="small" color="success" startIcon={<CheckCircleOutlineIcon />} onClick={() => setApproving(order)}>Aprovar</Button>}
-        {canManage && ['RASCUNHO', 'APROVADA'].includes(order.status) && <Button size="small" color="error" startIcon={<CancelOutlinedIcon />} onClick={() => setCancelling(order)}>Cancelar</Button>}
-        {canManage && ['APROVADA', 'PARCIALMENTE_RECEBIDA'].includes(order.status) && <Button size="small" startIcon={<InventoryOutlinedIcon />} onClick={() => setReceiving(order)}>Receber</Button>}
-        <Button size="small" startIcon={<VisibilityOutlinedIcon />} onClick={() => setDetails(order)}>Detalhes</Button>
-        <Button size="small" startIcon={<HistoryOutlinedIcon />} onClick={() => setHistory(order)}>Histórico</Button>
-      </Stack></TableCell>
-    </TableRow>)}</TableBody></Table></TableContainer></Card>}
-    {orders.length > 0 && <Stack spacing={1.5} sx={{ display: { xs: 'flex', md: 'none' } }}>
-      {orders.map((order) => <Card key={order.id} onClick={() => setDetails(order)} sx={{ p: 2, cursor: 'pointer' }}>
-        <Typography fontWeight={700}>{order.numero}</Typography>
-        <Typography variant="body2">{order.fornecedorNome}</Typography>
-        <Stack direction="row" justifyContent="space-between" sx={{ mt: 1 }}>
-          <Chip size="small" label={order.status.replace(/_/g, ' ')} color={statusColor(order.status)} />
-          <Typography>{formatCurrency(order.valorTotal)}</Typography>
+      <TableCell onClick={(event) => event.stopPropagation()}>
+        <Stack direction="row" spacing={0.5} justifyContent="flex-end">
+          {canManage && ['APROVADA', 'PARCIALMENTE_RECEBIDA'].includes(order.status) && (
+            <Button size="small" variant="contained" onClick={() => setReceiving(order)}>
+              Receber
+            </Button>
+          )}
+          <SecondaryActionsMenu actions={secondaryActions(order).filter((action) => action.key !== 'receive')} />
         </Stack>
-      </Card>)}
-    </Stack>}
+      </TableCell>
+    </TableRow>)}</TableBody></Table></TableContainer></Card>}
+    {orders.length > 0 && (
+      <ListingCards
+        rows={orders}
+        getKey={(order) => order.id}
+        getTitle={(order) => order.numero}
+        getFields={(order) => [
+          { label: 'Fornecedor', value: order.fornecedorNome },
+          { label: 'Situação', value: <Chip size="small" label={order.status.replace(/_/g, ' ')} color={statusColor(order.status)} /> },
+          { label: 'Total', value: formatCurrency(order.valorTotal) },
+        ]}
+        getActions={secondaryActions}
+        onOpen={setDetails}
+      />
+    )}
     {list.data && list.data.totalPages > 1 && (
       <Stack direction="row" justifyContent="space-between" sx={{ mt: 2 }}>
         <Button disabled={page === 0} onClick={() => setPage((current) => current - 1)}>Anterior</Button>
@@ -227,7 +291,7 @@ export function PurchaseOrdersPage() {
     <ResourceFormDialog open={editing !== undefined} title={editing ? 'Editar ordem de compra' : 'Nova ordem de compra'}
       fields={orderFields} initialValues={editing ? toForm(editing) : null} submitting={save.isPending}
       onClose={() => setEditing(undefined)} onSubmit={(values) => save.mutate(values)} />
-    <ConfirmDialog open={!!approving} title="Aprovar ordem" message="Apos aprovada, os itens nao poderao mais ser alterados."
+    <ConfirmDialog open={!!approving} title="Aprovar ordem" message="Após aprovada, os itens não poderão mais ser alterados."
       confirmLabel="Aprovar" loading={approve.isPending} onClose={() => setApproving(null)}
       onConfirm={() => approving && approve.mutate(approving)} />
     <ResourceFormDialog open={!!cancelling} title="Cancelar ordem" fields={[
@@ -235,8 +299,35 @@ export function PurchaseOrdersPage() {
     ]} submitting={cancel.isPending} onClose={() => setCancelling(null)} onSubmit={(values) => cancel.mutate(values)} />
     <ResourceFormDialog open={!!receiving} title={`Receber ${receiving?.numero ?? ''}`} fields={receiptFields}
       submitting={receive.isPending} onClose={() => setReceiving(null)} onSubmit={(values) => receive.mutate(values)} />
+    <Dialog open={!!received} onClose={() => setReceived(null)} maxWidth="xs" fullWidth>
+      <DialogTitle>Mercadoria recebida</DialogTitle>
+      <DialogContent>
+        <Typography>
+          O estoque já foi atualizado. Se a nota do fornecedor está em mãos, você pode lançá-la agora.
+        </Typography>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={() => setReceived(null)}>Agora não</Button>
+        {received && (
+          <Button
+            variant="contained"
+            component={RouterLink}
+            to={inboundNoteFromReceiptPath(received.orderId, received.receiptId)}
+            startIcon={<NoteAddOutlinedIcon />}
+          >
+            Gerar nota agora
+          </Button>
+        )}
+      </DialogActions>
+    </Dialog>
     <DetailDrawer open={!!details} title={`Detalhes da ordem ${details?.numero ?? ''}`}
-      subtitle={details?.fornecedorNome} onClose={() => setDetails(null)}>
+      subtitle={details?.fornecedorNome} onClose={closeDetails}
+      actions={details && canManage ? <Stack direction="row" spacing={1}>
+        {(details.status === 'APROVADA' || details.status === 'PARCIALMENTE_RECEBIDA') && <PrimaryButton
+          startIcon={<InventoryOutlinedIcon />} onClick={() => { setReceiving(details); closeDetails(); }}>Receber mercadoria</PrimaryButton>}
+        {details.status === 'RASCUNHO' && <PrimaryButton startIcon={<CheckCircleOutlineIcon />}
+          onClick={() => { setApproving(details); closeDetails(); }}>Aprovar para receber</PrimaryButton>}
+      </Stack> : undefined}>
         {details && <Stack spacing={3}>
           <Stack direction={{ xs: 'column', md: 'row' }} spacing={3} justifyContent="space-between">
             <Box>
@@ -267,7 +358,7 @@ export function PurchaseOrdersPage() {
               <TableHead><TableRow>
                 <TableCell>Produto</TableCell><TableCell align="right">Pedida</TableCell>
                 <TableCell align="right">Recebida</TableCell><TableCell align="right">Pendente</TableCell>
-                <TableCell align="right">Valor unitario</TableCell><TableCell align="right">Desconto</TableCell>
+                <TableCell align="right">Valor unitário</TableCell><TableCell align="right">Desconto</TableCell>
                 <TableCell align="right">Total</TableCell>
               </TableRow></TableHead>
               <TableBody>{details.itens.map((item) => <TableRow key={item.id}>
@@ -298,22 +389,51 @@ export function PurchaseOrdersPage() {
             <Typography>{details.observacao}</Typography></Box>}
           {details.motivoCancelamento && <Alert severity="error">Motivo do cancelamento: {details.motivoCancelamento}</Alert>}
           <Box>
-            <Typography variant="overline" color="text.secondary">Recebimentos</Typography>
+            <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
+              <Typography variant="overline" color="text.secondary">Recebimentos</Typography>
+              <Button component={RouterLink} to="/app/recebimentos" size="small">Ver todos</Button>
+            </Stack>
             {receipts.isLoading && <Typography variant="body2">Carregando recebimentos…</Typography>}
             {receipts.data?.length === 0 && <Typography variant="body2" color="text.secondary">Nenhum recebimento registrado.</Typography>}
-            {receipts.data?.map((receipt: PurchaseReceipt) => (
-              <Typography key={receipt.id} variant="body2">
-                #{receipt.id} · {receipt.localEstoqueNome} · {formatDateTime(receipt.recebidoEm)}
-              </Typography>
-            ))}
+            <Stack spacing={1}>
+              {receipts.data?.map((receipt: PurchaseReceipt) => (
+                <Card key={receipt.id} variant="outlined" sx={{ p: 1.5 }}>
+                  <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} justifyContent="space-between" alignItems={{ sm: 'center' }}>
+                    <Typography variant="body2">
+                      #{receipt.id} · {receipt.localEstoqueNome} · {formatDateTime(receipt.recebidoEm)}
+                    </Typography>
+                    <Button
+                      size="small"
+                      variant="contained"
+                      component={RouterLink}
+                      to={inboundNoteFromReceiptPath(details.id, receipt.id)}
+                      startIcon={<NoteAddOutlinedIcon />}
+                    >
+                      Gerar nota de entrada
+                    </Button>
+                  </Stack>
+                </Card>
+              ))}
+            </Stack>
           </Box>
           <Box>
             <Typography variant="overline" color="text.secondary">Nota de entrada vinculada</Typography>
             <Typography variant="body2" color="text.secondary">{UNAVAILABLE_API}</Typography>
+            <Button component={RouterLink} to="/app/notas-entrada" size="small" sx={{ mt: 0.5 }}>
+              Abrir notas de entrada
+            </Button>
           </Box>
           <Box>
             <Typography variant="overline" color="text.secondary">Conta a pagar relacionada</Typography>
             <Typography variant="body2" color="text.secondary">{UNAVAILABLE_API}</Typography>
+            <Button
+              component={RouterLink}
+              to={`/app/contas-pagar?fornecedorId=${details.fornecedorId}`}
+              size="small"
+              sx={{ mt: 0.5 }}
+            >
+              Ver contas do fornecedor
+            </Button>
           </Box>
         </Stack>}
     </DetailDrawer>
@@ -322,11 +442,29 @@ export function PurchaseOrdersPage() {
         {receipts.isLoading && <CircularProgress />}{receipts.isError && <Alert severity="error">{describeError(receipts.error)}</Alert>}
         {receipts.data?.length === 0 && <Typography color="text.secondary">Nenhum recebimento registrado.</Typography>}
         {receipts.data?.map((receipt: PurchaseReceipt) => <Card key={receipt.id} variant="outlined" sx={{ mb: 2, p: 2 }}>
-          <Typography fontWeight={700}>#{receipt.id} - {receipt.localEstoqueNome}</Typography>
-          <Typography variant="body2" color="text.secondary">{formatDateTime(receipt.recebidoEm)} por {receipt.atorNome}</Typography>
-          {receipt.itens.map((item) => <Typography key={item.id} variant="body2">{item.produtoNome}: {formatNumber(item.quantidade)} - movimento #{item.movimentoEstoqueId}</Typography>)}
+          <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" spacing={1} alignItems={{ sm: 'center' }}>
+            <Box>
+              <Typography fontWeight={700}>#{receipt.id} - {receipt.localEstoqueNome}</Typography>
+              <Typography variant="body2" color="text.secondary">{formatDateTime(receipt.recebidoEm)} por {receipt.atorNome}</Typography>
+              {receipt.itens.map((item) => <Typography key={item.id} variant="body2">{item.produtoNome}: {formatNumber(item.quantidade)} - movimento #{item.movimentoEstoqueId}</Typography>)}
+            </Box>
+            {history && (
+              <Button
+                size="small"
+                variant="contained"
+                component={RouterLink}
+                to={inboundNoteFromReceiptPath(history.id, receipt.id)}
+                startIcon={<NoteAddOutlinedIcon />}
+              >
+                Gerar nota
+              </Button>
+            )}
+          </Stack>
         </Card>)}
-      </DialogContent><DialogActions><Button onClick={() => setHistory(null)}>Fechar</Button></DialogActions>
+      </DialogContent><DialogActions>
+        <Button component={RouterLink} to="/app/recebimentos">Abrir recebimentos</Button>
+        <Button onClick={() => setHistory(null)}>Fechar</Button>
+      </DialogActions>
     </Dialog>
   </Box>;
 }

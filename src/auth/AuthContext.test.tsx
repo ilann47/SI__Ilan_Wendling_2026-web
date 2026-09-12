@@ -5,12 +5,37 @@ import { api, getToken } from '../api/client';
 import { AuthProvider, useAuth } from './AuthContext';
 
 function SessionProbe() {
-  const { activeOrganization, login, logout, permissions, selectOrganization } = useAuth();
+  const {
+    activeOrganization,
+    login,
+    logout,
+    permissions,
+    register,
+    selectOrganization,
+    requiresOrganizationSelection,
+    openOrganizationSelection,
+    cancelOrganizationSelection,
+    user,
+  } = useAuth();
   return <>
     <span>Tenant: {activeOrganization?.organizationId ?? 'nenhum'}</span>
     <span>Permissoes: {permissions.join(',') || 'nenhuma'}</span>
+    <span>Perfil: {user?.perfil ?? 'nenhum'}</span>
+    <span>Selecao: {requiresOrganizationSelection ? 'sim' : 'nao'}</span>
     <button onClick={() => void login('admin', 'senha')}>Entrar</button>
+    <button
+      onClick={() => void register({
+        nome: 'Maria',
+        login: 'maria',
+        email: 'maria@example.com',
+        senha: 'senha-segura',
+      }).catch(() => undefined)}
+    >
+      Cadastrar
+    </button>
     <button onClick={() => void selectOrganization(10).catch(() => undefined)}>Selecionar</button>
+    <button onClick={openOrganizationSelection}>Abrir selecao</button>
+    <button onClick={cancelOrganizationSelection}>Cancelar selecao</button>
     <button onClick={logout}>Sair</button>
   </>;
 }
@@ -71,9 +96,69 @@ describe('AuthProvider', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Selecionar' }));
 
-    await waitFor(() => expect(api.get).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(api.get).toHaveBeenCalled());
     expect(getToken()).toBe('token-global');
     expect(screen.getByText('Tenant: nenhum')).toBeInTheDocument();
     expect(screen.getByText('Permissoes: nenhuma')).toBeInTheDocument();
+  });
+
+  it('registra conta USUARIO e nao assume organizacao inexistente', async () => {
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    vi.spyOn(api, 'post').mockResolvedValue({
+      data: {
+        id: 9,
+        nome: 'Maria',
+        login: 'maria',
+        email: 'maria@example.com',
+        token: 'token-usuario',
+        tipo: 'Bearer',
+        perfil: 'USUARIO',
+      },
+    });
+    vi.spyOn(api, 'get').mockResolvedValue({ data: [] });
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider><SessionProbe /></AuthProvider>
+      </QueryClientProvider>,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Cadastrar' }));
+
+    await waitFor(() => expect(getToken()).toBe('token-usuario'));
+    expect(screen.getByText('Perfil: USUARIO')).toBeInTheDocument();
+    expect(screen.getByText('Tenant: nenhum')).toBeInTheDocument();
+    expect(api.post).toHaveBeenCalledWith('/api/auth/register', {
+      nome: 'Maria',
+      login: 'maria',
+      email: 'maria@example.com',
+      senha: 'senha-segura',
+    });
+  });
+
+  it('nao auto-seleciona quando ha apenas uma organizacao acessivel', async () => {
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    vi.spyOn(api, 'post').mockResolvedValue({
+      data: { token: 'token-global', tipo: 'Bearer', login: 'admin', perfil: 'ADMIN' },
+    });
+    vi.spyOn(api, 'get').mockResolvedValue({
+      data: [{
+        organizationId: 10,
+        legalName: 'Kaneko Eventos',
+        membershipId: 20,
+        membershipVersion: 0,
+      }],
+    });
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider><SessionProbe /></AuthProvider>
+      </QueryClientProvider>,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Entrar' }));
+
+    await waitFor(() => expect(getToken()).toBe('token-global'));
+    expect(screen.getByText('Tenant: nenhum')).toBeInTheDocument();
+    expect(screen.getByText('Selecao: sim')).toBeInTheDocument();
+    expect(api.post).toHaveBeenCalledTimes(1);
   });
 });

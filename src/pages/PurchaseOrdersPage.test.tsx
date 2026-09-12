@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { api } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
@@ -14,6 +15,17 @@ vi.mock('../components/SnackbarProvider', () => ({
 afterEach(() => vi.restoreAllMocks());
 
 describe('PurchaseOrdersPage', () => {
+  it('abre a compra da URL fora da página atual e permite receber no detalhe', async () => {
+    vi.mocked(useAuth).mockReturnValue({ activeOrganization: { organizationId: 7 }, permissions: ['purchases:read', 'purchases:manage'] } as unknown as ReturnType<typeof useAuth>);
+    vi.spyOn(api, 'get').mockImplementation(async (url) => ({ data: String(url).endsWith('/42')
+      ? { id: 42, numero: 'OC-42', fornecedorNome: 'Fornecedor exato', status: 'APROVADA', itens: [], valorTotal: 120, version: 2 }
+      : String(url).endsWith('/receipts') ? [] : { content: [], totalElements: 0 } }));
+    render(<MemoryRouter initialEntries={['/app/ordens-compra?detail=42']}><QueryClientProvider client={new QueryClient()}><PurchaseOrdersPage /></QueryClientProvider></MemoryRouter>);
+    const drawer = await screen.findByRole('dialog');
+    expect(await within(drawer).findByRole('heading', { name: 'Detalhes da ordem OC-42' })).toBeInTheDocument();
+    expect(within(drawer).getByRole('button', { name: 'Receber mercadoria' })).toBeInTheDocument();
+    expect(api.get).toHaveBeenCalledWith('/api/v1/purchase-orders/42');
+  });
   it('mostra os itens e o resumo financeiro nos detalhes da ordem', async () => {
     vi.mocked(useAuth).mockReturnValue({
       activeOrganization: { organizationId: 7 },
@@ -53,9 +65,14 @@ describe('PurchaseOrdersPage', () => {
     } });
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
 
-    render(<QueryClientProvider client={client}><PurchaseOrdersPage /></QueryClientProvider>);
+    render(
+      <MemoryRouter>
+        <QueryClientProvider client={client}><PurchaseOrdersPage /></QueryClientProvider>
+      </MemoryRouter>,
+    );
     const user = userEvent.setup();
-    await user.click(await screen.findByRole('button', { name: 'Detalhes' }));
+    const orderRow = await screen.findByRole('row', { name: /OC-2026-001/ });
+    await user.click(orderRow);
 
     const dialog = screen.getByRole('dialog');
     expect(within(dialog).getByRole('heading', { name: 'Detalhes da ordem OC-2026-001' })).toBeInTheDocument();

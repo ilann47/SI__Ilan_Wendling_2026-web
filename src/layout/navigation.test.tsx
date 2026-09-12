@@ -1,13 +1,21 @@
 import { describe, expect, it } from 'vitest';
 import { navGroups } from './navigation';
 
-describe('navigation - compatibilidade legada', () => {
-  it('organiza todos os destinos em no maximo seis areas principais', () => {
+describe('navigation - areas por processo', () => {
+  it('organiza destinos em seis áreas, com documentos no processo correspondente', () => {
     expect(navGroups).toHaveLength(6);
     expect(navGroups.map((group) => group.label)).toEqual([
-      'Operação', 'Comercial', 'Fiscal e financeiro',
-      'Clientes e parceiros', 'Produtos e estoque', 'Administração',
+      'Operação', 'Vendas', 'Estoque', 'Financeiro', 'Cadastros', 'Administração',
     ]);
+  });
+
+  it.each([
+    ['/app/notas-entrada', 'Estoque'],
+    ['/app/notas-saida', 'Vendas'],
+    ['/app/notas-servico', 'Vendas'],
+  ])('oferece %s em um único menu de processo', (path, group) => {
+    expect(navGroups.filter((candidate) => candidate.items.some((item) => item.path === path))
+      .map((candidate) => candidate.label)).toEqual([group]);
   });
 
   it('exibe os modulos legados junto dos modulos de eventos', () => {
@@ -20,6 +28,9 @@ describe('navigation - compatibilidade legada', () => {
       'Movimentações': '/app/movimentacoes',
       'Notas de Entrada': '/app/notas-entrada',
       'Notas de Saída': '/app/notas-saida',
+      'Posição de Estoque': '/app/estoque',
+      'Razão de estoque': '/app/estoque?tab=razao',
+      'Recebimentos': '/app/recebimentos',
       Produtos: '/app/produtos',
       Serviços: '/app/servicos',
       'Contas a Pagar': '/app/contas-pagar',
@@ -106,9 +117,9 @@ describe('navigation - compatibilidade legada', () => {
     expect(item?.permissions).toEqual(['catalog:read']);
   });
 
-  it('exige stock:read para Estoque', () => {
+  it('exige stock:read para Posição de Estoque', () => {
     const item = navGroups.flatMap((group) => group.items)
-      .find((candidate) => candidate.label === 'Estoque');
+      .find((candidate) => candidate.label === 'Posição de Estoque');
 
     expect(item?.path).toBe('/app/estoque');
     expect(item?.permissions).toEqual(['stock:read']);

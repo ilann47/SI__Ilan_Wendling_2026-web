@@ -9,7 +9,13 @@ import { useSnackbar } from '../components/SnackbarProvider';
 import { useOperationalWorkspace } from '../workspace/OperationalWorkspaceContext';
 
 export function ContextSelector() {
-  const { user, activeOrganization, organizations, selectOrganization } = useAuth();
+  const {
+    user,
+    activeOrganization,
+    organizations,
+    selectOrganization,
+    openOrganizationSelection,
+  } = useAuth();
   const { recent } = useOperationalWorkspace();
   const { notify } = useSnackbar();
   const navigate = useNavigate();
@@ -18,7 +24,7 @@ export function ContextSelector() {
   const event = recent('event')[0];
   const venue = recent('venue')[0];
   const organizationName = activeOrganization?.tradeName || activeOrganization?.legalName || 'Organização';
-  const role = user?.perfil === 'ADMIN' ? 'Administrador' : 'Operador';
+  const role = user?.perfil === 'ADMIN' ? 'Administrador' : user?.perfil === 'USUARIO' ? 'Usuário' : 'Operador';
 
   return (
     <>
@@ -57,10 +63,20 @@ export function ContextSelector() {
             {event && <Chip size="small" label={`Evento: ${event.label}`} sx={{ mb: 0.5 }} />}
           </Box>
         )}
-        {organizations.length > 1 && <Divider />}
+        <Divider />
+        <MenuItem
+          onClick={() => {
+            setAnchor(null);
+            openOrganizationSelection();
+            navigate('/app');
+          }}
+        >
+          <BusinessOutlinedIcon fontSize="small" sx={{ mr: 1 }} />
+          Escolher ou criar organização
+        </MenuItem>
         {organizations.length > 1 && (
           <Typography variant="overline" color="text.secondary" sx={{ px: 2, pt: 1, display: 'block' }}>
-            Trocar organização
+            Trocar rapidamente
           </Typography>
         )}
         {organizations

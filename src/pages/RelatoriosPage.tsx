@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import dayjs, { type Dayjs } from 'dayjs';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -22,7 +23,9 @@ import PaidIcon from '@mui/icons-material/Paid';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import StorefrontIcon from '@mui/icons-material/Storefront';
 import DesignServicesIcon from '@mui/icons-material/DesignServices';
-import { api } from '../api/client';
+import { api, describeError } from '../api/client';
+import { ErrorState } from '../components/listing/ErrorState';
+import { ListingSkeleton } from '../components/listing/ListingSkeleton';
 import { tenantQueryKey } from '../api/queryKeys';
 import { useAuth } from '../auth/AuthContext';
 import { PageHeader } from '../components/common/PageHeader';
@@ -162,11 +165,15 @@ function ContasAVencerTab({ organizationId, enabled }: { organizationId: number;
 }
 
 function EstoqueTab({ organizationId, enabled }: { organizationId: number; enabled: boolean }) {
-  const { data } = useQuery({
+  const query = useQuery({
     queryKey: tenantQueryKey(organizationId, 'rel', 'estoque'),
     enabled,
     queryFn: () => api.get<EstoqueMinimoResponse>('/api/relatorios/estoque-minimo').then((r) => r.data),
   });
+  const { data } = query;
+  if (!enabled) return <Typography>Seu acesso não permite consultar estoque.</Typography>;
+  if (query.isLoading) return <ListingSkeleton />;
+  if (query.isError) return <ErrorState message={describeError(query.error)} onRetry={() => void query.refetch()} />;
   const itens = data?.itens ?? [];
   return (
     <Card>
@@ -261,7 +268,9 @@ function MensalistasTab({ organizationId, enabled }: { organizationId: number; e
 }
 
 export function RelatoriosPage() {
-  const [tab, setTab] = useState(0);
+  const [params, setParams] = useSearchParams();
+  const tabs = ['faturamento', 'contas', 'estoque', 'mensalistas'];
+  const tab = Math.max(0, tabs.indexOf(params.get('tab') ?? 'faturamento'));
   const { activeOrganization, permissions } = useAuth();
   const organizationId = activeOrganization!.organizationId;
   const canOperations = permissions.includes('operations:read');
@@ -271,7 +280,9 @@ export function RelatoriosPage() {
   return (
     <Box>
       <PageHeader title="Relatórios" subtitle="Consultas gerenciais consolidadas." />
-      <Tabs value={tab} onChange={(_, v) => setTab(v)} variant="scrollable" scrollButtons="auto">
+      <Tabs value={tab} onChange={(_, v) => setParams((current) => {
+        const next = new URLSearchParams(current); next.set('tab', tabs[v]); return next;
+      })} variant="scrollable" scrollButtons="auto">
         <Tab label="Faturamento" />
         <Tab label="Contas a vencer" />
         <Tab label="Estoque mínimo" />

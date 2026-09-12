@@ -34,6 +34,7 @@ import StraightenOutlinedIcon from '@mui/icons-material/StraightenOutlined';
 import SwapHorizOutlinedIcon from '@mui/icons-material/SwapHorizOutlined';
 import TrendingDownOutlinedIcon from '@mui/icons-material/TrendingDownOutlined';
 import TrendingUpOutlinedIcon from '@mui/icons-material/TrendingUpOutlined';
+import TuneOutlinedIcon from '@mui/icons-material/TuneOutlined';
 import WorkOutlineIcon from '@mui/icons-material/WorkOutline';
 import WarehouseOutlinedIcon from '@mui/icons-material/WarehouseOutlined';
 import type { ReactNode } from 'react';
@@ -50,11 +51,15 @@ export interface NavGroup {
   items: NavItem[];
 }
 
+/**
+ * Grupos alinhados às áreas Kaneko (processos, não lista plana de entidades).
+ * Documentos ficam junto de Compras e Vendas, sem uma área Fiscal duplicada.
+ */
 export const navGroups: NavGroup[] = [
   {
     label: 'Operação',
     items: [
-      { label: 'Visão geral', path: '/app/visao-geral', icon: <SpaceDashboardOutlinedIcon fontSize="small" /> },
+      { label: 'Resumo do dia', path: '/app', icon: <SpaceDashboardOutlinedIcon fontSize="small" /> },
       {
         label: 'Acesso de eventos',
         path: '/app/acesso-eventos',
@@ -81,21 +86,16 @@ export const navGroups: NavGroup[] = [
         permissions: ['operations:read'],
       },
       {
-        label: 'Relatórios', path: '/app/relatorios',
+        label: 'Relatórios',
+        path: '/app/relatorios',
         icon: <AssessmentOutlinedIcon fontSize="small" />,
         permissions: ['finance:read', 'operations:read', 'stock:read'],
       },
     ],
   },
   {
-    label: 'Comercial',
+    label: 'Vendas',
     items: [
-      {
-        label: 'Ordens de Compra',
-        path: '/app/ordens-compra',
-        icon: <ShoppingCartCheckoutOutlinedIcon fontSize="small" />,
-        permissions: ['purchases:read'],
-      },
       {
         label: 'Vendas Administrativas',
         path: '/app/vendas-administrativas',
@@ -108,16 +108,124 @@ export const navGroups: NavGroup[] = [
         icon: <BuildOutlinedIcon fontSize="small" />,
         permissions: ['service_orders:read'],
       },
+      {
+        label: 'Notas de Saída',
+        path: '/app/notas-saida',
+        icon: <CallMadeOutlinedIcon fontSize="small" />,
+        permissions: ['fiscal:read'],
+      },
+      {
+        label: 'Notas de Serviço',
+        path: '/app/notas-servico',
+        icon: <DescriptionOutlinedIcon fontSize="small" />,
+        permissions: ['fiscal:read'],
+      },
     ],
   },
   {
-    label: 'Fiscal e financeiro',
+    label: 'Estoque',
     items: [
-      { label: 'Notas de Entrada', path: '/app/notas-entrada', icon: <CallReceivedOutlinedIcon fontSize="small" />, permissions: ['fiscal:read'] },
-      { label: 'Notas de Saída', path: '/app/notas-saida', icon: <CallMadeOutlinedIcon fontSize="small" />, permissions: ['fiscal:read'] },
-      { label: 'Notas de Serviço', path: '/app/notas-servico', icon: <DescriptionOutlinedIcon fontSize="small" />, permissions: ['fiscal:read'] },
-      { label: 'Contas a Receber', path: '/app/contas-receber', icon: <TrendingUpOutlinedIcon fontSize="small" />, permissions: ['finance:read'] },
-      { label: 'Contas a Pagar', path: '/app/contas-pagar', icon: <TrendingDownOutlinedIcon fontSize="small" />, permissions: ['finance:read'] },
+      {
+        label: 'Ordens de Compra',
+        path: '/app/ordens-compra',
+        icon: <ShoppingCartCheckoutOutlinedIcon fontSize="small" />,
+        permissions: ['purchases:read'],
+      },
+      {
+        label: 'Notas de Entrada',
+        path: '/app/notas-entrada',
+        icon: <CallReceivedOutlinedIcon fontSize="small" />,
+        permissions: ['fiscal:read'],
+      },
+      {
+        label: 'Fornecedores',
+        path: '/app/fornecedores',
+        icon: <LocalShippingOutlinedIcon fontSize="small" />,
+        permissions: ['suppliers:read'],
+      },
+      {
+        label: 'Recebimentos',
+        path: '/app/recebimentos',
+        icon: <ReceiptOutlinedIcon fontSize="small" />,
+        permissions: ['purchases:read'],
+      },
+      {
+        label: 'Posição de Estoque',
+        path: '/app/estoque',
+        icon: <WarehouseOutlinedIcon fontSize="small" />,
+        permissions: ['stock:read'],
+      },
+      {
+        label: 'Razão de estoque',
+        path: '/app/estoque?tab=razao',
+        icon: <StraightenOutlinedIcon fontSize="small" />,
+        permissions: ['stock:read'],
+      },
+      {
+        label: 'Locais de Estoque',
+        path: '/app/estoque?tab=locais',
+        icon: <Inventory2OutlinedIcon fontSize="small" />,
+        permissions: ['stock:read'],
+      },
+      {
+        label: 'Produtos',
+        path: '/app/produtos',
+        icon: <Inventory2OutlinedIcon fontSize="small" />,
+        permissions: ['catalog:read'],
+      },
+      {
+        label: 'Conferência/Ajustes',
+        path: '/app/estoque?tab=ajustes',
+        icon: <TuneOutlinedIcon fontSize="small" />,
+        permissions: ['stock:read'],
+      },
+      {
+        label: 'Serviços',
+        path: '/app/servicos',
+        icon: <BuildOutlinedIcon fontSize="small" />,
+        permissions: ['catalog:read'],
+      },
+      {
+        label: 'Produto x Fornecedor',
+        path: '/app/produto-fornecedores',
+        icon: <LinkOutlinedIcon fontSize="small" />,
+        permissions: ['catalog:read'],
+      },
+      {
+        label: 'Categorias',
+        path: '/app/categorias',
+        icon: <CategoryOutlinedIcon fontSize="small" />,
+        permissions: ['catalog:read'],
+      },
+      {
+        label: 'Marcas',
+        path: '/app/marcas',
+        icon: <SellOutlinedIcon fontSize="small" />,
+        permissions: ['catalog:read'],
+      },
+      {
+        label: 'Unidades de Medida',
+        path: '/app/unidades-medida',
+        icon: <StraightenOutlinedIcon fontSize="small" />,
+        permissions: ['catalog:read'],
+      },
+    ],
+  },
+  {
+    label: 'Financeiro',
+    items: [
+      {
+        label: 'Contas a Receber',
+        path: '/app/contas-receber',
+        icon: <TrendingUpOutlinedIcon fontSize="small" />,
+        permissions: ['finance:read'],
+      },
+      {
+        label: 'Contas a Pagar',
+        path: '/app/contas-pagar',
+        icon: <TrendingDownOutlinedIcon fontSize="small" />,
+        permissions: ['finance:read'],
+      },
       {
         label: 'Despesas Avulsas',
         path: '/app/contas-pagar-avulsas',
@@ -127,7 +235,7 @@ export const navGroups: NavGroup[] = [
     ],
   },
   {
-    label: 'Clientes e parceiros',
+    label: 'Cadastros',
     items: [
       {
         label: 'Clientes',
@@ -140,12 +248,6 @@ export const navGroups: NavGroup[] = [
         path: '/app/veiculos',
         icon: <DirectionsCarOutlinedIcon fontSize="small" />,
         permissions: ['operations:read'],
-      },
-      {
-        label: 'Fornecedores',
-        path: '/app/fornecedores',
-        icon: <LocalShippingOutlinedIcon fontSize="small" />,
-        permissions: ['suppliers:read'],
       },
       {
         label: 'Tarifas',
@@ -186,53 +288,9 @@ export const navGroups: NavGroup[] = [
     ],
   },
   {
-    label: 'Produtos e estoque',
-    items: [
-      {
-        label: 'Produtos',
-        path: '/app/produtos',
-        icon: <Inventory2OutlinedIcon fontSize="small" />,
-        permissions: ['catalog:read'],
-      },
-      {
-        label: 'Estoque',
-        path: '/app/estoque',
-        icon: <WarehouseOutlinedIcon fontSize="small" />,
-        permissions: ['stock:read'],
-      },
-      {
-        label: 'Serviços',
-        path: '/app/servicos',
-        icon: <BuildOutlinedIcon fontSize="small" />,
-        permissions: ['catalog:read'],
-      },
-      { label: 'Produto x Fornecedor', path: '/app/produto-fornecedores', icon: <LinkOutlinedIcon fontSize="small" />, permissions: ['catalog:read'] },
-      {
-        label: 'Categorias',
-        path: '/app/categorias',
-        icon: <CategoryOutlinedIcon fontSize="small" />,
-        permissions: ['catalog:read'],
-      },
-      {
-        label: 'Marcas',
-        path: '/app/marcas',
-        icon: <SellOutlinedIcon fontSize="small" />,
-        permissions: ['catalog:read'],
-      },
-      {
-        label: 'Unidades de Medida',
-        path: '/app/unidades-medida',
-        icon: <StraightenOutlinedIcon fontSize="small" />,
-        permissions: ['catalog:read'],
-      },
-    ],
-  },
-  {
     label: 'Administração',
     items: [
-      {
-        label: 'Países', path: '/app/paises', icon: <PublicOutlinedIcon fontSize="small" />,
-      },
+      { label: 'Países', path: '/app/paises', icon: <PublicOutlinedIcon fontSize="small" /> },
       { label: 'Estados', path: '/app/estados', icon: <MapOutlinedIcon fontSize="small" /> },
       { label: 'Cidades', path: '/app/cidades', icon: <LocationCityOutlinedIcon fontSize="small" /> },
       {
@@ -269,7 +327,10 @@ export const navGroups: NavGroup[] = [
         label: 'Vendas e credenciais',
         path: '/app/vendas',
         icon: <ShoppingBagOutlinedIcon fontSize="small" />,
-        permissions: ['inventory:hold', 'orders:create', 'orders:read', 'orders:manual-confirm', 'orders:cancel', 'credentials:issue'],
+        permissions: [
+          'inventory:hold', 'orders:create', 'orders:read', 'orders:manual-confirm',
+          'orders:cancel', 'credentials:issue',
+        ],
       },
       {
         label: 'Bloqueios',

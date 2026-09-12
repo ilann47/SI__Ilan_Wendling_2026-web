@@ -5,10 +5,7 @@ import { useAuth } from './AuthContext';
 
 vi.mock('./AuthContext', () => ({ useAuth: vi.fn() }));
 vi.mock('../pages/OrganizationSelectionPage', () => ({
-  OrganizationSelectionPage: () => <span>Selecionar organizacao</span>,
-}));
-vi.mock('../pages/NoOrganizationAccessPage', () => ({
-  NoOrganizationAccessPage: () => <span>Sem vinculo ativo</span>,
+  OrganizationSelectionPage: () => <span>Seletor de organizacao</span>,
 }));
 
 describe('OrganizationAccessBoundary', () => {
@@ -23,7 +20,7 @@ describe('OrganizationAccessBoundary', () => {
 
     render(<OrganizationAccessBoundary><span>Area tenant</span></OrganizationAccessBoundary>);
 
-    expect(screen.getByText('Sem vinculo ativo')).toBeInTheDocument();
+    expect(screen.getByText('Seletor de organizacao')).toBeInTheDocument();
     expect(screen.queryByText('Area tenant')).not.toBeInTheDocument();
   });
 
@@ -36,6 +33,6 @@ describe('OrganizationAccessBoundary', () => {
 
     render(<OrganizationAccessBoundary><span>Area tenant</span></OrganizationAccessBoundary>);
 
-    expect(screen.getByText('Selecionar organizacao')).toBeInTheDocument();
+    expect(screen.getByText('Seletor de organizacao')).toBeInTheDocument();
   });
 });

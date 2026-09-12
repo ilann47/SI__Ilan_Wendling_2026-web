@@ -6,6 +6,7 @@ import { useColorMode } from '../context/ColorModeContext';
 import { getThemeTokens } from '../theme/hubTokens';
 import {
   APP_HEADER_HEIGHT,
+  APP_HEADER_HEIGHTS,
   APP_SIDEBAR_COLLAPSED_WIDTH,
   APP_SIDEBAR_WIDTH,
 } from './layoutMetrics';
@@ -159,9 +160,9 @@ export function AppSidebar({
           width: desktopWidth,
           flexShrink: 0,
           position: 'fixed',
-          top: APP_HEADER_HEIGHT,
+          top: APP_HEADER_HEIGHTS,
           left: 0,
-          height: `calc(100vh - ${APP_HEADER_HEIGHT}px)`,
+          height: Object.fromEntries(Object.entries(APP_HEADER_HEIGHTS).map(([breakpoint, height]) => [breakpoint, `calc(100dvh - ${height}px)`])),
           zIndex: 1200,
           overflow: 'visible',
           transition: 'width 0.22s ease',

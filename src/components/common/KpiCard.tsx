@@ -1,5 +1,5 @@
 import { type ReactNode } from 'react';
-import { Box, Card, CardContent, Typography } from '@mui/material';
+import { Box, Card, CardActionArea, CardContent, Typography } from '@mui/material';
 import { useColorMode } from '../../context/ColorModeContext';
 import { getThemeTokens } from '../../theme/hubTokens';
 
@@ -11,6 +11,8 @@ interface Props {
   /** Cor do ícone; fundo pastel derivado automaticamente. */
   color?: string;
   iconBg?: string;
+  onClick?: () => void;
+  actionLabel?: string;
 }
 
 /** KPI no padrão MetricCard do Hub YES7 (ícone pastel, tipografia densa). */
@@ -21,14 +23,15 @@ export function KpiCard({
   icon,
   color,
   iconBg,
+  onClick,
+  actionLabel,
 }: Props) {
   const { mode } = useColorMode();
   const colors = getThemeTokens(mode);
   const accent = color ?? colors.purple;
   const softBg = iconBg ?? (mode === 'dark' ? 'rgba(107,70,254,0.18)' : '#F3F0FA');
 
-  return (
-    <Card sx={{ height: '100%', borderRadius: 2.5 }}>
+  const content = (
       <CardContent sx={{ p: 2.5, '&:last-child': { pb: 2.5 } }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
           <Box
@@ -62,6 +65,10 @@ export function KpiCard({
           </Typography>
         ) : null}
       </CardContent>
-    </Card>
   );
+  return <Card sx={{ height: '100%', borderRadius: 2.5 }}>
+    {onClick ? <CardActionArea onClick={onClick} aria-label={actionLabel ?? title} sx={{ height: '100%' }}>
+      {content}
+    </CardActionArea> : content}
+  </Card>;
 }

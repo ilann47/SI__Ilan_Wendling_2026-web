@@ -5,7 +5,7 @@
 export type TipoPessoa = 'FISICA' | 'JURIDICA';
 export type Sexo = 'MASCULINO' | 'FEMININO' | 'OUTRO';
 export type EstadoCivil = 'SOLTEIRO' | 'CASADO' | 'SEPARADO' | 'DIVORCIADO' | 'VIUVO' | 'OUTRO';
-export type PerfilUsuario = 'ADMIN' | 'OPERADOR';
+export type PerfilUsuario = 'ADMIN' | 'OPERADOR' | 'USUARIO';
 export type TipoEmail = 'COMERCIAL' | 'FINANCEIRO' | 'COMPRAS' | 'VENDAS' | 'SUPORTE';
 export type TipoTelefone = 'COMERCIAL' | 'RESIDENCIAL' | 'CELULAR' | 'FAX' | 'WHATSAPP';
 export type TipoVeiculo = 'CARRO' | 'MOTO';
@@ -36,6 +36,23 @@ export interface LoginResponse {
   tipo: string;
   login: string;
   perfil: PerfilUsuario;
+}
+
+export interface RegisterRequest {
+  nome: string;
+  login: string;
+  email: string;
+  senha: string;
+}
+
+export interface RegisterResponse {
+  id: number;
+  nome: string;
+  login: string;
+  email: string;
+  token: string;
+  tipo: 'Bearer';
+  perfil: 'USUARIO';
 }
 
 // ===================== Geografia =====================
@@ -687,6 +704,10 @@ export interface NotaEntradaResponse {
   condicaoPagamentoNome?: string;
   localEstoqueId?: number;
   localEstoqueNome?: string;
+  /** Presentes somente se a API devolver o vínculo (hoje opcional / frequentemente ausente). */
+  recebimentoCompraId?: number;
+  ordemCompraId?: number;
+  ordemCompraNumero?: string;
   dataEmissao: string;
   dataChegada?: string;
   tipoFrete: TipoFrete;
@@ -716,6 +737,8 @@ export interface NotaEntradaRequest {
   fornecedorId: number;
   condicaoPagamentoId?: number;
   localEstoqueId: number;
+  /** Vincula um recebimento de OC já existente para evitar duplicar estoque (campo aceito no create legado). */
+  recebimentoCompraId?: number;
   dataEmissao?: string;
   dataChegada?: string;
   tipoFrete?: TipoFrete;

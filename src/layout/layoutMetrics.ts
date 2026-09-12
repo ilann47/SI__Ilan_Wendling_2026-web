@@ -1,6 +1,10 @@
 /** Altura da barra superior (Home e módulos). */
 export const APP_HEADER_HEIGHT = 64;
 
+/** Segunda linha de áreas em desktops intermediários; inline em xl+. */
+export const APP_HEADER_NAV_HEIGHT = 44;
+export const APP_HEADER_HEIGHTS = { xs: APP_HEADER_HEIGHT, md: APP_HEADER_HEIGHT + APP_HEADER_NAV_HEIGHT, xl: APP_HEADER_HEIGHT } as const;
+
 /** Padding horizontal do header — o mesmo na Home e nos módulos. */
 export const APP_HEADER_PX = { xs: 1.5, sm: 2.25 } as const;
 

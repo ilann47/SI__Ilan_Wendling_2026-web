@@ -11,6 +11,8 @@ import {
 import { ptBR } from '@mui/x-data-grid/locales';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { useLinkedDetail } from '../../hooks/useLinkedDetail';
 import { describeError } from '../../api/client';
 import {
   createResourceApi,
@@ -77,10 +79,21 @@ export function CrudResourcePage({ config }: { config: ResourceConfig }) {
   const { activeOrganization, permissions } = useAuth();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const [searchParams] = useSearchParams();
   const resource = useMemo(() => createResourceApi<ResourceRow, Record<string, unknown>>(config.basePath), [config.basePath]);
 
+  const initialFilters = useMemo(() => {
+    const next: Record<string, unknown> = {};
+    const known = new Set((config.filters ?? []).map((filter) => filter.name));
+    searchParams.forEach((value, key) => {
+      if (!known.has(key) || !value) return;
+      next[key] = value;
+    });
+    return next;
+  }, [config.filters, searchParams]);
+
   const [pagination, setPagination] = useState<GridPaginationModel>({ page: 0, pageSize: 10 });
-  const [filters, setFilters] = useState<Record<string, unknown>>({});
+  const [filters, setFilters] = useState<Record<string, unknown>>(initialFilters);
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [formOpen, setFormOpen] = useState(false);
@@ -93,7 +106,15 @@ export function CrudResourcePage({ config }: { config: ResourceConfig }) {
   const [deletingVersion, setDeletingVersion] = useState<number | null>(null);
   const [deleteConflict, setDeleteConflict] = useState(false);
   const [running, setRunning] = useState<{ action: RowAction; row: ResourceRow } | null>(null);
-  const [detail, setDetail] = useState<ResourceRow | null>(null);
+  const [selectedDetail, setDetail] = useState<ResourceRow | null>(null);
+  const linked = useLinkedDetail(activeOrganization?.organizationId, config.key, resource.get,
+    hasResourceActionPermission(config, 'read', permissions));
+  const detail = selectedDetail ?? linked.data ?? null;
+  const closeDetail = () => { setDetail(null); if (linked.requested) linked.close(); };
+
+  useEffect(() => {
+    setFilters(initialFilters);
+  }, [initialFilters]);
 
   const canCreate = config.canCreate !== false
     && hasResourceActionPermission(config, 'create', permissions);
@@ -170,12 +191,12 @@ export function CrudResourcePage({ config }: { config: ResourceConfig }) {
       const row = asRow(await resource.get(detail!.id));
       return row ?? detail;
     },
-    enabled: detail !== null,
+    enabled: selectedDetail !== null,
   });
 
-  const invalidate = () => queryClient.invalidateQueries({
+  const invalidate = () => Promise.all([queryClient.invalidateQueries({
     queryKey: resourceQueryKey(config, activeOrganization?.organizationId, 'list', config.basePath),
-  });
+  }), ...(linked.requested ? [linked.refetch()] : [])]);
 
   const expectedVersion = (version: number | null) => {
     if (version === null) throw new Error('A versão esperada do recurso não está disponível.');
@@ -326,6 +347,7 @@ export function CrudResourcePage({ config }: { config: ResourceConfig }) {
       });
     }
     (config.rowActions ?? []).forEach((action) => {
+      if (config.rowActionPermissions?.some((permission) => !permissions.includes(permission))) return;
       if (action.visible && !action.visible(row)) return;
       items.push({
         key: action.key,
@@ -397,7 +419,7 @@ export function CrudResourcePage({ config }: { config: ResourceConfig }) {
     }));
 
   const initialValues = editing ? (config.toFormValues ? config.toFormValues(editing) : editing) : null;
-  const detailRow = detailQuery.data ?? detail;
+  const detailRow = selectedDetail ? detailQuery.data ?? selectedDetail : linked.data;
 
   return (
     <Box>
@@ -439,6 +461,8 @@ export function CrudResourcePage({ config }: { config: ResourceConfig }) {
         </Box>
       )}
       {listQuery.isLoading && !listQuery.data && <ListingSkeleton />}
+      {linked.requested && linked.isLoading && <ListingSkeleton />}
+      {linked.requested && linked.isError && <ErrorState message={describeError(linked.error)} onRetry={() => void linked.refetch()} />}
       {!listQuery.isLoading && !listQuery.isError && rows.length === 0 && (
         <EmptyState
           title={`Nenhum ${config.singular.toLowerCase()} encontrado`}
@@ -514,7 +538,7 @@ export function CrudResourcePage({ config }: { config: ResourceConfig }) {
         open={!!detail}
         title={detail ? `${config.singular} #${detail.id}` : config.singular}
         subtitle={detail ? String(detail.nome ?? detail.numero ?? detail.placa ?? '') : undefined}
-        onClose={() => setDetail(null)}
+        onClose={closeDetail}
         actions={detail ? (
           <Stack direction="row" spacing={1} flexWrap="wrap">
             {visibleActions(detail).map((action) => (
@@ -574,7 +598,7 @@ export function CrudResourcePage({ config }: { config: ResourceConfig }) {
         }}
       />
 
-      {running && (
+      {running && !config.rowActionPermissions?.some((permission) => !permissions.includes(permission)) && (
         <ActionRunner
           basePath={config.basePath}
           action={running.action}

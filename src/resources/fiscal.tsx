@@ -84,7 +84,7 @@ export const notaEntradaConfig: ResourceConfig = {
       label: 'Recebimento da ordem',
       type: 'integer',
       cols: 6,
-      helperText: 'Opcional. Informe o ID exibido no historico da Ordem de Compra para evitar duplicar o estoque.',
+      helperText: 'Preferir o fluxo guiado em Notas de Entrada (seleção de ordem e recebimento, sem digitar ID).',
     },
     { name: 'dataEmissao', label: 'Emissão', type: 'date', cols: 4 },
     { name: 'dataChegada', label: 'Chegada', type: 'date', cols: 4 },

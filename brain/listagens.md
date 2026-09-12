@@ -33,6 +33,10 @@ quando o item é aberto. Relacionamentos sem contrato aparecem como texto honest
 
 `ResourceConfig` aceita `searchFilter` e `unavailableRelations`. O detalhe
 mostra campos do GET e tabelas de itens apenas quando a resposta traz arrays.
+`useLinkedDetail` resolve `?detail=ID` por GET existente, com cache por organização,
+permissão de leitura, validação de ID inteiro positivo e estados de erro/consulta.
+Funciona mesmo fora da primeira página. Fechar remove somente `detail` da URL.
+`rowActionPermissions` permite restringir comandos sem exigir edição do formulário.
 
 ## Integrações externas (se houver)
 
@@ -54,6 +58,12 @@ As páginas CRUD existentes continuam passando pela suíte Vitest.
 - Ações secundárias ficam no menu ⋮ para não competir com a ação principal.
 - Ausência de vínculo na API vira `Informação não disponibilizada pela API atual`.
 - Dependências de contrato estão em `src/backlog/backend-dependencies.md`.
+- Contas, compras e ordens de serviço aceitam deep-link de detalhe. O erro do
+  GET não é convertido em recurso inexistente fictício nem em dados de outra organização.
+- Na OS, Iniciar/Concluir é a ação principal conforme estado; Editar/Cancelar
+  ficam no menu secundário. O detalhe mantém a ação e o mobile usa `ListingCards`.
+  Todas as mutações continuam confirmadas e usam os contratos/versões existentes.
+- Nota de Entrada usa listagem dedicada + rota de detalhe (não só drawer CRUD).
 
 ## Módulos relacionados
 
@@ -70,3 +80,6 @@ As páginas CRUD existentes continuam passando pela suíte Vitest.
 | 2026-09-04 | Cria o shell de listagem/detalhe e alinha o tema ao Hub YES7. |
 | 2026-09-04 | Reforça login split-screen, sidebar com marca e item ativo em pill suave. |
 | 2026-09-04 | Alinha tokens (#6B46FE, #F4F5FB), hexágono e login ao código-fonte do Hub YES7. |
+| 2026-09-11 | Listagem/detalhe dedicados de Nota de Entrada; backlog de vínculos ausentes. |
+| 2026-09-11 | Ordens de compra passam a usar menu secundário e `ListingCards` no mobile. |
+| 2026-09-12 | Adiciona detalhes por URL tenant-aware, ações contextuais de OS e RBAC dos comandos financeiros; mantém compatibilidade das listagens. |

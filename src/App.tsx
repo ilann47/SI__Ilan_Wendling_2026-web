@@ -6,12 +6,11 @@ import { PermissionRoute } from './auth/PermissionRoute';
 import { ProtectedRoute } from './auth/ProtectedRoute';
 import { AppLayout } from './layout/AppLayout';
 import { LoginPage } from './pages/LoginPage';
+import { RegisterPage } from './pages/RegisterPage';
 import { allConfigs } from './resources';
 
 const HubHomePage = lazy(() => import('./pages/HubHomePage')
   .then((module) => ({ default: module.HubHomePage })));
-const DashboardPage = lazy(() => import('./pages/DashboardPage')
-  .then((module) => ({ default: module.DashboardPage })));
 const EventAccessPage = lazy(() => import('./pages/EventAccessPage')
   .then((module) => ({ default: module.EventAccessPage })));
 const AccessAttemptsPage = lazy(() => import('./pages/AccessAttemptsPage')
@@ -34,6 +33,16 @@ const StockPage = lazy(() => import('./pages/StockPage')
   .then((module) => ({ default: module.StockPage })));
 const PurchaseOrdersPage = lazy(() => import('./pages/PurchaseOrdersPage')
   .then((module) => ({ default: module.PurchaseOrdersPage })));
+const PurchaseReceiptsPage = lazy(() => import('./pages/PurchaseReceiptsPage')
+  .then((module) => ({ default: module.PurchaseReceiptsPage })));
+const InboundNotesPage = lazy(() => import('./pages/InboundNotesPage')
+  .then((module) => ({ default: module.InboundNotesPage })));
+const InboundNoteWizardPage = lazy(() => import('./pages/InboundNoteWizardPage')
+  .then((module) => ({ default: module.InboundNoteWizardPage })));
+const InboundNoteDetailPage = lazy(() => import('./pages/InboundNoteDetailPage')
+  .then((module) => ({ default: module.InboundNoteDetailPage })));
+const ContasPagarPage = lazy(() => import('./pages/ContasPagarPage')
+  .then((module) => ({ default: module.ContasPagarPage })));
 const AdministrativeSalesPage = lazy(() => import('./pages/AdministrativeSalesPage')
   .then((module) => ({ default: module.AdministrativeSalesPage })));
 const ServiceOrdersPage = lazy(() => import('./pages/ServiceOrdersPage')
@@ -49,11 +58,16 @@ function LoadingPage() {
   );
 }
 
+const crudConfigs = allConfigs.filter(
+  (config) => config.key !== 'notas-entrada' && config.key !== 'contas-pagar',
+);
+
 export function App() {
   return (
     <Suspense fallback={<LoadingPage />}>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
         <Route
           path="/app"
           element={
@@ -63,7 +77,8 @@ export function App() {
           }
         >
           <Route index element={<HubHomePage />} />
-          <Route path="visao-geral" element={<DashboardPage />} />
+          <Route path="areas/:areaId" element={<Navigate to="/app" replace />} />
+          <Route path="visao-geral" element={<Navigate to="/app" replace />} />
           <Route path="acesso-eventos" element={
             <PermissionRoute anyOf={['access:validate', 'access:checkin', 'access:checkout', 'credentials:block']}>
               <EventAccessPage />
@@ -101,13 +116,28 @@ export function App() {
           <Route path="ordens-compra" element={
             <PermissionRoute anyOf={['purchases:read']}><PurchaseOrdersPage /></PermissionRoute>
           } />
+          <Route path="recebimentos" element={
+            <PermissionRoute anyOf={['purchases:read']}><PurchaseReceiptsPage /></PermissionRoute>
+          } />
+          <Route path="notas-entrada" element={
+            <PermissionRoute anyOf={['fiscal:read']}><InboundNotesPage /></PermissionRoute>
+          } />
+          <Route path="notas-entrada/nova" element={
+            <PermissionRoute anyOf={['fiscal:manage']}><InboundNoteWizardPage /></PermissionRoute>
+          } />
+          <Route path="notas-entrada/:id" element={
+            <PermissionRoute anyOf={['fiscal:read']}><InboundNoteDetailPage /></PermissionRoute>
+          } />
+          <Route path="contas-pagar" element={
+            <PermissionRoute anyOf={['finance:read']}><ContasPagarPage /></PermissionRoute>
+          } />
           <Route path="vendas-administrativas" element={
             <PermissionRoute anyOf={['sales:read']}><AdministrativeSalesPage /></PermissionRoute>
           } />
           <Route path="ordens-servico" element={
             <PermissionRoute anyOf={['service_orders:read']}><ServiceOrdersPage /></PermissionRoute>
           } />
-          {allConfigs.map((config) => (
+          {crudConfigs.map((config) => (
             <Route
               key={config.key}
               path={config.key}

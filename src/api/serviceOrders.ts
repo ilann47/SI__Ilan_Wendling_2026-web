@@ -58,6 +58,7 @@ export function buildServiceOrderPayload(values: Record<string, unknown>): Servi
 }
 
 export const serviceOrdersApi = {
+  get: (id: number) => api.get<ServiceOrder>(`/api/v1/service-orders/${id}`).then((response) => response.data),
   list: (params: PageParams = {}) => api.get<Page<ServiceOrder>>(
     '/api/v1/service-orders', { params }).then((response) => response.data),
   create: (body: ServiceOrderRequest, key: string) => api.post<ServiceOrder>(

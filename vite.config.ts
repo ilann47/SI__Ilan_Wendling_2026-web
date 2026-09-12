@@ -9,6 +9,9 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 5173,
+    watch: {
+      ignored: ['**/.tmp-check/**', '**/tmp/**', '**/.vite-temp/**'],
+    },
     proxy: {
       '/api': { target: backend, changeOrigin: true },
       '/actuator': { target: backend, changeOrigin: true },

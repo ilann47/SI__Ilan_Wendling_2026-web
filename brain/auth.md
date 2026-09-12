@@ -1,88 +1,110 @@
-> Links: [[core]] · [[acesso]]
-
-# Autenticação e Contexto Organizacional
+# Autenticacao
 
 ## Objetivo
 
-Autenticar a identidade global e selecionar de forma segura o tenant ativo.
+Autenticar o usuario, criar conta autoatendida, selecionar a organizacao ativa e
+manter a sessao alinhada ao JWT contextual emitido pelo backend.
 
 ## Contexto
 
-O backend mantém `Usuario` global, lista Memberships ativas e emite um novo JWT
-quando o usuário seleciona a organização.
+O frontend nao inventa Membership. Login e cadastro produzem um JWT global;
+operacoes de negocio exigem token contextual com `org_id`. Contas novas nascem
+com perfil `USUARIO` e sem organizacao ate receberem Membership.
 
-## Fluxo (camadas da arquitetura)
+## Fluxo
 
-```text
-POST /api/auth/login
-  -> armazena JWT global
-  -> GET /api/v1/me/organizations
-  -> zero: estado sem acesso organizacional, sem abrir modulos legados
-  -> uma: seleção automática
-  -> várias: tela de seleção
-  -> POST /api/v1/me/active-organization
-  -> substitui pelo JWT contextual
-  -> GET /api/v1/me/permissions
-```
+1. Login em `POST /api/auth/login` ou cadastro em `POST /api/auth/register`.
+2. Persistencia do JWT em `localStorage` (`kaneko.token`) e hidratacao do
+   AuthContext.
+3. Consulta de organizacoes acessiveis em `GET /api/v1/me/organizations`.
+4. Zero organizacoes: estado vazio de onboarding (sem menus operacionais).
+5. Uma ou mais organizacoes sem `org_id` no JWT: tela de escolha (sem
+   auto-selecao).
+6. Usuario autenticado com tenant pode reabrir a escolha via
+   “Escolher ou criar organização”.
+7. Troca/ativacao: `POST /api/v1/me/active-organization`.
+8. Permissoes efetivas em `GET /api/v1/me/permissions`.
+9. Logout limpa token, cache React Query e estado local.
 
-## Endpoints (se houver)
+Cadastro (`/register`) envia somente `{ nome, login, email, senha }`. Confirmacao
+de senha e exclusiva do frontend. Apos HTTP 201, o fluxo de sessao e o mesmo do
+login.
 
-- `GET /api/v1/me/organizations`
-- `POST /api/v1/me/active-organization`
-- `GET /api/v1/me/permissions`
+Criacao de organizacao:
+- USUARIO: `POST /api/v1/me/organizations` (atomico).
+- ADMIN: `POST /api/v1/organizations` + membership.
+- OPERADOR: sem criacao.
+Entrada na organizacao e sempre explicita.
+## Endpoints
 
-## Estrutura de Dados (DTOs, Entidades)
+| Metodo | Caminho | Uso |
+|---|---|---|
+| POST | `/api/auth/login` | Autenticacao |
+| POST | `/api/auth/register` | Criacao de conta |
+| GET | `/api/v1/me/organizations` | Organizacoes acessiveis |
+| POST | `/api/v1/me/active-organization` | JWT contextual |
+| POST | `/api/v1/me/organizations` | Self-service USUARIO |
+| POST | `/api/v1/organizations` | Criacao ADMIN |
+| POST | `/api/v1/organizations/{id}/memberships` | Vinculo ADMIN |
+| GET | `/api/v1/me/permissions` | Permissoes efetivas |
+| GET | `/api/v1/me` | Perfil global autenticado |
 
-`AccessibleOrganization` preserva IDs de organização/Membership e os nomes de
-exibição. As permissões efetivas são mantidas separadamente da autoridade legada.
+## Estrutura de Dados
 
-## Integrações externas (se houver)
+`RegisterRequest`: `nome`, `login`, `email`, `senha`.
+`RegisterResponse`: `id`, `nome`, `login`, `email`, `token`, `tipo`, `perfil`
+(`USUARIO`).
 
-Nenhuma.
+`AuthUser.perfil` inclui `ADMIN`, `OPERADOR` e `USUARIO`.
+
+## Integracoes externas
+
+Backend Spring Boot via `VITE_BACKEND_URL` (proxy Vite `/api`).
 
 ## Tratamento de Erros
 
-Resposta 401 limpa toda a sessão. A troca somente persiste o novo JWT depois de
-carregar as permissões usando o token candidato. Falha de seleção preserva o
-contexto anterior e permite nova tentativa sem assumir outro tenant.
+- Cadastro 400: ProblemDetail com `erros` mapeados aos campos; campos
+  desconhecidos usam `detail` como erro geral.
+- Cadastro 409: mensagem neutra fixa “Login ou e-mail já cadastrado.”
+- Cadastro 500/indisponibilidade: feedback generico; formulario preservado
+  (senhas limpas).
+- Sessao 401: limpa autenticacao apos uso de token (exceto login/cadastro).
+- Troca de tenant falha: preserva JWT anterior.
+- `describeError` nunca expoe mensagens tecnicas do Axios; prioriza ProblemDetail,
+  depois status amigavel, timeout e servidor inacessivel.
+## Testes
 
-Logout e troca de organização limpam também o cache remoto. O handler global de
-401 é removido quando o provider desmonta, evitando referência de sessão antiga.
+`RegisterPage.test.tsx`, `AuthContext.test.tsx`, `NoOrganizationAccessPage.test.tsx`,
+`LoginPage.test.tsx` e suites existentes via `npm test`.
 
-## Testes (curl ou equivalente)
+## Decisoes Tecnicas
 
-Validação disponível por `npm run typecheck` e `npm run build`.
+- O cliente envia somente `organizationId` na troca de contexto.
+- Conta neutra / sem Membership cai no seletor unificado (lista vazia).
+- Criacao USUARIO: `POST /api/v1/me/organizations` (atomico); sem auto-ativacao.
+- Criacao ADMIN: `POST /api/v1/organizations` + membership; sem auto-ativacao;
+  permite repetir so o vinculo se a org ja foi criada.
+- OPERADOR nao ve criacao.
+- Entrada na org e sempre explicita (“Entrar” / “Entrar nesta organização”).
+- Login e cadastro compartilham `establishSession` no AuthContext.
+- Nao se registra senha ou token em console, telemetria ou UI.
 
-## Decisões Técnicas
-
-- O cliente envia somente `organizationId`; Membership e versão vêm do servidor.
-- A organização ativa é inferida da claim `org_id` apenas para reconstruir a UI;
-  o backend continua sendo a autoridade de escopo.
-- O ID selecionado é validado contra a projeção acessível antes de substituir o
-  JWT. Após validar o token candidato e carregar suas permissões, consultas em
-  voo são canceladas, o cache anterior é descartado e o contexto é confirmado.
-- Rotas operacionais possuem guard de permissão próprio; ocultar um item de menu
-  não é tratado como controle de acesso.
-- Usuário autenticado sem Membership ativa recebe estado explícito e não acessa
-  a interface global legada.
-- A seleção permite pesquisa e destaca somente uma organização recente que ainda
-  esteja presente na projeção acessível retornada pelo servidor.
-- O login permite revelar a senha de forma acessível sem registrar seu valor.
-- A apresentação do login segue a identidade visual do Hub Kaneko e comunica
-  somente capacidades verificáveis. Não há opção de persistência adicional da
-  sessão enquanto esse comportamento não existir no fluxo de autenticação.
-
-## Módulos relacionados
+## Modulos relacionados
 
 - [[core]]
 - [[acesso]]
 
-## Histórico
+## Historico
 
-| Data | Ação |
+| Data | Acao |
 |---|---|
-| 2026-08-01 | Implementa descoberta e seleção de organização com JWT contextual. |
-| 2026-08-02 | Isola o cache remoto no logout e na troca de organização. |
-| 2026-08-02 | Torna a troca de tenant atômica e fecha rotas por permissão efetiva. |
-| 2026-08-03 | Adiciona pesquisa, preferência recente e controle acessível de senha. |
+| 2026-08-01 | Implementa descoberta e selecao de organizacao com JWT contextual. |
+| 2026-08-02 | Isola o cache remoto no logout e na troca de organizacao. |
+| 2026-08-02 | Torna a troca de tenant atomica e fecha rotas por permissao efetiva. |
+| 2026-08-03 | Adiciona pesquisa, preferencia recente e controle acessivel de senha. |
 | 2026-09-04 | Consolida a identidade do Hub no login sem promessas ou controles sem comportamento real. |
+| 2026-09-10 | Adiciona cadastro via `POST /api/auth/register`, perfil `USUARIO` e onboarding sem organizacao. |
+| 2026-09-10 | Alinha mensagem 409, foco no primeiro erro e copy de “Criar organização” indisponível. |
+| 2026-09-10 | Remove auto-selecao de org unica; permite reabrir escolha e criar org (ADMIN). |
+| 2026-09-10 | Self-service USUARIO via `/api/v1/me/organizations`; seletor unificado sem auto-ativar. |
+| 2026-09-11 | Centraliza mensagens amigaveis em `describeError` e isenta login/cadastro do logout 401. |

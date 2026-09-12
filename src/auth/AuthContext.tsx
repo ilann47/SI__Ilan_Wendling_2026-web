@@ -9,9 +9,10 @@ import {
 } from 'react';
 import { api, getToken, setToken, setUnauthorizedHandler } from '../api/client';
 import { useQueryClient } from '@tanstack/react-query';
+import type { RegisterRequest, RegisterResponse } from '../types';
 import { rememberLastOrganizationId } from './organizationPreference';
 
-export type Perfil = 'ADMIN' | 'OPERADOR';
+export type Perfil = 'ADMIN' | 'OPERADOR' | 'USUARIO';
 
 export interface AuthUser {
   login: string;
@@ -36,8 +37,14 @@ interface AuthContextValue {
   requiresOrganizationSelection: boolean;
   hasNoOrganizationAccess: boolean;
   login: (login: string, senha: string) => Promise<void>;
-  selectOrganization: (organizationId: number) => Promise<void>;
-  refreshOrganizations: () => Promise<void>;
+  register: (payload: RegisterRequest) => Promise<void>;
+  selectOrganization: (
+    organizationId: number,
+    knownList?: AccessibleOrganization[],
+  ) => Promise<void>;
+  refreshOrganizations: () => Promise<AccessibleOrganization[]>;
+  openOrganizationSelection: () => void;
+  cancelOrganizationSelection: () => void;
   logout: () => void;
 }
 
@@ -64,6 +71,11 @@ function decodeToken(token: string): JwtPayload | null {
   }
 }
 
+function normalizePerfil(value: string | undefined): Perfil {
+  if (value === 'ADMIN' || value === 'OPERADOR' || value === 'USUARIO') return value;
+  return 'USUARIO';
+}
+
 function userFromToken(token: string | null): AuthUser | null {
   if (!token) return null;
   const payload = decodeToken(token);
@@ -71,7 +83,7 @@ function userFromToken(token: string | null): AuthUser | null {
     setToken(null);
     return null;
   }
-  return { login: payload.sub ?? '', perfil: (payload.perfil as Perfil) ?? 'OPERADOR' };
+  return { login: payload.sub ?? '', perfil: normalizePerfil(payload.perfil) };
 }
 
 interface LoginResponse {
@@ -95,6 +107,26 @@ interface PermissionsResponse {
   permissions: string[];
 }
 
+async function establishSession(
+  token: string,
+  loginName: string,
+  perfil: Perfil,
+  setUser: (user: AuthUser) => void,
+  markHydrated: () => void,
+  loadOrganizations: () => Promise<unknown>,
+  logout: () => void,
+) {
+  setToken(token);
+  markHydrated();
+  setUser({ login: loginName, perfil });
+  try {
+    await loadOrganizations();
+  } catch (cause) {
+    logout();
+    throw cause;
+  }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
   const hydrationStarted = useRef(false);
@@ -104,6 +136,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [activeOrganization, setActiveOrganization] =
     useState<AccessibleOrganization | null>(null);
   const [permissions, setPermissions] = useState<string[]>([]);
+  const [organizationSelectionRequested, setOrganizationSelectionRequested] = useState(false);
 
   const logout = useCallback(() => {
     queryClient.clear();
@@ -112,11 +145,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setOrganizations([]);
     setActiveOrganization(null);
     setPermissions([]);
+    setOrganizationSelectionRequested(false);
     setContextLoading(false);
   }, [queryClient]);
 
-  const selectOrganization = useCallback(async (organizationId: number) => {
-    const organization = organizations.find((item) => item.organizationId === organizationId);
+  const selectOrganization = useCallback(async (
+    organizationId: number,
+    knownList?: AccessibleOrganization[],
+  ) => {
+    const organization = (knownList ?? organizations)
+      .find((item) => item.organizationId === organizationId);
     if (!organization) throw new Error('A organização selecionada não está disponível.');
     setContextLoading(true);
     try {
@@ -124,14 +162,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         '/api/v1/me/active-organization',
         { organizationId },
       );
+      const authHeader = { Authorization: `Bearer ${data.token}` };
       const permissionResponse = await api.get<PermissionsResponse>('/api/v1/me/permissions', {
-        headers: { Authorization: `Bearer ${data.token}` },
+        headers: authHeader,
+      });
+      const meResponse = await api.get<{ login?: string; perfil?: string }>('/api/v1/me', {
+        headers: authHeader,
       });
       await queryClient.cancelQueries();
       queryClient.clear();
       setToken(data.token);
+      setUser({
+        login: meResponse.data.login || userFromToken(data.token)?.login || '',
+        perfil: normalizePerfil(meResponse.data.perfil ?? userFromToken(data.token)?.perfil),
+      });
       setPermissions(permissionResponse.data.permissions);
       setActiveOrganization(organization);
+      setOrganizationSelectionRequested(false);
       rememberLastOrganizationId(organizationId);
     } finally {
       setContextLoading(false);
@@ -150,29 +197,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (organization) {
           const permissionResponse = await api.get<PermissionsResponse>('/api/v1/me/permissions');
           setPermissions(permissionResponse.data.permissions);
+        } else {
+          setPermissions([]);
         }
-      } else if (data.length === 1) {
-        const { data: context } = await api.post<ActiveOrganizationResponse>(
-          '/api/v1/me/active-organization',
-          { organizationId: data[0].organizationId },
-        );
-        const permissionResponse = await api.get<PermissionsResponse>('/api/v1/me/permissions', {
-          headers: { Authorization: `Bearer ${context.token}` },
-        });
-        await queryClient.cancelQueries();
-        queryClient.clear();
-        setToken(context.token);
-        setPermissions(permissionResponse.data.permissions);
-        setActiveOrganization(data[0]);
-        rememberLastOrganizationId(data[0].organizationId);
       } else {
+        // Conta global: nunca auto-seleciona. O usuário escolhe (mesmo com 1 org).
         setActiveOrganization(null);
         setPermissions([]);
       }
+      return data;
     } finally {
       setContextLoading(false);
     }
-  }, [queryClient]);
+  }, []);
 
   useEffect(() => {
     setUnauthorizedHandler(logout);
@@ -186,21 +223,52 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [loadOrganizations, logout, user]);
 
+  const markHydrated = useCallback(() => {
+    hydrationStarted.current = true;
+  }, []);
+
+  const openOrganizationSelection = useCallback(() => {
+    setOrganizationSelectionRequested(true);
+  }, []);
+
+  const cancelOrganizationSelection = useCallback(() => {
+    setOrganizationSelectionRequested(false);
+  }, []);
+
   const login = useCallback(async (loginName: string, senha: string) => {
     const { data } = await api.post<LoginResponse>('/api/auth/login', {
       login: loginName,
       senha,
     });
-    setToken(data.token);
-    hydrationStarted.current = true;
-    setUser({ login: data.login, perfil: data.perfil });
-    try {
-      await loadOrganizations();
-    } catch (cause) {
-      logout();
-      throw cause;
-    }
-  }, [loadOrganizations, logout]);
+    await establishSession(
+      data.token,
+      data.login,
+      normalizePerfil(data.perfil),
+      setUser,
+      markHydrated,
+      loadOrganizations,
+      logout,
+    );
+  }, [loadOrganizations, logout, markHydrated]);
+
+  const register = useCallback(async (payload: RegisterRequest) => {
+    const body: RegisterRequest = {
+      nome: payload.nome,
+      login: payload.login,
+      email: payload.email,
+      senha: payload.senha,
+    };
+    const { data } = await api.post<RegisterResponse>('/api/auth/register', body);
+    await establishSession(
+      data.token,
+      data.login,
+      normalizePerfil(data.perfil),
+      setUser,
+      markHydrated,
+      loadOrganizations,
+      logout,
+    );
+  }, [loadOrganizations, logout, markHydrated]);
 
   return (
     <AuthContext.Provider value={{
@@ -210,11 +278,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       organizations,
       activeOrganization,
       permissions,
-      requiresOrganizationSelection: organizations.length > 0 && !activeOrganization,
+      requiresOrganizationSelection:
+        organizationSelectionRequested
+        || (organizations.length > 0 && !activeOrganization),
       hasNoOrganizationAccess: !!user && !isContextLoading && organizations.length === 0,
       login,
+      register,
       selectOrganization,
       refreshOrganizations: loadOrganizations,
+      openOrganizationSelection,
+      cancelOrganizationSelection,
       logout,
     }}>
       {children}

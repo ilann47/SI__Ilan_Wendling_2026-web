@@ -17,8 +17,9 @@ inventário de vagas e das notas fiscais legadas.
 
 ```text
 JWT contextual + stock:read
-  -> /app/estoque -> query key por organizationId
-  -> posição / saldos / razão / locais
+  -> menu superior Estoque (Compras + Estoque, acesso direto às telas)
+  -> /app/estoque?tab=... -> posição / razão / locais / ajustes
+  -> /app/ordens-compra, /app/recebimentos, /app/notas-entrada
 stock:manage -> ajuste ou compensação idempotente
 stock:manage -> CRUD de local com ETag/If-Match
 ```
@@ -31,7 +32,8 @@ stock:manage -> CRUD de local com ETag/If-Match
 - `GET/POST /api/v1/stock-locations` e `GET/PUT/DELETE .../{id}`: locais.
 - `POST /api/v1/stock-adjustments`: ajuste com `Idempotency-Key`.
 - `POST /api/v1/stock-movements/{id}/compensation`: compensação com chave e motivo.
-
+- `GET/POST /api/v1/purchase-orders` e recebimentos por ordem.
+- `GET/POST /api/notas-entrada` (+ `/confirmacao`, `/cancelamento`).
 ## Estrutura de Dados (DTOs, Entidades)
 
 Posição usa `produtoId`, `produto`, `quantidade`, `quantidadeMinima` e
@@ -64,6 +66,11 @@ typecheck, lint, testes focalizados e build.
 - Razão é append-only e não reutiliza `/api/movimentacoes`.
 - Notas e relatório de estoque mínimo continuam em compatibilidade global.
 - Nenhum tenant, nome derivado, ID do recurso ou versão integra payload mutável.
+- Mega menu da área Estoque agrupa Compras e posição; tabs via query string.
+- Pendência de compra abre o GET da OC por `?detail=ID`, mesmo fora da página
+  atual. O detalhe oferece Aprovar/Receber conforme estado e `purchases:manage`.
+- Pendência de estoque mínimo abre a aba existente do relatório diretamente;
+  erro/carregamento não é exibido como estoque saudável.
 
 ## Módulos relacionados
 
@@ -73,9 +80,15 @@ typecheck, lint, testes focalizados e build.
 - [[unificacao-multitenant]]
 - [[compatibilidade-legada]]
 - [[paridade-api]]
+- [[fiscal-financeiro]]
 
 ## Histórico (data + ação)
 
 | Data | Ação |
 |---|---|
 | 2026-08-03 | Integra posição, razão, locais, ajustes e compensações V54. |
+| 2026-09-11 | Área Estoque com mega menu por processo e deep-links de abas. |
+| 2026-09-11 | Mega menus em todas as áreas + trilha de processo Compras. |
+| 2026-09-11 | Remove passagem pela home da área; processos abrem direto pelo topo, sem sidebar/abas nem atalhos repetidos na listagem de notas. |
+| 2026-09-11 | Ações do dia na área Estoque e CTA pós-recebimento para lançar a nota. |
+| 2026-09-12 | Conecta pendências a compras específicas e à relação de estoque mínimo; mantém ações operacionais no detalhe. |

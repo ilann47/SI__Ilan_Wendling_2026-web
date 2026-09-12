@@ -9,6 +9,9 @@ import { EmptyState } from '../components/listing/EmptyState';
 import { ErrorState } from '../components/listing/ErrorState';
 import { ListingSkeleton } from '../components/listing/ListingSkeleton';
 import { ListingToolbar } from '../components/listing/ListingToolbar';
+import { ListingCards } from '../components/listing/ListingCards';
+import { SecondaryActionsMenu, type SecondaryAction } from '../components/listing/SecondaryActionsMenu';
+import { useLinkedDetail } from '../hooks/useLinkedDetail';
 import { DetailDrawer } from '../components/listing/DetailDrawer';
 import { PrimaryButton } from '../components/listing/PrimaryButton';
 import { RelatedItemsTable } from '../components/listing/ResourceDetailBody';
@@ -65,15 +68,21 @@ export function ServiceOrdersPage() {
   const [starting, setStarting] = useState<ServiceOrder | null>(null);
   const [completing, setCompleting] = useState<ServiceOrder | null>(null);
   const [cancelling, setCancelling] = useState<ServiceOrder | null>(null);
-  const [details, setDetails] = useState<ServiceOrder | null>(null);
+  const [selectedDetails, setDetails] = useState<ServiceOrder | null>(null);
+  const linked = useLinkedDetail(orgId, 'service-orders', serviceOrdersApi.get, permissions.includes('service_orders:read'));
+  const details = selectedDetails ?? linked.data ?? null;
+  const closeDetails = () => { setDetails(null); if (linked.requested) linked.close(); };
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(0);
   const queryKey = orgId ? tenantQueryKey(orgId, 'service-orders', page, search) : ['service-orders'];
   const list = useQuery({ queryKey, queryFn: () => serviceOrdersApi.list({
     page, size: 10, sort: 'dataAbertura,desc', ...(search.trim() ? { numero: search.trim() } : {}),
   }), enabled: !!orgId && permissions.includes('service_orders:read') });
-  const done = (message: string) => { notify(message, 'success');
-    void queryClient.invalidateQueries({ queryKey }); };
+  const done = (message: string) => { notify(message, 'success'); closeDetails();
+    if (orgId) {
+      void queryClient.invalidateQueries({ queryKey: tenantQueryKey(orgId, 'service-orders') });
+      void queryClient.invalidateQueries({ queryKey: tenantQueryKey(orgId, 'dashboard', 'service-orders') });
+    } };
   const fail = (error: unknown) => notify(describeError(error), 'error');
   const save = useMutation({ mutationFn: (values: Record<string, unknown>) => editing
     ? serviceOrdersApi.update(editing.id, buildServiceOrderPayload(values), editing.version)
@@ -93,6 +102,21 @@ export function ServiceOrdersPage() {
     return <Alert severity="warning">Seu contexto não possui permissão para ordens de serviço.</Alert>;
   }
   const orders = list.data?.content ?? [];
+  const primaryAction = (order: ServiceOrder) => {
+    if (!canManage) return null;
+    if (order.status === 'RASCUNHO') return <PrimaryButton size="small" startIcon={<PlayArrowOutlinedIcon />}
+      onClick={() => { setStarting(order); closeDetails(); }}>Iniciar serviço</PrimaryButton>;
+    if (order.status === 'EM_EXECUCAO') return <PrimaryButton size="small" startIcon={<CheckCircleOutlineIcon />}
+      onClick={() => { setCompleting(order); closeDetails(); }}>Concluir serviço</PrimaryButton>;
+    return null;
+  };
+  const secondaryActions = (order: ServiceOrder): SecondaryAction[] => [
+    { key: 'details', label: 'Ver detalhes', onClick: () => setDetails(order) },
+    ...(canManage && order.status === 'RASCUNHO' ? [{ key: 'edit', label: 'Editar ordem', icon: <EditOutlinedIcon />,
+      onClick: () => { setEditing(order); closeDetails(); } }] : []),
+    ...(canManage && (order.status === 'RASCUNHO' || order.status === 'EM_EXECUCAO') ? [{ key: 'cancel', label: 'Cancelar ordem', danger: true, icon: <CancelOutlinedIcon />,
+      onClick: () => { setCancelling(order); closeDetails(); } }] : []),
+  ];
   return <Box><PageHeader title="Ordens de Serviço"
     subtitle="Execução de serviços com ciclo operacional e faturamento por Nota de Serviço."
     count={list.data?.totalElements}
@@ -101,6 +125,8 @@ export function ServiceOrdersPage() {
     <ListingToolbar searchValue={search} searchLabel="Buscar por número"
       onSearchChange={(value) => { setSearch(value); setPage(0); }} />
     {list.isLoading && <ListingSkeleton />}
+    {linked.requested && linked.isLoading && <ListingSkeleton />}
+    {linked.requested && linked.isError && <ErrorState message={describeError(linked.error)} onRetry={() => void linked.refetch()} />}
     {list.isError && <ErrorState message={describeError(list.error)} onRetry={() => void list.refetch()} />}
     {!list.isLoading && !list.isError && orders.length === 0 && (
       <EmptyState title="Nenhuma ordem de serviço encontrada" description="Abra uma ordem ou ajuste a busca." />
@@ -115,23 +141,15 @@ export function ServiceOrdersPage() {
         color={order.status === 'CONCLUIDA' ? 'success' : order.status === 'CANCELADA'
           ? 'error' : order.status === 'EM_EXECUCAO' ? 'info' : 'default'}
         label={order.status.replace(/_/g, ' ')} /></TableCell><TableCell align="right">{formatCurrency(order.valorTotal)}</TableCell>
-      <TableCell onClick={(event) => event.stopPropagation()}><Stack direction="row" spacing={0.5}>{canManage && order.status === 'RASCUNHO' && <>
-        <Button size="small" startIcon={<EditOutlinedIcon />} onClick={() => setEditing(order)}>Editar</Button>
-        <Button size="small" color="info" startIcon={<PlayArrowOutlinedIcon />}
-          onClick={() => setStarting(order)}>Iniciar</Button></>}
-        {canManage && order.status === 'EM_EXECUCAO' && <Button size="small" color="success"
-          startIcon={<CheckCircleOutlineIcon />} onClick={() => setCompleting(order)}>Concluir</Button>}
-        {canManage && (order.status === 'RASCUNHO' || order.status === 'EM_EXECUCAO') &&
-          <Button size="small" color="error" startIcon={<CancelOutlinedIcon />}
-            onClick={() => setCancelling(order)}>Cancelar</Button>}</Stack></TableCell>
+      <TableCell onClick={(event) => event.stopPropagation()}><Stack direction="row" spacing={0.5}>
+        {primaryAction(order)}<SecondaryActionsMenu actions={secondaryActions(order)} />
+      </Stack></TableCell>
     </TableRow>)}</TableBody></Table></TableContainer></Card>}
-    {orders.length > 0 && <Stack spacing={1.5} sx={{ display: { xs: 'flex', md: 'none' } }}>
-      {orders.map((order) => <Card key={order.id} sx={{ p: 2 }} onClick={() => setDetails(order)}>
-        <Typography fontWeight={700}>{order.numero}</Typography>
-        <Typography variant="body2">{order.clienteNome}</Typography>
-        <Chip size="small" label={order.status.replace(/_/g, ' ')} sx={{ mt: 1 }} />
-      </Card>)}
-    </Stack>}
+    {orders.length > 0 && <ListingCards rows={orders} getKey={(order) => order.id} getTitle={(order) => order.numero}
+      onOpen={setDetails} getActions={secondaryActions} getFields={(order) => [
+        { label: 'Cliente', value: order.clienteNome }, { label: 'Situação', value: order.status.replace(/_/g, ' ') },
+        { label: 'Abertura', value: formatDate(order.dataAbertura) }, { label: 'Total', value: formatCurrency(order.valorTotal) },
+      ]} />}
     {list.data && list.data.totalPages > 1 && (
       <Stack direction="row" justifyContent="space-between" sx={{ mt: 2 }}>
         <Button disabled={page === 0} onClick={() => setPage((current) => current - 1)}>Anterior</Button>
@@ -139,7 +157,9 @@ export function ServiceOrdersPage() {
       </Stack>
     )}
     <DetailDrawer open={!!details} title={`Ordem ${details?.numero ?? ''}`} subtitle={details?.clienteNome}
-      onClose={() => setDetails(null)}>
+      onClose={closeDetails} actions={details ? <Stack direction="row" spacing={1}>
+        {primaryAction(details)}<SecondaryActionsMenu actions={secondaryActions(details).filter((action) => action.key !== 'details')} />
+      </Stack> : undefined}>
       {details && <Stack spacing={2.5}>
         <Box><Typography variant="overline" color="text.secondary">Situação</Typography>
           <Box><Chip size="small" label={details.status.replace(/_/g, ' ')} /></Box></Box>

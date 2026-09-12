@@ -43,6 +43,8 @@ export interface ResourceConfig {
   fields: FieldConfig[];
   filters?: FilterConfig[];
   rowActions?: RowAction[];
+  /** Permissões cumulativas para comandos da linha, independentes de editar formulário. */
+  rowActionPermissions?: string[];
   /** O backend resolve o proprietario exclusivamente pelo JWT contextual. */
   tenantAware?: boolean;
   /** PUT/DELETE exigem a versao forte obtida por ETag no detalhe. */

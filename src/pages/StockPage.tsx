@@ -1,4 +1,5 @@
-import { useMemo, useState, type FormEvent, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Alert,
@@ -370,8 +371,14 @@ function AdjustmentDialog({ open, organizationId, locations, onClose }: { open: 
 
 export function StockPage() {
   const { activeOrganization, permissions } = useAuth();
-  const [tab, setTab] = useState(0);
-  const [adjustmentOpen, setAdjustmentOpen] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabKey = searchParams.get('tab') ?? 'posicao';
+  const tabIndex = tabKey === 'razao' || tabKey === 'movimentacoes'
+    ? 1
+    : tabKey === 'locais'
+      ? 2
+      : 0;
+  const [adjustmentOpen, setAdjustmentOpen] = useState(tabKey === 'ajustes');
   const organizationId = activeOrganization?.organizationId;
   const canRead = permissions.includes('stock:read');
   const canManage = permissions.includes('stock:manage');
@@ -383,15 +390,39 @@ export function StockPage() {
   });
   const locationOptions = useMemo(() => rows<StockLocation>(locations.data), [locations.data]);
 
+  useEffect(() => {
+    if (tabKey === 'ajustes') setAdjustmentOpen(true);
+  }, [tabKey]);
+
+  const setTab = (value: number) => {
+    const next = value === 1 ? 'razao' : value === 2 ? 'locais' : 'posicao';
+    setSearchParams({ tab: next }, { replace: true });
+  };
+
   if (!canRead || !organizationId) return <Alert severity="warning">Seu contexto não possui permissão de estoque.</Alert>;
 
   return <Box>
     <PageHeader title="Estoque" subtitle="Posição por produto e local, razão append-only e locais da organização ativa." action={canAdjust ? <Button variant="contained" startIcon={<TuneOutlinedIcon />} onClick={() => setAdjustmentOpen(true)}>Ajustar estoque</Button> : undefined} />
     {canManage && !permissions.includes('catalog:read') && <Alert severity="info" sx={{ mb: 2 }}>Ajustes exigem também leitura do catálogo para selecionar o produto.</Alert>}
-    <Card><Tabs value={tab} onChange={(_, value: number) => setTab(value)} variant="scrollable"><Tab label="Posição" /><Tab label="Razão" /><Tab label="Locais" /></Tabs></Card>
-    <TabPanel current={tab} index={0}><PositionPanel organizationId={organizationId} /></TabPanel>
-    <TabPanel current={tab} index={1}><MovementPanel organizationId={organizationId} canManage={canManage} /></TabPanel>
-    <TabPanel current={tab} index={2}><LocationsPanel organizationId={organizationId} canManage={canManage} /></TabPanel>
-    {canAdjust && <AdjustmentDialog open={adjustmentOpen} organizationId={organizationId} locations={locationOptions} onClose={() => setAdjustmentOpen(false)} />}
+    {tabKey === 'ajustes' && !canAdjust && (
+      <Alert severity="info" sx={{ mb: 2 }}>
+        Conferência e ajustes exigem permissão de gestão de estoque e leitura do catálogo.
+      </Alert>
+    )}
+    <Card><Tabs value={tabIndex} onChange={(_, value: number) => setTab(value)} variant="scrollable"><Tab label="Posição" /><Tab label="Razão" /><Tab label="Locais" /></Tabs></Card>
+    <TabPanel current={tabIndex} index={0}><PositionPanel organizationId={organizationId} /></TabPanel>
+    <TabPanel current={tabIndex} index={1}><MovementPanel organizationId={organizationId} canManage={canManage} /></TabPanel>
+    <TabPanel current={tabIndex} index={2}><LocationsPanel organizationId={organizationId} canManage={canManage} /></TabPanel>
+    {canAdjust && (
+      <AdjustmentDialog
+        open={adjustmentOpen}
+        organizationId={organizationId}
+        locations={locationOptions}
+        onClose={() => {
+          setAdjustmentOpen(false);
+          if (tabKey === 'ajustes') setSearchParams({ tab: 'posicao' }, { replace: true });
+        }}
+      />
+    )}
   </Box>;
 }

@@ -3,14 +3,15 @@ import EventAvailableOutlinedIcon from '@mui/icons-material/EventAvailableOutlin
 import FactCheckOutlinedIcon from '@mui/icons-material/FactCheckOutlined';
 import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined';
 import LocalParkingOutlinedIcon from '@mui/icons-material/LocalParkingOutlined';
-import QrCodeScannerOutlinedIcon from '@mui/icons-material/QrCodeScannerOutlined';
 import ReportProblemOutlinedIcon from '@mui/icons-material/ReportProblemOutlined';
 import ShoppingCartCheckoutOutlinedIcon from '@mui/icons-material/ShoppingCartCheckoutOutlined';
 import TrendingDownOutlinedIcon from '@mui/icons-material/TrendingDownOutlined';
 import { useQuery } from '@tanstack/react-query';
-import { Alert, Box, Button, Card, CardActionArea, CardContent, Stack, Typography } from '@mui/material';
-import dayjs from 'dayjs';
+import { Alert, Box, Card, CardContent, List, ListItemButton, ListItemText, Stack, Typography } from '@mui/material';
+import { useState, type ReactNode } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
+import { DetailDrawer } from '../components/listing/DetailDrawer';
+import { financialRange, financialTitlePath, type FinancialPeriod } from './dashboardContext';
 import { api, describeError } from '../api/client';
 import { eventCatalogApi } from '../api/eventCatalog';
 import { purchaseApi } from '../api/purchases';
@@ -21,7 +22,7 @@ import { useAuth } from '../auth/AuthContext';
 import { KpiCard } from '../components/common/KpiCard';
 import { PageHeader } from '../components/common/PageHeader';
 import { ErrorState } from '../components/listing/ErrorState';
-import { formatCurrency } from '../utils/format';
+import { formatCurrency, formatDate } from '../utils/format';
 import type {
   ContasAVencerResponse,
   EstoqueMinimoResponse,
@@ -33,30 +34,13 @@ interface AttemptPage {
   hasMore: boolean;
 }
 
-function Shortcut({
-  to, title, description, show,
-}: { to: string; title: string; description: string; show: boolean }) {
-  if (!show) return null;
-  return (
-    <Card>
-      <CardActionArea component={RouterLink} to={to} sx={{ height: '100%' }}>
-        <CardContent>
-          <Typography variant="subtitle2">{title}</Typography>
-          <Typography variant="body2" color="text.secondary">{description}</Typography>
-        </CardContent>
-      </CardActionArea>
-    </Card>
-  );
-}
-
-export function DashboardPage() {
+export function DashboardPage({ embedded = false, financialPeriod = 'week', headerActions }: { embedded?: boolean; financialPeriod?: FinancialPeriod; headerActions?: ReactNode }) {
+  const [financialDetail, setFinancialDetail] = useState<'aPagar' | 'aReceber' | null>(null);
   const { activeOrganization, permissions } = useAuth();
   const organizationId = activeOrganization!.organizationId;
   const organizationName = activeOrganization?.tradeName
     || activeOrganization?.legalName
     || 'organização ativa';
-  const canOperateAccess = ['access:validate', 'access:checkin', 'access:checkout']
-    .some((permission) => permissions.includes(permission));
   const canReadAudit = permissions.includes('audit:read');
   const canOperations = permissions.includes('operations:read');
   const canFinance = permissions.includes('finance:read');
@@ -65,8 +49,9 @@ export function DashboardPage() {
   const canSales = permissions.includes('sales:read');
   const canService = permissions.includes('service_orders:read');
   const canEvents = permissions.includes('events:read');
-  const today = dayjs().format('YYYY-MM-DD');
-  const horizon = dayjs().add(7, 'day').format('YYYY-MM-DD');
+  const range = financialRange(financialPeriod);
+  const today = range.inicio;
+  const horizon = range.fim;
 
   const patio = useQuery({
     queryKey: tenantQueryKey(organizationId, 'dashboard', 'patio'),
@@ -109,7 +94,7 @@ export function DashboardPage() {
   });
   const sales = useQuery({
     queryKey: tenantQueryKey(organizationId, 'dashboard', 'sales'),
-    enabled: canSales,
+    enabled: canSales && !embedded,
     queryFn: () => administrativeSalesApi.list({ size: 10, sort: 'dataEmissao,desc' }),
     staleTime: 30_000,
   });
@@ -137,15 +122,27 @@ export function DashboardPage() {
 
   const errors = [patio, contas, estoque, events, attempts, purchases, sales, services]
     .filter((query) => query.isError);
+  const hasIndicators = canOperations || canFinance || canStock || canPurchases || canService || canEvents || canReadAudit;
+  const activityQueries = [canSales ? sales : null, canPurchases ? purchases : null, canOperations ? patio : null]
+    .filter((query) => query !== null);
+  const hasActivity = Boolean(sales.data?.content.length || awaitingReceipt.length
+    || (patio.data && patio.data.itens.length === 0));
 
   return (
     <Box>
-      <PageHeader
-        title="Visão operacional"
-        subtitle={`O que precisa da sua atenção em ${organizationName}. Os números abaixo vêm só de respostas reais da API.`}
-      />
+      {embedded ? <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ sm: 'center' }} spacing={1.5} sx={{ mb: 2 }}>
+        <Typography component="h2" variant="h5" sx={{ fontWeight: 800 }}>
+        Resumo do dia
+        </Typography>{headerActions}
+      </Stack> : <PageHeader
+        title="Resumo do dia"
+        subtitle={`Acompanhe a operação e o que precisa de atenção em ${organizationName}.`}
+      />}
 
       <Stack spacing={3}>
+        {!hasIndicators && (embedded || !canSales) && (
+          <Alert severity="info">O resumo não possui indicadores disponíveis para o seu acesso. Suas rotinas continuam no menu superior.</Alert>
+        )}
         {errors.length > 0 && (
           <ErrorState
             message={describeError(errors[0].error)}
@@ -155,74 +152,71 @@ export function DashboardPage() {
 
         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(auto-fit, minmax(180px, 1fr))' }, gap: 1.5 }}>
           {canOperations && (
-            <Box component={RouterLink} to="/app/patio" sx={{ textDecoration: 'none' }}>
+            <Box>
               <KpiCard title="Veículos no pátio" value={patio.data?.resumo.totalVeiculos ?? '—'}
                 subtitle={patio.data ? `${patio.data.resumo.avulsos} avulsos · ${patio.data.resumo.mensalistas} mensalistas` : 'Aguardando leitura'}
                 icon={<LocalParkingOutlinedIcon />} />
             </Box>
           )}
-          {canFinance && (
-            <Box component={RouterLink} to="/app/relatorios" sx={{ textDecoration: 'none' }}>
-              <KpiCard title="Contas vencidas" value={contas.data
-                ? formatCurrency((contas.data.vencidoAPagar ?? 0) + (contas.data.vencidoAReceber ?? 0)) : '—'}
-                subtitle="Saldo vencido a pagar e a receber"
-                icon={<TrendingDownOutlinedIcon />} color="error.main" />
-            </Box>
-          )}
-          {canFinance && (
-            <Box component={RouterLink} to="/app/relatorios" sx={{ textDecoration: 'none' }}>
-              <KpiCard title="Vencendo em 7 dias" value={contas.data
-                ? formatCurrency((contas.data.totalAPagar ?? 0) + (contas.data.totalAReceber ?? 0)) : '—'}
-                subtitle="Títulos no horizonte de uma semana"
-                icon={<AssignmentLateOutlinedIcon />} color="warning.main" />
-            </Box>
-          )}
+          {canFinance && <>
+            <Box><KpiCard title="Você precisa pagar" value={contas.data ? formatCurrency(contas.data.totalAPagar) : '—'}
+              subtitle={<>{range.label}<br />Vencido neste período: {contas.data ? formatCurrency(contas.data.vencidoAPagar) : '—'}</>}
+              icon={<TrendingDownOutlinedIcon />} color="warning.main"
+              onClick={contas.data ? () => setFinancialDetail('aPagar') : undefined} actionLabel="Ver contas a pagar do período" /></Box>
+            <Box><KpiCard title="Você tem a receber" value={contas.data ? formatCurrency(contas.data.totalAReceber) : '—'}
+              subtitle={<>{range.label}<br />Vencido neste período: {contas.data ? formatCurrency(contas.data.vencidoAReceber) : '—'}</>}
+              icon={<AssignmentLateOutlinedIcon />} color="success.main"
+              onClick={contas.data ? () => setFinancialDetail('aReceber') : undefined} actionLabel="Ver contas a receber do período" /></Box>
+          </>}
           {canStock && (
-            <Box component={RouterLink} to="/app/estoque" sx={{ textDecoration: 'none' }}>
+            <Box>
               <KpiCard title="Estoque abaixo do mínimo" value={estoque.data?.total ?? '—'}
                 subtitle="Posição consolidada do relatório"
                 icon={<Inventory2OutlinedIcon />} color="warning.main" />
             </Box>
           )}
           {canPurchases && (
-            <Box component={RouterLink} to="/app/ordens-compra" sx={{ textDecoration: 'none' }}>
+            <Box>
               <KpiCard title="Ordens aguardando recebimento"
                 value={purchaseComplete ? awaitingReceipt.length : awaitingReceipt.length === 0 ? '—' : `${awaitingReceipt.length}+`}
-                subtitle={purchaseComplete ? 'Todas as ordens carregadas' : 'Nas últimas 20 ordens consultadas'}
+                subtitle={purchaseComplete ? 'Todas as ordens carregadas' : 'Total de pendências indisponível · amostra das últimas 20 ordens'}
                 icon={<ShoppingCartCheckoutOutlinedIcon />} color="warning.main" />
             </Box>
           )}
           {canService && (
-            <Box component={RouterLink} to="/app/ordens-servico" sx={{ textDecoration: 'none' }}>
+            <Box>
               <KpiCard title="Ordens de serviço abertas"
-                value={serviceComplete ? openServices.length : `${openServices.length}+`}
-                subtitle="Rascunho ou em execução"
+                value={!services.data ? '—' : serviceComplete ? openServices.length : openServices.length === 0 ? '—' : `${openServices.length}+`}
+                subtitle={serviceComplete ? 'Rascunho ou em execução' : 'Amostra das últimas 20 ordens, não é o total de pendências'}
                 icon={<FactCheckOutlinedIcon />} />
             </Box>
           )}
           {canEvents && (
-            <Box component={RouterLink} to="/app/eventos" sx={{ textDecoration: 'none' }}>
+            <Box>
               <KpiCard title="Eventos cadastrados" value={events.data?.totalElements ?? '—'}
                 subtitle={incompleteEvents.length > 0
-                  ? `${incompleteEvents.length} com configuração incompleta na página atual`
-                  : 'Checklist ausente ou completo nesta consulta'}
+                  ? `${incompleteEvents.length} com configuração incompleta nesta consulta`
+                  : 'Eventos encontrados na organização'}
                 icon={<EventAvailableOutlinedIcon />} />
             </Box>
           )}
           {canReadAudit && (
-            <Box component={RouterLink} to="/app/tentativas-acesso" sx={{ textDecoration: 'none' }}>
+            <Box>
               <KpiCard title="Acessos recusados" value={refused ?? '—'}
                 subtitle={`${authorized ?? '—'} autorizados nas últimas 20 decisões`}
                 icon={<ReportProblemOutlinedIcon />} color="error.main" />
             </Box>
           )}
         </Box>
+        {canFinance && <Typography variant="caption" color="text.secondary">
+          Financeiro por vencimento, somente no período indicado. Valores anteriores não estão incluídos. A pagar inclui despesas avulsas.
+        </Typography>}
 
-        <Card>
+        {!embedded && activityQueries.length > 0 && <Card>
           <CardContent>
             <Typography variant="h6">Pendências e atividades recentes</Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              Atalhos respeitam as permissões efetivas. Nada aqui é estimado.
+              Recebimentos aguardados, vendas recentes e situação do pátio nas consultas disponíveis.
             </Typography>
             <Stack spacing={1.25}>
               {canSales && (sales.data?.content ?? []).slice(0, 5).map((sale) => (
@@ -240,29 +234,31 @@ export function DashboardPage() {
               {canOperations && patio.data && patio.data.itens.length === 0 && (
                 <Typography variant="body2" color="text.secondary">Nenhum veículo no pátio agora.</Typography>
               )}
-              {!canSales && !canPurchases && !canOperations && (
-                <Alert severity="info">Seu perfil não possui indicadores adicionais além dos atalhos permitidos.</Alert>
+              {activityQueries.some((query) => query.isLoading) && (
+                <Typography role="status" variant="body2" color="text.secondary">Atualizando atividades…</Typography>
+              )}
+              {!hasActivity && activityQueries.every((query) => query.isSuccess) && (
+                <Typography variant="body2" color="text.secondary">Nenhuma atividade adicional nas listas consultadas.</Typography>
               )}
             </Stack>
           </CardContent>
-        </Card>
-
-        <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 2 }}>
-          <Shortcut to="/app/patio" title="Operação de pátio" description="Entrada, saída e ocupação atual." show={canOperations || true} />
-          <Shortcut to="/app/acesso-eventos" title="Check-in de eventos" description="Validar credencial e registrar presença." show={canOperateAccess} />
-          <Shortcut to="/app/tentativas-acesso" title="Auditoria de acesso" description="Últimas decisões autorizadas e recusadas." show={canReadAudit} />
-          <Shortcut to="/app/contas-pagar" title="Contas a pagar" description="Títulos e baixas de fornecedores." show={canFinance} />
-          <Shortcut to="/app/contas-receber" title="Contas a receber" description="Títulos e baixas de clientes." show={canFinance} />
-          <Shortcut to="/app/estoque" title="Estoque" description="Posição, mínimos e ajustes." show={canStock} />
-        </Box>
-
-        {canOperateAccess && (
-          <Button component={RouterLink} to="/app/acesso-eventos" variant="contained" startIcon={<QrCodeScannerOutlinedIcon />}
-            sx={{ alignSelf: 'flex-start', minHeight: 48 }}>
-            Abrir console de acesso
-          </Button>
-        )}
+        </Card>}
       </Stack>
+      <DetailDrawer open={canFinance && financialDetail !== null} title={financialDetail === 'aPagar' ? 'Contas a pagar do período' : 'Contas a receber do período'}
+        subtitle={range.label} onClose={() => setFinancialDetail(null)}>
+        {contas.isError ? <ErrorState message={describeError(contas.error)} onRetry={() => void contas.refetch()} />
+          : contas.isFetching ? <Typography role="status">Atualizando contas…</Typography>
+          : <>
+            <Typography variant="body2" color="text.secondary">Abra uma conta para consultar os detalhes e as ações permitidas.</Typography>
+            <List disablePadding>{(financialDetail ? contas.data?.[financialDetail] ?? [] : []).map((title) => {
+              const path = financialTitlePath(title);
+              const text = <ListItemText primary={title.contraparte} secondary={`${formatCurrency(title.saldo)} · ${formatDate(title.vencimento)}${title.vencido ? ' · Vencido' : ''}`} />;
+              return path ? <ListItemButton key={`${title.origem}-${title.id}`} component={RouterLink} to={path}>{text}</ListItemButton>
+                : <Box key={`${title.origem}-${title.id}`}>{text}<Typography variant="caption">Detalhe indisponível para esta origem.</Typography></Box>;
+            })}</List>
+            {financialDetail && (contas.data?.[financialDetail]?.length ?? 0) === 0 && <Typography>Nenhuma conta aberta neste período.</Typography>}
+          </>}
+      </DetailDrawer>
     </Box>
   );
 }

@@ -23,6 +23,7 @@ describe('AppLayout', () => {
               <Route index element={<div>Hub</div>} />
               <Route path="patio" element={<div>Patio</div>} />
               <Route path="movimentacoes" element={<div>Movimentacoes</div>} />
+              <Route path="areas/operacao" element={<div>Área de operação</div>} />
             </Route>
           </Routes>
         </MemoryRouter>
@@ -65,13 +66,51 @@ describe('AppLayout', () => {
     renderLayout('/app');
 
     expect(screen.getByRole('link', { name: 'Ir para o conteúdo principal' })).toHaveAttribute('href', '#conteudo-principal');
-    expect(screen.getByRole('button', { name: 'Hub de módulos' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Abrir módulos' })).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: 'Kaneko' }).length).toBeGreaterThan(0);
+    expect(screen.getByRole('navigation', { name: 'Áreas da plataforma' })).toBeInTheDocument();
     expect(screen.queryByRole('navigation', { name: 'Navegação principal' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Abrir menu de navegação' })).not.toBeInTheDocument();
   });
 
-  it('dentro de um modulo mostra apenas a navegacao do modulo', () => {
+  it.each(['Conta', 'Contexto operacional'])('mantém o menu %s acima do cabeçalho', async (name) => {
+    vi.mocked(useAuth).mockReturnValue({
+      user: { login: 'admin', perfil: 'ADMIN' },
+      activeOrganization: { organizationId: 10, legalName: 'Kaneko A' },
+      organizations: [{ organizationId: 10, legalName: 'Kaneko A' }],
+      permissions: ['stock:read'],
+      logout: vi.fn(),
+      selectOrganization: vi.fn(),
+    } as unknown as ReturnType<typeof useAuth>);
+    renderLayout();
+    const header = screen.getByRole('banner');
+    const trigger = screen.getAllByRole('button', { name })[0];
+    fireEvent.click(trigger);
+    const menu = screen.getByRole('menu');
+    const overlay = menu.closest('.MuiModal-root');
+    expect(overlay).not.toBeNull();
+    expect(Number(getComputedStyle(overlay!).zIndex)).toBeGreaterThan(Number(getComputedStyle(header).zIndex));
+    expect(screen.getByRole('menuitem', { name: 'Escolher ou criar organização' })).toBeInTheDocument();
+    fireEvent.keyDown(menu, { key: 'Escape' });
+    await waitFor(() => expect(screen.queryByRole('menu')).not.toBeInTheDocument());
+  });
+
+  it('na página da área evita duplicar os processos na sidebar', () => {
+    vi.mocked(useAuth).mockReturnValue({
+      user: { login: 'operador', perfil: 'OPERADOR' },
+      activeOrganization: { organizationId: 10, legalName: 'Kaneko A' },
+      organizations: [{ organizationId: 10, legalName: 'Kaneko A' }],
+      permissions: ['operations:read'],
+      logout: vi.fn(),
+      selectOrganization: vi.fn(),
+    } as unknown as ReturnType<typeof useAuth>);
+
+    renderLayout('/app/areas/operacao');
+    expect(screen.getByRole('navigation', { name: 'Áreas da plataforma' })).toBeInTheDocument();
+    expect(screen.queryByRole('navigation', { name: 'Navegação principal' })).not.toBeInTheDocument();
+    expect(screen.getByText('Área de operação')).toBeInTheDocument();
+  });
+
+  it('dentro de um módulo mantém somente o menu superior, sem sidebar ou abas', () => {
     vi.mocked(useAuth).mockReturnValue({
       user: { login: 'operador', perfil: 'OPERADOR' },
       activeOrganization: { organizationId: 10, legalName: 'Kaneko A' },
@@ -83,10 +122,13 @@ describe('AppLayout', () => {
 
     renderLayout('/app/movimentacoes');
 
-    expect(screen.getAllByRole('navigation', { name: 'Navegação principal' }).length).toBeGreaterThan(0);
-    expect(screen.getByRole('button', { name: 'Movimentações' })).toBeInTheDocument();
+    expect(screen.getByRole('navigation', { name: 'Áreas da plataforma' })).toBeInTheDocument();
+    expect(screen.queryByRole('navigation', { name: 'Navegação principal' })).not.toBeInTheDocument();
+    expect(screen.getByText('Movimentacoes')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Movimentações' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Recolher Operação' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Ordens de Compra' })).not.toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: /Operação/ })).toBeInTheDocument();
+    expect(screen.queryByRole('tab')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Abrir menu de navegação' })).not.toBeInTheDocument();
   });
 });

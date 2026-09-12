@@ -32,12 +32,16 @@ export function UserAccountMenu({ variant = 'header' }: Props) {
   const { notify } = useSnackbar();
   const { mode, toggle } = useColorMode();
   const colors = getThemeTokens(mode);
-  const { user, activeOrganization, organizations, logout, selectOrganization } = useAuth();
+  const { user, activeOrganization, organizations, logout, selectOrganization, openOrganizationSelection } = useAuth();
   const [anchor, setAnchor] = useState<null | HTMLElement>(null);
   const [switchingOrganizationId, setSwitchingOrganizationId] = useState<number | null>(null);
 
   const userName = user?.login ?? 'Operador';
-  const roleLabel = user?.perfil === 'ADMIN' ? 'Administrador' : 'Operador';
+  const roleLabel = user?.perfil === 'ADMIN'
+    ? 'Administrador'
+    : user?.perfil === 'USUARIO'
+      ? 'Usuário'
+      : 'Operador';
   const initials = userName.slice(0, 1).toUpperCase();
   const open = Boolean(anchor);
   const close = () => setAnchor(null);
@@ -126,11 +130,24 @@ export function UserAccountMenu({ variant = 'header' }: Props) {
           </ListItemIcon>
           <ListItemText primary={mode === 'light' ? 'Modo escuro' : 'Modo claro'} />
         </MenuItem>
-        {organizations.length > 1 && (
+        {organizations.length > 0 && (
           <>
-            <Typography variant="overline" color="text.secondary" sx={{ px: 2, pt: 1, display: 'block' }}>
-              Trocar organização
-            </Typography>
+            <MenuItem
+              sx={{ minHeight: 48 }}
+              onClick={() => {
+                close();
+                openOrganizationSelection();
+                navigate('/app');
+              }}
+            >
+              <ListItemIcon><BusinessOutlinedIcon fontSize="small" /></ListItemIcon>
+              <ListItemText primary="Escolher ou criar organização" />
+            </MenuItem>
+            {organizations.length > 1 && (
+              <Typography variant="overline" color="text.secondary" sx={{ px: 2, pt: 1, display: 'block' }}>
+                Trocar rapidamente
+              </Typography>
+            )}
             {organizations
               .filter((organization) => organization.organizationId !== activeOrganization?.organizationId)
               .map((organization) => (

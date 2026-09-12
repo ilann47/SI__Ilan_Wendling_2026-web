@@ -1,10 +1,11 @@
 import { useState, type FormEvent } from 'react';
-import { Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { Link as RouterLink, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import {
   Box,
   Button,
   IconButton,
   InputAdornment,
+  Link,
   TextField,
   Typography,
 } from '@mui/material';
@@ -72,7 +73,7 @@ export function LoginPage() {
       const from = (location.state as { from?: { pathname?: string } } | null)?.from?.pathname;
       navigate(from ?? '/app', { replace: true });
     } catch (err) {
-      setError(describeError(err));
+      setError(describeError(err, { context: 'login' }));
     } finally {
       setLoading(false);
     }
@@ -265,7 +266,15 @@ export function LoginPage() {
             />
 
             {error ? (
-              <Typography sx={{ color: colors.danger, fontSize: '0.82rem', mb: 1.25 }}>
+              <Typography
+                role="alert"
+                sx={{
+                  color: colors.danger,
+                  fontSize: '0.82rem',
+                  mb: 1.25,
+                  whiteSpace: 'pre-line',
+                }}
+              >
                 {error}
               </Typography>
             ) : null}
@@ -291,6 +300,13 @@ export function LoginPage() {
               {loading ? 'Entrando…' : 'Entrar'}
             </Button>
           </Box>
+
+          <Typography sx={{ mt: 2.25, textAlign: 'center', fontSize: '0.88rem', color: colors.textMuted }}>
+            Não possui uma conta?{' '}
+            <Link component={RouterLink} to="/register" underline="hover" sx={{ fontWeight: 700, color: PURPLE }}>
+              Criar conta
+            </Link>
+          </Typography>
         </Box>
 
         <Typography sx={{ mt: 2.5, fontSize: '0.72rem', color: colors.textMuted, textAlign: 'center' }}>

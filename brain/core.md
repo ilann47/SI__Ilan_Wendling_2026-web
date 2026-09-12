@@ -20,9 +20,11 @@ projeto Java e preserva as telas legadas durante a adoção gradual de `/api/v1`
 
 ```text
 App -> ProtectedRoute -> AuthContext -> organização ativa
-    -> AppLayout (header Hub)
-         -> /app = HubHome (grade de módulos, sem sidebar)
-         -> /app/* = sidebar só do módulo ativo + página
+    -> AppLayout (menu superior único / drawer no mobile)
+         -> /app = HubHomePage (módulos e pendências) + Resumo do dia abaixo
+         -> menus por processo -> telas diretamente, sem landing intermediária
+         -> /app/areas/* e /app/visao-geral redirecionam para /app
+         -> demais /app/* = conteúdo em largura total, sem sidebar/abas
     -> api/client -> backend /api
 ```
 
@@ -55,20 +57,84 @@ Gates disponíveis: `npm run typecheck`, `npm run lint`, `npm test` e
 `npm run build`. Vitest executa testes unitários/de integração em jsdom com
 Testing Library; E2E contra o backend real será acrescentado no recorte próprio.
 
+`HeaderAreaNavigation.test.tsx` cobre navegação direta, filtros na URL, RBAC,
+teclado, troca/fechamento de menus e drawer mobile. `AppLayout.test.tsx` verifica
+a ausência de sidebar e abas também dentro das telas. `App.test.tsx` cobre a
+home integrada e os redirecionamentos de URLs antigas; `DashboardPage.test.tsx`
+cobre permissões, dados consultados e ausência de atalhos duplicados.
+`HubHomePage.test.tsx` cobre a ordem Hub → resumo, painel único de pendências,
+deduplicação de consultas, abertura do menu pelos cartões em desktop/mobile e
+falha de leitura sem exibir ausência de pendências.
+
+Validação de 2026-09-11 após restaurar o Hub com resumo abaixo: 229 testes em 42
+arquivos passaram; typecheck, lint, build e diff-check aprovados. Conferência no
+navegador local cobriu a composição completa, cartão abrindo o menu existente e
+drawer mobile, sem overflow; o tamanho original da prévia foi restaurado.
+Permanecem mensagens XHR `AggregateError` de testes preexistentes no jsdom
+(sem testes falhando) e o aviso de chunk MUI de 603 kB no build.
+
+Regressão focalizada de 2026-09-12: 15 testes em 3 arquivos passaram. Os testes
+de layout verificam menus de conta/contexto acima do cabeçalho, e os de navegação
+mantêm o menu de áreas e o drawer abaixo das sobreposições modais. A reprodução
+visual confirmou o menu de conta inteiro acima da segunda linha do cabeçalho.
+
+Validação de 2026-09-12 da home acionável e detalhes por contexto: 256 testes em
+47 arquivos passaram (`npm test -- --maxWorkers=1`); typecheck, lint e build
+aprovados. Regressões cobrem períodos financeiros, links para o registro exato,
+isolamento por organização, permissões dos comandos e ações de compras/serviços.
+Conferência visual em desktop e mobile cobriu a home compacta, troca de período
+e drawer financeiro, sem overflow horizontal. A organização local está sem
+registros para esses fluxos; dados preenchidos foram cobertos por testes, sem
+baixas ou alterações de estoque no navegador. Permanecem as mensagens XHR do
+jsdom e o aviso do chunk MUI de 603,25 kB, sem reprovação dos gates.
+
 ## Decisões Técnicas
 
 - A navegação é filtrada pelas permissões retornadas pelo backend.
-- O shell segue o modelo Hub YES7: home de módulos em `/app` e sidebar
-  contextual apenas dentro do módulo (não ERP com todos os grupos na lateral).
-- Componentes de chrome portados do yes7one-frontend: `AppHeader`, `AppSidebar`,
-  `HubLauncherButton`, `OpenModulesBar`, `ModuleSubnav`, `UserAccountMenu` e
-  métricas de layout (`layoutMetrics`).
+- O shell mantém a identidade Kaneko e a navegação principal no topo:
+  sem sidebar ou abas abertas. `/app` preserva a home do Hub com módulos e
+  pendências; o resumo do dia aparece logo abaixo, na mesma página.
+- Cartões da home solicitam abertura do menu existente via contexto do `Outlet`
+  (`AppLayoutContext.openArea`). Desktop abre o menu superior; mobile abre o
+  mesmo drawer já expandido na área. Não são criadas páginas intermediárias.
+  `HeaderAreaNavigation` reaplica RBAC antes de atender à solicitação.
+- Hub e resumo compartilham as chaves de consulta `dashboard` por tenant,
+  evitando duplicar chamadas de contas, estoque mínimo e ordens de compra.
+  `HubHomePage.test.tsx` cobre composição, requisições compartilhadas,
+  cartões desktop/mobile e falha na consulta de pendências.
+- Home compacta com financeiro separado por fluxo e período; indicadores abrem
+  títulos reais. `useLinkedDetail` permite acesso direto aos detalhes nas telas
+  existentes, sem adicionar páginas intermediárias ou armazenar registros no navegador.
+  Comandos financeiros verificam `rowActionPermissions`; ver [[listagens]] e
+  [[fiscal-financeiro]]. Contadores/filtros ausentes permanecem no backlog backend.
+- Áreas: Operação, Vendas, Estoque, Financeiro, Cadastros e Administração.
+  `HeaderAreaNavigation` abre processos sobre a tela atual, apenas com links
+  diretos. Notas de entrada ficam em Estoque/Compras; saída e serviço em Vendas.
+  O identificador interno `comercial` e as URLs das telas são preservados.
+  O catálogo `areaNavigation.tsx` continua usando `visibleProcessGroups` para RBAC.
+  Favoritos e recentes salvos em `kaneko.ui.{org}.{login}` não são apagados;
+  `rememberPath` continua registrando visitas para a busca existente.
+- URLs antigas `/app/areas/{id}` e `/app/visao-geral` redirecionam para `/app`.
+  Sidebar, abas e páginas de área antigas permanecem no código, fora do shell/rotas ativos,
+  para não misturar uma limpeza ampla com a simplificação aprovada.
+- Em `xl+`, marca, áreas, busca e conta ficam na mesma linha. Entre `md` e `xl`,
+  as áreas ocupam uma segunda linha de 44px. `layoutMetrics` sincroniza o espaço
+  do conteúdo. No celular, as áreas abrem em um único drawer com grupos
+  expansíveis e os mesmos links. Escape devolve foco e as setas percorrem as áreas.
+- Camadas seguem o tema MUI: cabeçalho em `appBar`, menu de áreas em
+  `appBar + 1`, drawer na camada padrão `drawer` e menus de conta/contexto na
+  camada padrão `modal`. Isso impede que a navegação encubra menus ou diálogos,
+  sem aumentar arbitrariamente o z-index de cada sobreposição.
+- Nota de Entrada é página dedicada (lista/wizard/detalhe), fora do CRUD genérico.
+- Componentes ativos do shell: `AppHeader`, `HeaderAreaNavigation`,
+  `ContextSelector`, `UserAccountMenu` e métricas de layout (`layoutMetrics`).
 - A tela de seleção troca o contexto emitindo novo JWT; IDs de tenant não são
   enviados por header.
 - O login continua emitindo JWT global compatível com as APIs legadas.
 - Usuário sem Membership recebe estado explícito de acesso não provisionado e
-  não entra no shell tenant-aware. Uma única organização é selecionada
-  automaticamente; múltiplas exigem escolha explícita e podem ser pesquisadas.
+  não entra no shell tenant-aware. Após login ou cadastro, o JWT global exige
+  escolha explícita mesmo com uma única organização. Um JWT contextual válido
+  pode restaurar a organização ativa ao recarregar a aplicação.
 - O vendor compartilhado ainda gera aviso acima de 500 kB; páginas operacionais
   agora são carregadas em chunks independentes.
 - Ferramentas de teste e lint são somente `devDependencies`; Vite 7 e Vitest 4
@@ -137,3 +203,11 @@ Testing Library; E2E contra o backend real será acrescentado no recorte própri
 | 2026-09-04 | Adota home Hub (`HubHomePage`) com grade de módulos e pendências; dashboard operacional em `/app/visao-geral`. |
 | 2026-09-09 | Porta componentes de shell do Hub (`AppHeader`, `AppSidebar`, `HubLauncherButton`, `OpenModulesBar`, tema/dialogs/DataGrid). |
 | 2026-09-09 | Prioriza responsividade mobile: header compacto, login form-first, launcher bottom sheet, dialogs fullscreen, safe-area. |
+| 2026-09-11 | Navegação por áreas (Estoque/Fiscal/Financeiro) com mega menu, favoritos/recentes e Nota de Entrada dedicada. |
+| 2026-09-11 | Mega menu completo em 7 áreas; fluxo Compras com atalhos e ContasPagarPage. |
+| 2026-09-11 | Homes das sete áreas passam a destacar ações operacionais do dia respeitando RBAC. |
+| 2026-09-11 | Expõe as áreas no cabeçalho com menus por processo, drawer mobile e testes de RBAC, teclado e navegação direta; preserva preferências e rotas. |
+| 2026-09-11 | Simplifica a navegação conforme aprovação: remove sidebar/abas/grade de módulos do shell, reúne notas nos processos e torna o resumo do dia a home. |
+| 2026-09-11 | Restaura a home do Hub com pendências e resumo do dia abaixo, conforme ajuste do usuário; cartões reutilizam o menu e as consultas são compartilhadas. |
+| 2026-09-12 | Corrige menu de conta encoberto pela navegação, alinhando as camadas do cabeçalho/menus ao tema MUI e adicionando regressão de sobreposição. |
+| 2026-09-12 | Torna pendências acionáveis, compacta a home e separa finanças por período; alinha detalhes de compras/serviços e permissões financeiras. |
