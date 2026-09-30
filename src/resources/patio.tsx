@@ -7,8 +7,18 @@ import { tipoVeiculoOptions, statusMensalistaOptions } from './options';
 export const tarifasConfig: ResourceConfig = {
   key: 'tarifas',
   basePath: '/api/tarifas',
+  tenantAware: true,
+  permissions: {
+    read: ['operations:read'],
+    create: ['operations:manage'],
+    update: ['operations:manage'],
+    delete: ['operations:manage'],
+  },
   singular: 'Tarifa',
   plural: 'Tarifas',
+  grammaticalGender: 'feminine',
+  subtitle: 'Valores de hora, diária e mensalidade do pátio.',
+  searchFilter: 'descricao',
   defaultSort: 'descricao,asc',
   columns: [
     cols.id(),
@@ -36,8 +46,22 @@ export const tarifasConfig: ResourceConfig = {
 export const veiculosConfig: ResourceConfig = {
   key: 'veiculos',
   basePath: '/api/veiculos',
+  tenantAware: true,
+  permissions: {
+    read: ['operations:read'],
+    create: ['operations:manage'],
+    update: ['operations:manage'],
+    delete: ['operations:manage'],
+  },
+  requiredAllPermissions: {
+    create: ['customers:read'],
+    update: ['customers:read'],
+  },
   singular: 'Veículo',
   plural: 'Veículos',
+  searchFilter: 'placa',
+  subtitle: 'Placas vinculadas a clientes do contexto ativo.',
+  unavailableRelations: ['Movimentações do veículo', 'Mensalidade vigente'],
   defaultSort: 'placa,asc',
   columns: [
     cols.id(),
@@ -73,8 +97,25 @@ export const veiculosConfig: ResourceConfig = {
 export const mensalistasConfig: ResourceConfig = {
   key: 'mensalistas',
   basePath: '/api/mensalistas',
+  tenantAware: true,
+  permissions: {
+    read: ['operations:read'],
+    create: ['operations:manage'],
+    update: ['operations:manage'],
+    delete: ['operations:manage'],
+  },
+  requiredAllPermissions: {
+    create: ['customers:read'],
+    update: ['customers:read'],
+  },
   singular: 'Mensalista',
   plural: 'Mensalistas',
+  subtitle: 'Contratos mensais de vaga e veículo.',
+  unavailableRelations: ['Cobranças geradas', 'Movimentações do contrato'],
+  filters: [
+    { name: 'clienteId', label: 'Cliente', type: 'reference', reference: { basePath: '/api/clientes', labelField: 'nome' } },
+    { name: 'status', label: 'Situação', type: 'select', options: statusMensalistaOptions },
+  ],
   columns: [
     cols.id(),
     cols.text('clienteNome', 'Cliente'),
@@ -115,15 +156,27 @@ export const mensalistasConfig: ResourceConfig = {
     { name: 'valorMensal', label: 'Mensalidade', type: 'money', required: true, cols: 4 },
     { name: 'dataInicio', label: 'Início', type: 'date', cols: 4 },
     { name: 'dataFim', label: 'Fim', type: 'date', cols: 4 },
-    { name: 'status', label: 'Status', type: 'select', cols: 4, options: statusMensalistaOptions, defaultValue: 'ATIVO' },
+    { name: 'status', label: 'Situação', type: 'select', cols: 4, options: statusMensalistaOptions, defaultValue: 'ATIVO' },
   ],
 };
 
 export const movimentacoesConfig: ResourceConfig = {
   key: 'movimentacoes',
   basePath: '/api/movimentacoes',
+  tenantAware: true,
+  permissions: { read: ['operations:read'] },
   singular: 'Movimentação',
   plural: 'Movimentações',
+  grammaticalGender: 'feminine',
+  subtitle: 'Entradas e saídas do pátio com cobrança disponível.',
+  unavailableRelations: ['Documento de cobrança', 'Pátio de origem detalhado'],
+  filters: [
+    { name: 'status', label: 'Situação', type: 'select', options: [
+      { value: 'ABERTO', label: 'Aberto' },
+      { value: 'FECHADO', label: 'Fechado' },
+      { value: 'CANCELADO', label: 'Cancelado' },
+    ] },
+  ],
   canCreate: false,
   canEdit: false,
   canDelete: false,

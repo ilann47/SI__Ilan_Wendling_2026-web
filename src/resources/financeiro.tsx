@@ -2,19 +2,65 @@ import { type ResourceConfig } from '../components/crud/resourceConfig';
 import { cols } from './columns';
 import PaymentsIcon from '@mui/icons-material/Payments';
 import CancelOutlinedIcon from '@mui/icons-material/CancelOutlined';
+import { Button } from '@mui/material';
+import { Link as RouterLink } from 'react-router-dom';
 
 export const contaPagarConfig: ResourceConfig = {
   key: 'contas-pagar',
+  rowActionPermissions: ['finance:manage'],
   basePath: '/api/contas-pagar',
   singular: 'Conta a Pagar',
   plural: 'Contas a Pagar',
-  subtitle: 'Títulos a pagar (parcelas de fornecedores).',
+  grammaticalGender: 'feminine',
+  tenantAware: true,
+  permissions: {
+    read: ['finance:read'],
+    create: ['finance:manage'],
+    update: ['finance:manage'],
+  },
+  requiredAllPermissions: {
+    create: ['suppliers:read'],
+  },
+  subtitle: 'Títulos a pagar de fornecedores.',
+  unavailableRelations: ['Pagamentos individuais', 'Documento de origem detalhado'],
+  filters: [
+    { name: 'situacao', label: 'Situação', type: 'select', options: [
+      { value: 'PENDENTE', label: 'Pendente' },
+      { value: 'PARCIAL', label: 'Parcial' },
+      { value: 'PAGA', label: 'Paga' },
+      { value: 'CANCELADA', label: 'Cancelada' },
+    ] },
+    {
+      name: 'fornecedorId',
+      label: 'Fornecedor',
+      type: 'reference',
+      reference: { basePath: '/api/fornecedores', labelField: 'nome' },
+    },
+    {
+      name: 'notaEntradaId',
+      label: 'Nota de entrada',
+      type: 'reference',
+      reference: { basePath: '/api/notas-entrada', labelField: 'numero' },
+    },
+  ],
   defaultSort: 'dataVencimento,asc',
   canEdit: false,
   canDelete: false,
   columns: [
     cols.id(),
     cols.text('fornecedorNome', 'Fornecedor'),
+    cols.text('notaEntradaNumero', 'Nota', {
+      renderCell: (params) => params.row.notaEntradaId ? (
+        <Button
+          component={RouterLink}
+          to={`/app/notas-entrada/${params.row.notaEntradaId}`}
+          size="small"
+          onClick={(event) => event.stopPropagation()}
+        >
+          {params.value ?? `Nota ${params.row.notaEntradaId}`}
+        </Button>
+      ) : '—',
+    }),
     cols.number('numeroParcela', 'Parc.'),
     cols.money('valorTotal', 'Total'),
     cols.money('valorPago', 'Pago'),
@@ -85,10 +131,24 @@ export const contaPagarConfig: ResourceConfig = {
 
 export const contaReceberConfig: ResourceConfig = {
   key: 'contas-receber',
+  rowActionPermissions: ['finance:manage'],
   basePath: '/api/contas-receber',
   singular: 'Conta a Receber',
   plural: 'Contas a Receber',
-  subtitle: 'Títulos a receber (parcelas de clientes).',
+  grammaticalGender: 'feminine',
+  tenantAware: true,
+  permissions: { read: ['finance:read'], create: ['finance:manage'], update: ['finance:manage'] },
+  requiredAllPermissions: { create: ['customers:read'] },
+  subtitle: 'Títulos a receber de clientes.',
+  unavailableRelations: ['Recebimentos individuais', 'Documento de origem detalhado'],
+  filters: [
+    { name: 'situacao', label: 'Situação', type: 'select', options: [
+      { value: 'PENDENTE', label: 'Pendente' },
+      { value: 'PARCIAL', label: 'Parcial' },
+      { value: 'RECEBIDA', label: 'Recebida' },
+      { value: 'CANCELADA', label: 'Cancelada' },
+    ] },
+  ],
   defaultSort: 'dataVencimento,asc',
   canEdit: false,
   canDelete: false,
@@ -165,10 +225,21 @@ export const contaReceberConfig: ResourceConfig = {
 
 export const contaPagarAvulsaConfig: ResourceConfig = {
   key: 'contas-pagar-avulsas',
+  rowActionPermissions: ['finance:manage'],
   basePath: '/api/contas-pagar-avulsas',
+  tenantAware: true,
+  permissions: {
+    read: ['finance:read'], create: ['finance:manage'],
+    update: ['finance:manage'], delete: ['finance:manage'],
+  },
+  requiredAllPermissions: {
+    create: ['suppliers:read', 'payments:read'],
+    update: ['suppliers:read', 'payments:read'],
+  },
   singular: 'Despesa Avulsa',
-  plural: 'Contas a Pagar Avulsas',
-  subtitle: 'Despesas avulsas sem vínculo com fornecedor.',
+  plural: 'Despesas avulsas',
+  grammaticalGender: 'feminine',
+  subtitle: 'Despesas avulsas sem vínculo obrigatório com fornecedor.',
   defaultSort: 'dataVencimento,asc',
   canEdit: true,
   canDelete: true,

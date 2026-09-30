@@ -1,0 +1,376 @@
+import ArrowForwardRoundedIcon from '@mui/icons-material/ArrowForwardRounded';
+import PushPinOutlinedIcon from '@mui/icons-material/PushPinOutlined';
+import AssignmentLateOutlinedIcon from '@mui/icons-material/AssignmentLateOutlined';
+import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined';
+import ShoppingCartCheckoutOutlinedIcon from '@mui/icons-material/ShoppingCartCheckoutOutlined';
+import ReportProblemOutlinedIcon from '@mui/icons-material/ReportProblemOutlined';
+import { useQuery } from '@tanstack/react-query';
+import { Alert, Box, Button, ButtonBase, MenuItem, TextField, Typography } from '@mui/material';
+import { useMemo, useState } from 'react';
+import { Link as RouterLink, useOutletContext } from 'react-router-dom';
+import { api } from '../api/client';
+import { operationalPendencies, pendencyPermissions } from '../api/operationalPendencies';
+import { tenantQueryKey } from '../api/queryKeys';
+import { useAuth } from '../auth/AuthContext';
+import { HexMark } from '../components/brand/HexMark';
+import { getThemeTokens } from '../theme/hubTokens';
+import { useColorMode } from '../context/ColorModeContext';
+import { formatCurrency, formatDate } from '../utils/format';
+import { type FinancialPeriod } from './dashboardContext';
+import type { EstoqueMinimoResponse } from '../types';
+import { canOpenHubModule, hubModules } from '../layout/hubModules';
+import type { AppLayoutContext } from '../layout/AppLayout';
+import { DashboardPage } from './DashboardPage';
+
+interface Pendency {
+  id: string;
+  title: string;
+  message: string;
+  path: string;
+  tone: 'urgent' | 'warning' | 'info';
+}
+
+/**
+ * Home Kaneko: módulos e pendências no topo, resumo do dia logo abaixo.
+ */
+export function HubHomePage() {
+  const [financialPeriod, setFinancialPeriod] = useState<FinancialPeriod>('week');
+  const { openArea } = useOutletContext<AppLayoutContext>();
+  const { user, activeOrganization, permissions } = useAuth();
+  const { mode } = useColorMode();
+  const colors = getThemeTokens(mode);
+  const organizationId = activeOrganization?.organizationId;
+  const firstName = (user?.login ?? 'Operador').split(/[.@]/)[0] ?? 'Operador';
+
+  const visibleModules = hubModules.filter((module) => canOpenHubModule(module, permissions));
+
+  const canReadOperational = Object.values(pendencyPermissions).some((permission) => permissions.includes(permission));
+  const operational = useQuery({
+    queryKey: tenantQueryKey(organizationId, 'dashboard', 'operational-pendencies', permissions),
+    enabled: !!organizationId && canReadOperational,
+    queryFn: operationalPendencies,
+    staleTime: 30_000,
+  });
+  const estoque = useQuery({
+    queryKey: organizationId ? tenantQueryKey(organizationId, 'dashboard', 'estoque-minimo') : ['hub', 'estoque'],
+    enabled: !!organizationId && permissions.includes('stock:read'),
+    queryFn: () => api.get<EstoqueMinimoResponse>('/api/relatorios/estoque-minimo').then((response) => response.data),
+    staleTime: 60_000,
+  });
+  const pendencyQueries = [
+    canReadOperational ? operational : null,
+    permissions.includes('stock:read') ? estoque : null,
+  ].filter((query) => query !== null);
+
+  const operationalGroups = (operational.data?.grupos ?? [])
+    .filter((group) => permissions.includes(pendencyPermissions[group.tipo] ?? ''));
+  const operationalTotal = operationalGroups.reduce((total, group) => total + group.total, 0);
+  const operationalShown = operationalGroups.reduce((total, group) => total + group.itens.length, 0);
+
+  const pendencies = useMemo<Pendency[]>(() => {
+    const items: Pendency[] = [];
+    (operational.data?.grupos ?? []).filter((group) => permissions.includes(pendencyPermissions[group.tipo] ?? ''))
+      .forEach((group) => group.itens.forEach((item) => items.push({
+        id: `${group.tipo}-${item.id}`, title: item.titulo, path: item.caminho,
+        message: [item.contraparte, item.valor != null ? formatCurrency(item.valor) : null,
+          item.data ? formatDate(item.data) : null].filter(Boolean).join(' · '),
+        tone: group.tipo.endsWith('_VENCIDA') ? 'urgent' : 'info',
+      })));
+    if (permissions.includes('stock:read') && (estoque.data?.total ?? 0) > 0) {
+      items.push({
+        id: 'estoque-minimo',
+        title: 'Estoque abaixo do mínimo',
+        message: `${estoque.data!.total} produto(s) na posição consolidada`,
+        path: '/app/relatorios?tab=estoque',
+        tone: 'warning',
+      });
+    }
+    return items;
+  }, [operational.data, estoque.data, permissions]);
+
+  const toneStyles = {
+    urgent: { bg: 'rgba(229,57,53,0.1)', color: colors.danger },
+    warning: { bg: 'rgba(249,168,37,0.14)', color: '#C88700' },
+    info: { bg: 'rgba(107,70,254,0.1)', color: colors.purple },
+  } as const;
+
+  const pendencyIcon = (tone: Pendency['tone'], title: string) => {
+    if (title.toLowerCase().includes('estoque')) return <Inventory2OutlinedIcon />;
+    if (title.toLowerCase().includes('ordem')) return <ShoppingCartCheckoutOutlinedIcon />;
+    if (tone === 'urgent') return <ReportProblemOutlinedIcon />;
+    return <AssignmentLateOutlinedIcon />;
+  };
+
+  return (
+    <Box
+      sx={{
+        bgcolor: colors.background,
+        py: 1,
+      }}
+    >
+      <Box
+        sx={{
+          display: 'flex',
+          flexDirection: { xs: 'column', md: 'row' },
+          alignItems: { xs: 'stretch', md: 'flex-start' },
+          gap: { xs: 2, lg: 2.5 },
+        }}
+      >
+        <Box sx={{ flex: 1, minWidth: 0, order: { xs: 1, lg: 1 } }}>
+          <Typography sx={{ color: colors.purple, fontWeight: 800, fontSize: { xs: '1.2rem', md: '1.4rem' }, letterSpacing: -0.3 }}>
+            Olá, {firstName} 👋
+          </Typography>
+          <Typography
+            component="h1"
+            variant="h4"
+            sx={{
+              fontWeight: 800,
+              color: colors.text,
+              mt: 0.35,
+              mb: 0.5,
+              fontSize: { xs: '1.15rem', md: '1.55rem' },
+              lineHeight: 1.25,
+            }}
+          >
+            O que você deseja fazer hoje?
+          </Typography>
+          <Typography variant="body1" sx={{ color: colors.textMuted, mb: 1.5, maxWidth: 520, fontSize: '0.9rem' }}>
+            Escolha um módulo para começar.
+          </Typography>
+
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: {
+                xs: 'repeat(2, minmax(0, 1fr))',
+                sm: 'repeat(3, minmax(0, 1fr))',
+                md: 'repeat(3, minmax(0, 1fr))',
+                xl: 'repeat(3, minmax(0, 1fr))',
+              },
+              gap: { xs: 1, md: 1.25 },
+            }}
+          >
+            {visibleModules.map((module) => (
+              <Box
+                key={module.id}
+                component="button"
+                type="button"
+                onClick={() => openArea(module.id)}
+                aria-label={`Abrir módulo ${module.label}`}
+                sx={{
+                  appearance: 'none',
+                  border: `1px solid ${colors.border}`,
+                  cursor: 'pointer',
+                  textAlign: 'center',
+                  borderRadius: 2.5,
+                  minHeight: { xs: 76, md: 82 },
+                  p: 1.25,
+                  bgcolor: colors.card,
+                  color: colors.text,
+                  boxShadow: '0 4px 14px rgba(27, 33, 64, 0.04)',
+                  display: 'flex',
+                  flexDirection: { xs: 'column', sm: 'row' },
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 0.75,
+                  WebkitTapHighlightColor: 'transparent',
+                  transition: 'transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease',
+                  '&:hover': {
+                    transform: 'translateY(-3px)',
+                    boxShadow: '0 10px 24px rgba(107, 70, 254, 0.12)',
+                    borderColor: colors.purpleSoft,
+                  },
+                  '&:active': {
+                    transform: 'scale(0.98)',
+                    borderColor: colors.purpleSoft,
+                  },
+                  '&:focus-visible': { outline: `2px solid ${colors.purple}`, outlineOffset: 3 },
+                }}
+              >
+                <Box
+                  sx={{
+                    width: { xs: 40, md: 44 },
+                    height: { xs: 40, md: 44 },
+                    borderRadius: 2,
+                    bgcolor: colors.brandHover,
+                    color: colors.purple,
+                    display: 'grid',
+                    placeItems: 'center',
+                    '& .MuiSvgIcon-root': { fontSize: { xs: 22, md: 24 } },
+                  }}
+                >
+                  {module.icon}
+                </Box>
+                <Typography sx={{ fontWeight: 800, fontSize: { xs: '0.78rem', md: '0.84rem' }, lineHeight: 1.2 }}>
+                  {module.label}
+                </Typography>
+                {module.flowSummary && (
+                  <Typography sx={{
+                    color: colors.textMuted,
+                    fontSize: '0.68rem',
+                    lineHeight: 1.25,
+                    display: { xs: 'none', lg: 'block' },
+                  }}>
+                    {module.flowSummary}
+                  </Typography>
+                )}
+              </Box>
+            ))}
+          </Box>
+
+          <Box
+            sx={{
+              mt: 1.5,
+              p: 1.25,
+              borderRadius: 2.5,
+              bgcolor: colors.card,
+              border: `1px solid ${colors.border}`,
+              boxShadow: '0 4px 14px rgba(27, 33, 64, 0.04)',
+              display: { xs: 'none', sm: 'flex' },
+              alignItems: 'center',
+              gap: 2,
+            }}
+          >
+            <Box sx={{ width: 36, height: 36, flexShrink: 0, borderRadius: 2, bgcolor: colors.brandHover, display: 'grid', placeItems: 'center' }}>
+              <HexMark size={24} />
+            </Box>
+            <Box>
+              <Typography sx={{ fontWeight: 800, fontSize: '0.95rem', color: colors.text }}>
+                Hub operacional Kaneko
+              </Typography>
+              <Typography sx={{ fontSize: '0.82rem', color: colors.textMuted, mt: 0.5, lineHeight: 1.45 }}>
+                Pátio, acessos, mensalistas, eventos e cobrança na sua organização.
+              </Typography>
+            </Box>
+          </Box>
+        </Box>
+
+        <Box sx={{ width: { xs: '100%', md: 300, lg: 340 }, flexShrink: 0, order: { xs: 2, lg: 2 }, ml: { xs: 0, md: 'auto' } }}>
+          <Box
+            sx={{
+              bgcolor: colors.card,
+              borderRadius: { xs: 3, md: 4 },
+              p: 2,
+              border: `1px solid ${colors.border}`,
+              boxShadow: '0 8px 28px rgba(26, 31, 44, 0.06)',
+              minHeight: { lg: 200 },
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 1.5,
+            }}
+          >
+            <Box>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.25 }}>
+                <PushPinOutlinedIcon sx={{ fontSize: 18, color: colors.purple }} />
+                <Typography variant="caption" sx={{ color: colors.purple, fontWeight: 700 }}>O que pede atenção</Typography>
+              </Box>
+              <Typography component="h2" sx={{ fontWeight: 800, color: colors.text, mt: 0.25, mb: 0.35, fontSize: { xs: '1.15rem', md: '1.35rem' } }}>
+                Pendências
+              </Typography>
+              <Typography variant="body2" sx={{ color: colors.textMuted, lineHeight: 1.5 }}>
+                Abra o item para resolver, sem procurar novamente.
+              </Typography>
+            </Box>
+
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, flex: 1, maxHeight: 310, overflowY: 'auto' }}>
+              {pendencyQueries.some((query) => query.isLoading) && (
+                <Typography role="status" color="text.secondary">Carregando pendências…</Typography>
+              )}
+              {pendencyQueries.some((query) => query.isError) && (
+                <Alert severity="warning" action={<Button size="small" onClick={() => pendencyQueries.filter((q) => q.isError).forEach((q) => void q.refetch())}>Tentar novamente</Button>}>Não foi possível consultar todas as pendências.</Alert>
+              )}
+              {pendencyQueries.length === 0 && (
+                <Typography color="text.secondary">Não há consultas de pendências disponíveis para o seu acesso.</Typography>
+              )}
+              {pendencies.length === 0 && pendencyQueries.length > 0 && pendencyQueries.every((query) => query.isSuccess) ? (
+                <Box
+                  sx={{
+                    flex: 1,
+                    display: 'grid',
+                    placeItems: 'center',
+                    py: 3,
+                    px: 2,
+                    textAlign: 'center',
+                    borderRadius: 2.5,
+                    border: `1px dashed ${colors.border}`,
+                    bgcolor: colors.sidebarHover,
+                  }}
+                >
+                  <Typography sx={{ fontWeight: 700, color: colors.text, mb: 0.5 }}>
+                    Nenhuma pendência nas consultas disponíveis
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Nenhum item aguardando ação nos módulos disponíveis para seu acesso.
+                  </Typography>
+                </Box>
+              ) : (
+                pendencies.map((item) => {
+                  const tone = toneStyles[item.tone];
+                  return (
+                    <ButtonBase
+                      key={item.id}
+                      component={RouterLink}
+                      to={item.path}
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 1.25,
+                        width: '100%',
+                        minHeight: 64,
+                        borderRadius: 2.5,
+                        px: 1.25,
+                        py: 1.1,
+                        border: `1px solid ${colors.border}`,
+                        bgcolor: colors.background,
+                        textAlign: 'left',
+                        WebkitTapHighlightColor: 'transparent',
+                        '&:active': { bgcolor: colors.brandHover },
+                      }}
+                    >
+                      <Box
+                        sx={{
+                          width: 40,
+                          height: 40,
+                          borderRadius: 2,
+                          bgcolor: tone.bg,
+                          color: tone.color,
+                          display: 'grid',
+                          placeItems: 'center',
+                          flexShrink: 0,
+                          '& .MuiSvgIcon-root': { fontSize: 22 },
+                        }}
+                      >
+                        {pendencyIcon(item.tone, item.title)}
+                      </Box>
+                      <Box sx={{ flex: 1, minWidth: 0 }}>
+                        <Typography sx={{ fontWeight: 700, fontSize: '0.88rem', color: colors.text, lineHeight: 1.25 }}>
+                          {item.title}
+                        </Typography>
+                        <Typography sx={{ fontSize: '0.75rem', color: colors.textMuted, lineHeight: 1.35, mt: 0.2 }}>
+                          {item.message}
+                        </Typography>
+                      </Box>
+                      <ArrowForwardRoundedIcon sx={{ color: colors.textMuted, fontSize: 20, flexShrink: 0 }} />
+                    </ButtonBase>
+                  );
+                })
+              )}
+            </Box>
+            {permissions.includes('finance:read') && <Typography variant="caption" color="text.secondary">Contas vencidas incluem todo o histórico; o período abaixo filtra somente o resumo financeiro.</Typography>}
+            {operational.isSuccess && operationalTotal > operationalShown && <Typography variant="caption" color="text.secondary">
+              Mostrando {operationalShown} de {operationalTotal} pendências operacionais, até {operational.data.limitePorGrupo} por categoria. Abra as listagens para consultar as demais.
+            </Typography>}
+          </Box>
+        </Box>
+      </Box>
+      <Box component="section" aria-label="Resumo do dia" sx={{ mt: 2.5 }}>
+        <DashboardPage embedded financialPeriod={financialPeriod} headerActions={permissions.includes('finance:read') &&
+          <TextField select size="small" label="Período financeiro" value={financialPeriod} sx={{ minWidth: 220 }}
+            onChange={(event) => setFinancialPeriod(event.target.value as FinancialPeriod)}>
+            <MenuItem value="today">Hoje</MenuItem><MenuItem value="week">Próximos 7 dias (inclui hoje)</MenuItem><MenuItem value="month">Este mês</MenuItem>
+          </TextField>
+        } />
+      </Box>
+    </Box>
+  );
+}

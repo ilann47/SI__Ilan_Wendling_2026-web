@@ -8,7 +8,23 @@ export const clientesConfig: ResourceConfig = {
   basePath: '/api/clientes',
   singular: 'Cliente',
   plural: 'Clientes',
+  tenantAware: true,
+  permissions: {
+    read: ['customers:read'],
+    create: ['customers:manage'],
+    update: ['customers:manage'],
+    delete: ['customers:manage'],
+  },
   subtitle: 'Pessoas físicas ou jurídicas atendidas.',
+  searchFilter: 'nome',
+  unavailableRelations: [
+    'Mensalidades',
+    'Movimentações',
+    'Vendas administrativas',
+    'Ordens de serviço',
+    'Notas',
+    'Contas a receber',
+  ],
   defaultSort: 'nome,asc',
   columns: [
     cols.id(),
@@ -64,6 +80,14 @@ export const formasPagamentoConfig: ResourceConfig = {
   basePath: '/api/formas-pagamento',
   singular: 'Forma de Pagamento',
   plural: 'Formas de Pagamento',
+  grammaticalGender: 'feminine',
+  tenantAware: true,
+  permissions: {
+    read: ['payments:read'],
+    create: ['payments:manage'],
+    update: ['payments:manage'],
+    delete: ['payments:manage'],
+  },
   subtitle: 'Meios de pagamento aceitos.',
   defaultSort: 'nome,asc',
   columns: [
@@ -101,6 +125,14 @@ export const condicoesPagamentoConfig: ResourceConfig = {
   basePath: '/api/condicoes-pagamento',
   singular: 'Condição de Pagamento',
   plural: 'Condições de Pagamento',
+  grammaticalGender: 'feminine',
+  tenantAware: true,
+  permissions: {
+    read: ['payments:read'],
+    create: ['payments:manage'],
+    update: ['payments:manage'],
+    delete: ['payments:manage'],
+  },
   subtitle: 'Prazos e parcelas (à vista, 30/60, etc.).',
   defaultSort: 'nome,asc',
   columns: [
@@ -117,7 +149,7 @@ export const condicoesPagamentoConfig: ResourceConfig = {
   ],
   toFormValues: (row) => ({
     ...row,
-    parcelas: (row.parcelas ?? []).map((p: any) => ({
+    parcelas: (Array.isArray(row.parcelas) ? row.parcelas : []).map((p: any) => ({
       numero: p.numero,
       dias: p.dias,
       percentual: p.percentual,

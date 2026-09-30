@@ -5,7 +5,7 @@
 export type TipoPessoa = 'FISICA' | 'JURIDICA';
 export type Sexo = 'MASCULINO' | 'FEMININO' | 'OUTRO';
 export type EstadoCivil = 'SOLTEIRO' | 'CASADO' | 'SEPARADO' | 'DIVORCIADO' | 'VIUVO' | 'OUTRO';
-export type PerfilUsuario = 'ADMIN' | 'OPERADOR';
+export type PerfilUsuario = 'ADMIN' | 'OPERADOR' | 'USUARIO';
 export type TipoEmail = 'COMERCIAL' | 'FINANCEIRO' | 'COMPRAS' | 'VENDAS' | 'SUPORTE';
 export type TipoTelefone = 'COMERCIAL' | 'RESIDENCIAL' | 'CELULAR' | 'FAX' | 'WHATSAPP';
 export type TipoVeiculo = 'CARRO' | 'MOTO';
@@ -36,6 +36,23 @@ export interface LoginResponse {
   tipo: string;
   login: string;
   perfil: PerfilUsuario;
+}
+
+export interface RegisterRequest {
+  nome: string;
+  login: string;
+  email: string;
+  senha: string;
+}
+
+export interface RegisterResponse {
+  id: number;
+  nome: string;
+  login: string;
+  email: string;
+  token: string;
+  tipo: 'Bearer';
+  perfil: 'USUARIO';
 }
 
 // ===================== Geografia =====================
@@ -567,6 +584,8 @@ export interface ProdutoFornecedorRequest {
 // ===================== Patio =====================
 export interface TarifaResponse {
   id: number;
+  organizacaoId?: number;
+  version?: number;
   descricao: string;
   valorHora: number;
   valorDiaria: number;
@@ -587,6 +606,8 @@ export interface TarifaRequest {
 
 export interface VeiculoResponse {
   id: number;
+  organizacaoId?: number;
+  version?: number;
   placa: string;
   modelo?: string;
   cor?: string;
@@ -610,6 +631,8 @@ export interface VeiculoRequest {
 
 export interface MensalistaResponse {
   id: number;
+  organizacaoId?: number;
+  version?: number;
   clienteId: number;
   clienteNome: string;
   veiculoId: number;
@@ -632,11 +655,14 @@ export interface MensalistaRequest {
 
 export interface MovimentacaoResponse {
   id: number;
+  organizacaoId?: number;
+  version?: number;
   veiculoId: number;
   veiculoPlaca: string;
   tipo?: TipoMovimentacao;
   mensalistaId?: number;
   tarifaId?: number;
+  patioId?: number;
   dataEntrada: string;
   dataSaida?: string;
   valorCobrado?: number;
@@ -646,6 +672,7 @@ export interface MovimentacaoResponse {
 }
 export interface EntradaRequest {
   veiculoId: number;
+  patioId?: number;
 }
 
 // ===================== Fiscal =====================
@@ -666,6 +693,8 @@ export interface ItemNotaEntradaResponse {
 }
 export interface NotaEntradaResponse {
   id: number;
+  organizacaoId?: number;
+  version?: number;
   numero: string;
   modelo: string;
   serie: string;
@@ -673,6 +702,12 @@ export interface NotaEntradaResponse {
   fornecedorNome: string;
   condicaoPagamentoId?: number;
   condicaoPagamentoNome?: string;
+  localEstoqueId?: number;
+  localEstoqueNome?: string;
+  /** Presentes somente se a API devolver o vínculo (hoje opcional / frequentemente ausente). */
+  recebimentoCompraId?: number;
+  ordemCompraId?: number;
+  ordemCompraNumero?: string;
   dataEmissao: string;
   dataChegada?: string;
   tipoFrete: TipoFrete;
@@ -701,6 +736,9 @@ export interface NotaEntradaRequest {
   serie?: string;
   fornecedorId: number;
   condicaoPagamentoId?: number;
+  localEstoqueId: number;
+  /** Vincula um recebimento de OC já existente para evitar duplicar estoque (campo aceito no create legado). */
+  recebimentoCompraId?: number;
   dataEmissao?: string;
   dataChegada?: string;
   tipoFrete?: TipoFrete;
@@ -729,6 +767,8 @@ export interface ItemNotaSaidaResponse {
 }
 export interface NotaSaidaResponse {
   id: number;
+  organizacaoId?: number;
+  version?: number;
   numero: string;
   modelo: string;
   serie: string;
@@ -736,6 +776,8 @@ export interface NotaSaidaResponse {
   clienteNome: string;
   condicaoPagamentoId?: number;
   condicaoPagamentoNome?: string;
+  localEstoqueId?: number;
+  localEstoqueNome?: string;
   dataEmissao: string;
   dataSaida?: string;
   tipoFrete: TipoFrete;
@@ -764,6 +806,7 @@ export interface NotaSaidaRequest {
   serie?: string;
   clienteId: number;
   condicaoPagamentoId?: number;
+  localEstoqueId: number;
   dataEmissao?: string;
   dataSaida?: string;
   tipoFrete?: TipoFrete;
@@ -777,6 +820,8 @@ export interface NotaSaidaRequest {
 
 export interface NotaServicoResponse {
   id: number;
+  organizacaoId?: number;
+  version?: number;
   numero: string;
   modelo: string;
   serie: string;
@@ -838,6 +883,7 @@ export interface ContaPagarResponse {
   valorJuros: number;
   valorMulta: number;
   valorTotal: number;
+  saldo?: number;
   dataEmissao?: string;
   dataVencimento: string;
   dataPagamento?: string;
@@ -868,6 +914,8 @@ export interface ContaReceberResponse {
   clienteNome: string;
   notaSaidaId?: number;
   notaSaidaNumero?: string;
+  notaServicoId?: number;
+  notaServicoNumero?: string;
   mensalistaId?: number;
   condicaoPagamentoId?: number;
   formaPagamentoId?: number;
@@ -906,6 +954,8 @@ export interface ContaReceberRequest {
 
 export interface ContaPagarAvulsaResponse {
   id: number;
+  organizacaoId?: number;
+  version?: number;
   descricao: string;
   fornecedorId?: number;
   fornecedorNome?: string;

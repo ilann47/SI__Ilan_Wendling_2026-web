@@ -15,11 +15,29 @@ const telefoneSubFields: FieldConfig[] = [
   { name: 'principal', label: 'Principal', type: 'switch', cols: 3 },
 ];
 
+const catalogTenantConfig = {
+  tenantAware: true,
+  optimisticLocking: true,
+  permissions: {
+    read: ['catalog:read'],
+    create: ['catalog:manage'],
+    update: ['catalog:manage'],
+    delete: ['catalog:manage'],
+  },
+} satisfies Pick<ResourceConfig, 'tenantAware' | 'optimisticLocking' | 'permissions'>;
+
 export const fornecedoresConfig: ResourceConfig = {
   key: 'fornecedores',
   basePath: '/api/fornecedores',
   singular: 'Fornecedor',
   plural: 'Fornecedores',
+  tenantAware: true,
+  permissions: {
+    read: ['suppliers:read'],
+    create: ['suppliers:manage'],
+    update: ['suppliers:manage'],
+    delete: ['suppliers:manage'],
+  },
   subtitle: 'Fornecedores de produtos e serviços.',
   defaultSort: 'nome,asc',
   columns: [
@@ -36,12 +54,12 @@ export const fornecedoresConfig: ResourceConfig = {
   ],
   toFormValues: (row) => ({
     ...row,
-    emails: (row.emails ?? []).map((e: any) => ({
+    emails: (Array.isArray(row.emails) ? row.emails : []).map((e: any) => ({
       email: e.email,
       tipo: e.tipo,
       principal: e.principal,
     })),
-    telefones: (row.telefones ?? []).map((t: any) => ({
+    telefones: (Array.isArray(row.telefones) ? row.telefones : []).map((t: any) => ({
       telefone: t.telefone,
       tipo: t.tipo,
       principal: t.principal,
@@ -93,6 +111,8 @@ export const categoriasConfig: ResourceConfig = {
   basePath: '/api/categorias',
   singular: 'Categoria',
   plural: 'Categorias',
+  grammaticalGender: 'feminine',
+  ...catalogTenantConfig,
   subtitle: 'Categorias de produtos.',
   defaultSort: 'nome,asc',
   columns: [
@@ -117,6 +137,8 @@ export const marcasConfig: ResourceConfig = {
   basePath: '/api/marcas',
   singular: 'Marca',
   plural: 'Marcas',
+  grammaticalGender: 'feminine',
+  ...catalogTenantConfig,
   subtitle: 'Marcas de produtos.',
   defaultSort: 'nome,asc',
   columns: [
@@ -139,6 +161,8 @@ export const unidadesMedidaConfig: ResourceConfig = {
   basePath: '/api/unidades-medida',
   singular: 'Unidade de Medida',
   plural: 'Unidades de Medida',
+  grammaticalGender: 'feminine',
+  ...catalogTenantConfig,
   subtitle: 'Unidades de medida de produtos.',
   defaultSort: 'nome,asc',
   columns: [
@@ -163,6 +187,7 @@ export const servicosConfig: ResourceConfig = {
   basePath: '/api/servicos',
   singular: 'Serviço',
   plural: 'Serviços',
+  ...catalogTenantConfig,
   subtitle: 'Serviços prestados.',
   defaultSort: 'nome,asc',
   columns: [
@@ -189,7 +214,8 @@ export const produtosConfig: ResourceConfig = {
   basePath: '/api/produtos',
   singular: 'Produto',
   plural: 'Produtos',
-  subtitle: 'Produtos de conveniência e estoque.',
+  ...catalogTenantConfig,
+  subtitle: 'Catálogo de produtos. Consulte os saldos atuais na área de Estoque.',
   defaultSort: 'nome,asc',
   columns: [
     cols.id(),
@@ -198,7 +224,7 @@ export const produtosConfig: ResourceConfig = {
     cols.text('categoriaNome', 'Categoria'),
     cols.money('custo', 'Custo'),
     cols.money('valorVenda', 'Venda'),
-    cols.number('quantidade', 'Estoque', 3),
+    cols.number('quantidadeMinima', 'Estoque mínimo', 3),
     cols.bool('ativo', 'Ativo'),
   ],
   filters: [
@@ -243,7 +269,6 @@ export const produtosConfig: ResourceConfig = {
     { name: 'custo', label: 'Preço de custo', type: 'money', cols: 3, disabled: true, helperText: 'Custo com rateio (Nota de Entrada)' },
     { name: 'valorVenda', label: 'Valor de venda', type: 'money', cols: 3 },
     { name: 'percentualLucro', label: '% Lucro', type: 'percent', cols: 3, disabled: true, helperText: 'Calculado: (venda − custo) / custo' },
-    { name: 'quantidade', label: 'Estoque', type: 'number', cols: 3, disabled: true, helperText: 'Movimentado por notas de entrada/saída' },
     { name: 'quantidadeMinima', label: 'Estoque mín.', type: 'number', cols: 3 },
     { name: 'ativo', label: 'Ativo', type: 'switch', cols: 3 },
     { name: 'descricao', label: 'Descrição', type: 'text', cols: 6 },
@@ -256,6 +281,11 @@ export const produtoFornecedoresConfig: ResourceConfig = {
   basePath: '/api/produto-fornecedores',
   singular: 'Produto x Fornecedor',
   plural: 'Produtos por Fornecedor',
+  ...catalogTenantConfig,
+  requiredAllPermissions: {
+    create: ['suppliers:read'],
+    update: ['suppliers:read'],
+  },
   subtitle: 'Vínculo de produtos com seus fornecedores.',
   columns: [
     cols.id(),
@@ -265,12 +295,21 @@ export const produtoFornecedoresConfig: ResourceConfig = {
     cols.money('custo', 'Custo'),
     cols.bool('ativo', 'Ativo'),
   ],
+  filters: [
+    {
+      name: 'produtoId',
+      label: 'Produto',
+      type: 'reference',
+      reference: { basePath: '/api/produtos', labelField: 'nome' },
+    },
+  ],
   fields: [
     {
       name: 'produtoId',
       label: 'Produto',
       type: 'reference',
       required: true,
+      disabledOnEdit: true,
       cols: 6,
       reference: { basePath: '/api/produtos', labelField: 'nome' },
     },
@@ -279,11 +318,13 @@ export const produtoFornecedoresConfig: ResourceConfig = {
       label: 'Fornecedor',
       type: 'reference',
       required: true,
+      disabledOnEdit: true,
       cols: 6,
       reference: { basePath: '/api/fornecedores', labelField: 'nome' },
     },
     { name: 'codigoProd', label: 'Código no fornecedor', type: 'text', cols: 6 },
     { name: 'custo', label: 'Custo', type: 'money', cols: 6 },
+    { name: 'ativo', label: 'Ativo', type: 'switch', cols: 4 },
   ],
 };
 

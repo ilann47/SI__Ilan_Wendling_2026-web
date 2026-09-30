@@ -8,6 +8,7 @@ import { ColorModeProvider } from './context/ColorModeContext';
 import { SnackbarProvider } from './components/SnackbarProvider';
 import { AuthProvider } from './auth/AuthContext';
 import { QuickCreateProvider } from './context/QuickCreateContext';
+import { OperationalWorkspaceProvider } from './workspace/OperationalWorkspaceContext';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -23,7 +24,9 @@ export function AppProviders({ children }: { children: ReactNode }) {
           <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="pt-br">
             <SnackbarProvider>
               <AuthProvider>
-                <QuickCreateProvider>{children}</QuickCreateProvider>
+                <OperationalWorkspaceProvider>
+                  <QuickCreateProvider>{children}</QuickCreateProvider>
+                </OperationalWorkspaceProvider>
               </AuthProvider>
             </SnackbarProvider>
           </LocalizationProvider>

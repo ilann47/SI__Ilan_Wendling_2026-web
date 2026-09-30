@@ -9,6 +9,9 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 5173,
+    watch: {
+      ignored: ['**/.tmp-check/**', '**/tmp/**', '**/.vite-temp/**'],
+    },
     proxy: {
       '/api': { target: backend, changeOrigin: true },
       '/actuator': { target: backend, changeOrigin: true },
@@ -19,6 +22,18 @@ export default defineConfig({
     proxy: {
       '/api': { target: backend, changeOrigin: true },
       '/actuator': { target: backend, changeOrigin: true },
+    },
+  },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules/@mui/x-data-grid')) return 'grid';
+          if (id.includes('node_modules/@mui/x-date-pickers')) return 'pickers';
+          if (id.includes('node_modules/@mui')) return 'mui';
+          if (id.includes('node_modules/@tanstack')) return 'query';
+        },
+      },
     },
   },
 });

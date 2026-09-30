@@ -1,7 +1,7 @@
 import { Chip } from '@mui/material';
-import { statusColor } from '../../utils/format';
+import { formatStatusLabel, statusColor } from '../../utils/format';
 
 export function StatusChip({ status }: { status?: string | null }) {
   if (!status) return <span>—</span>;
-  return <Chip size="small" label={status} color={statusColor(status)} />;
+  return <Chip size="small" label={formatStatusLabel(status)} color={statusColor(status)} />;
 }
