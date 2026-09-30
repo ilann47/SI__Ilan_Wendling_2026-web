@@ -4,16 +4,10 @@ import {
   Badge,
   Box,
   Button,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  Drawer,
   InputAdornment,
   Stack,
   TextField,
-  useMediaQuery,
 } from '@mui/material';
-import { useTheme } from '@mui/material/styles';
 import { useState, type ReactNode } from 'react';
 import { useColorMode } from '../../context/ColorModeContext';
 import { getThemeTokens } from '../../theme/hubTokens';
@@ -39,48 +33,28 @@ export function ListingToolbar({
   appliedCount,
   onClear,
 }: Props) {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const { mode } = useColorMode();
   const colors = getThemeTokens(mode);
   const [open, setOpen] = useState(false);
   const count = appliedCount ?? 0;
 
   const panel = (
-    <>
-      {isMobile ? (
-        <AppDialog open={open} onClose={() => setOpen(false)} title="Filtros" maxWidth="sm" fullScreenOnMobile
-          actions={(
-            <>
-            {onClear && <Button color="inherit" onClick={onClear}>Limpar filtros</Button>}
-            <Button variant="contained" onClick={() => setOpen(false)}>Aplicar</Button>
-            </>
-          )}>
-          {filterForm}
-        </AppDialog>
-      ) : (
-        <Drawer
-          anchor="right"
-          open={open}
-          onClose={() => setOpen(false)}
-          PaperProps={{
-            sx: {
-              width: 400,
-              top: 64,
-              height: 'calc(100% - 64px)',
-              borderLeft: `1px solid ${colors.border}`,
-            },
-          }}
-        >
-          <DialogTitle id="filtros-titulo">Filtros</DialogTitle>
-          <DialogContent>{filterForm}</DialogContent>
-          <DialogActions>
-            {onClear && <Button color="inherit" onClick={onClear}>Limpar filtros</Button>}
-            <Button variant="contained" onClick={() => setOpen(false)}>Aplicar</Button>
-          </DialogActions>
-        </Drawer>
+    <AppDialog
+      open={open}
+      onClose={() => setOpen(false)}
+      title="Filtros"
+      maxWidth="xs"
+      fullScreenOnMobile
+      contentSx={{ minHeight: 96 }}
+      actions={(
+        <>
+          {onClear && <Button color="inherit" onClick={onClear}>Limpar filtros</Button>}
+          <Button variant="contained" onClick={() => setOpen(false)}>Aplicar</Button>
+        </>
       )}
-    </>
+    >
+      {filterForm}
+    </AppDialog>
   );
 
   return (

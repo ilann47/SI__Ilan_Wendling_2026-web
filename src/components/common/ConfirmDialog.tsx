@@ -8,6 +8,7 @@ interface Props {
   title?: string;
   message: string;
   confirmLabel?: string;
+  cancelLabel?: string;
   confirmColor?: 'primary' | 'error' | 'warning' | 'success' | 'inherit';
   loading?: boolean;
   onConfirm: () => void;
@@ -19,6 +20,7 @@ export function ConfirmDialog({
   title = 'Confirmar',
   message,
   confirmLabel = 'Confirmar',
+  cancelLabel = 'Cancelar',
   confirmColor = 'primary',
   loading,
   onConfirm,
@@ -36,7 +38,7 @@ export function ConfirmDialog({
       actions={(
         <>
         <Button onClick={onClose} color="inherit" disabled={loading} autoFocus>
-          Cancelar
+          {cancelLabel}
         </Button>
         <Button onClick={onConfirm} variant="contained" color={confirmColor} disabled={loading}>
           {confirmLabel}

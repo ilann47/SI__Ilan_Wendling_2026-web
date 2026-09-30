@@ -45,6 +45,9 @@ Nenhuma.
 
 Problem Details e erros de validacao sao exibidos no painel da operacao. A UI
 exige consulta da Membership antes de transicionar seu estado.
+O cancelamento do autocadastro com campos alterados usa o `ConfirmDialog` do
+sistema e permite continuar editando ou descartar conscientemente, sem confirmação
+nativa do navegador.
 
 ## Testes (curl ou equivalente)
 
@@ -69,6 +72,7 @@ com a versao carregada.
 
 | Data | Acao |
 |---|---|
+| 2026-09-29 | Padroniza a confirmação de descarte do formulário de organização e cobre o fluxo por teste. |
 | 2026-08-03 | Implementa provisionamento, perfil empresarial, Memberships e RBAC contextual. |
 | 2026-08-03 | Alinha cada comando administrativo à permissão do controller. |
 | 2026-09-28 | Substitui o ID manual de usuário por seleção pesquisável na criação de Membership. |

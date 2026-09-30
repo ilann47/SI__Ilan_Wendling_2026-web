@@ -72,8 +72,10 @@ confirma o andamento contextual com recebimento, nota e conta vinculados.
   Todas as mutações continuam confirmadas e usam os contratos/versões existentes.
 - Nota de Entrada usa listagem dedicada + rota de detalhe (não só drawer CRUD).
 - `ResourceFormDialog.submitLabel` permite nomear o comando operacional; o padrão continua `Salvar` para manter compatibilidade. Recebimentos usam `Confirmar recebimento`.
-- Formulários, confirmações, filtros mobile, seletores e detalhes mobile usam
-  `AppDialog`; drawers desktop continuam laterais por serem superfícies de consulta.
+- Formulários, confirmações, filtros, seletores e detalhes mobile usam
+  `AppDialog`. Filtros deixaram de abrir um drawer lateral vazio e usam um
+  diálogo compacto em qualquer viewport; drawers desktop permanecem apenas para
+  detalhes extensos de consulta.
 - Cada item de um seletor de referência oferece “Editar” quando o cadastro
   possui formulário e o usuário tem permissão de atualização. A edição abre
   empilhada, retorna à lista e não descarta o formulário principal.
@@ -95,6 +97,7 @@ confirma o andamento contextual com recebimento, nota e conta vinculados.
 
 | Data | Ação |
 |---|---|
+| 2026-09-29 | Substitui o drawer lateral de filtros pelo AppDialog compacto e responsivo, preservando contagem, limpeza e aplicação. |
 | 2026-09-29 | Remove a trilha decorativa e os atalhos duplicados da listagem de compras; mantém andamento contextual apenas no detalhe. |
 | 2026-09-29 | Inclui ação de edição por item nos seletores de referência, respeitando RBAC e concorrência otimista. |
 | 2026-09-12 | Permite título operacional no botão de submissão do formulário, preservando Salvar como padrão e cobrindo ambas as variantes nos testes. |

@@ -7,6 +7,7 @@ import {
 } from '@mui/material';
 import { useRef, useState, type FormEvent } from 'react';
 import { getApiProblem, getHttpStatus } from '../../api/client';
+import { ConfirmDialog } from '../../components/common/ConfirmDialog';
 import {
   DEFAULT_ORGANIZATION_FORM,
   digitsOnly,
@@ -44,6 +45,7 @@ export function OrganizationForm({
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState('');
   const [dirty, setDirty] = useState(false);
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
   const refs = useRef<Partial<Record<FieldKey, HTMLInputElement | null>>>({});
 
   const setField = (key: FieldKey, value: string) => {
@@ -133,11 +135,21 @@ export function OrganizationForm({
 
   const cancel = () => {
     if (!onCancel) return;
-    if (dirty && !window.confirm('Há alterações não salvas. Deseja cancelar?')) return;
+    if (dirty) {
+      setConfirmDiscard(true);
+      return;
+    }
     onCancel();
   };
 
+  const discard = () => {
+    setConfirmDiscard(false);
+    setDirty(false);
+    onCancel?.();
+  };
+
   return (
+    <>
     <Stack component="form" spacing={2} onSubmit={(event) => void submit(event)} noValidate>
       <div>
         <Typography variant="h6">{title}</Typography>
@@ -244,5 +256,16 @@ export function OrganizationForm({
         ) : null}
       </Stack>
     </Stack>
+    <ConfirmDialog
+      open={confirmDiscard}
+      title="Descartar alterações?"
+      message="Os dados preenchidos nesta organização serão perdidos."
+      confirmLabel="Descartar"
+      confirmColor="error"
+      onConfirm={discard}
+      onClose={() => setConfirmDiscard(false)}
+      cancelLabel="Continuar editando"
+    />
+    </>
   );
 }
