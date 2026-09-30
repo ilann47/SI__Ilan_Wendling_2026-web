@@ -21,6 +21,11 @@ rota /app/clientes -> PermissionRoute customers:read -> CrudResourcePage
   -> /api/clientes -> organização resolvida pelo JWT contextual
 ```
 
+Em pedidos, ordens e notas, `ReferenceSelect` abre o seletor pesquisável.
+`Cadastrar cliente` reutiliza `QuickCreateProvider` e o formulário real do
+cadastro, sem abandonar o documento. Salvar seleciona o ID retornado, cancelar
+mantém os itens e campos anteriores; nenhum ID é digitado manualmente.
+
 ## Endpoints (se houver)
 
 | Método | Contrato | Permissão |
@@ -49,6 +54,11 @@ O cliente central converte Problem Details. Contexto inválido retorna `401`,
 falta de `customers:read` ou `customers:manage` retorna `403`, recurso ausente ou
 de outra organização retorna `404` e conflitos de integridade permanecem `409`.
 
+Erros de consulta das referências são exibidos com opção de tentar novamente,
+não como uma lista vazia. Erros no cadastro contextual ficam no diálogo e
+preservam os campos preenchidos. Trocar organização ou perder a permissão fecha
+o cadastro contextual e impede selecionar uma resposta do contexto anterior.
+
 ## Testes (curl ou equivalente)
 
 - `npm test -- --run src/components/crud/resourceConfig.test.ts src/layout/navigation.test.tsx src/App.test.tsx`
@@ -56,6 +66,7 @@ de outra organização retorna `404` e conflitos de integridade permanecem `409`
 - `npm run lint`
 - `npm test`
 - `npm run build`
+- `npm test -- --run src/context/QuickCreateContext.test.tsx src/components/form/ReferenceSelect.test.tsx`
 
 ## Decisões Técnicas
 
@@ -65,6 +76,10 @@ de outra organização retorna `404` e conflitos de integridade permanecem `409`
 - Listagens e referências usam chaves React Query iniciadas por
   `['tenant', organizationId]`, impedindo cache cruzado entre organizações.
 - Nenhum outro cadastro foi declarado tenant-aware por consequência.
+- Cadastro contextual exige `customers:manage` e a seleção exige
+  `customers:read`. As verificações existem no seletor e no provider, inclusive
+  antes de enviar. O cache de referências usa organização mesmo nos seletores
+  sem configuração de CRUD genérico.
 
 ## Módulos relacionados
 
@@ -79,3 +94,5 @@ de outra organização retorna `404` e conflitos de integridade permanecem `409`
 | Data | Ação |
 |---|---|
 | 2026-08-03 | Adapta Clientes ao contrato multiempresa V40. |
+| 2026-09-12 | Valida cadastro contextual, preservação do documento após cancelar/erro/sucesso, seleção da resposta real e RBAC; corrige erros de consulta e isolamento das referências. |
+| 2026-09-28 | Padroniza detalhe e busca global de cliente com rótulos legíveis, estados traduzidos e navegação direta ao registro. |

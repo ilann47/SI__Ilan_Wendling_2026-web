@@ -49,6 +49,7 @@ export interface StockMovement {
   origemChave: string;
   compensadoId?: number;
   atorId: number;
+  atorNome?: string;
   motivo?: string;
   ocorridoEm: string;
   createdAt: string;
@@ -67,6 +68,7 @@ export interface StockCompensationRequest {
 }
 
 type Filters = Record<string, unknown>;
+export interface StockMovementOrigin { tipo: string; id: number | null; descricao: string; caminho: string | null }
 
 function clean(filters: Filters): Filters {
   return Object.fromEntries(Object.entries(filters).filter(([, value]) => (
@@ -139,6 +141,7 @@ export const stockApi = {
       headers: { 'Idempotency-Key': idempotencyKey },
     })
     .then((response) => response.data),
+  origin: (id: number) => api.get<StockMovementOrigin>(`/api/v1/stock-movements/${id}/origin`).then((response) => response.data),
   compensate: (id: number, body: StockCompensationRequest, idempotencyKey: string) => api
     .post<StockMovement>(`/api/v1/stock-movements/${id}/compensation`, body, {
       headers: { 'Idempotency-Key': idempotencyKey },

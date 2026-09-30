@@ -21,6 +21,7 @@ import { useAuth } from '../auth/AuthContext';
 import { OperationCard } from '../components/enterprise/OperationCard';
 import { ResourceIdField } from '../components/enterprise/ResourceIdField';
 import { ResourceSnapshot } from '../components/enterprise/ResourceSnapshot';
+import { ReferenceSelect } from '../components/form/ReferenceSelect';
 import { PageHeader } from '../components/common/PageHeader';
 import { useSnackbar } from '../components/SnackbarProvider';
 import { useOperationalWorkspace } from '../workspace/OperationalWorkspaceContext';
@@ -118,7 +119,7 @@ function OrganizationProfile() {
   return (
     <OperationCard
       title="Dados empresariais"
-      description="Documento, estado, ID e versao sao controlados pelo servidor e nao podem ser alterados."
+      description="Documento, estado, ID e versão são controlados pelo sistema e não podem ser alterados."
       error={error}
     >
       <Stack component="form" spacing={2} onSubmit={(event) => void save(event)}>
@@ -126,18 +127,18 @@ function OrganizationProfile() {
           <TextField label="ID" value={query.data?.id ?? ''} disabled fullWidth />
           <TextField label="Documento" value={query.data?.document ?? ''} disabled fullWidth />
           <TextField label="Estado" value={query.data?.status ?? ''} disabled fullWidth />
-          <TextField label="Versao" value={query.data?.version ?? ''} disabled fullWidth />
+          <TextField label="Versão" value={query.data?.version ?? ''} disabled fullWidth />
         </Stack>
-        <TextField label="Razao social" value={form.legalName} onChange={(event) => update('legalName', event.target.value)} required />
+        <TextField label="Razão social" value={form.legalName} onChange={(event) => update('legalName', event.target.value)} required />
         <TextField label="Nome fantasia" value={form.tradeName} onChange={(event) => update('tradeName', event.target.value)} />
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
           <TextField label="Moeda ISO 4217" value={form.currency} onChange={(event) => update('currency', event.target.value.toUpperCase())} inputProps={{ maxLength: 3 }} required fullWidth />
-          <TextField label="Regiao" value={form.region} onChange={(event) => update('region', event.target.value.toUpperCase())} required fullWidth />
+          <TextField label="Região" value={form.region} onChange={(event) => update('region', event.target.value.toUpperCase())} required fullWidth />
           <TextField label="Plano" value={form.plan} onChange={(event) => update('plan', event.target.value.toUpperCase())} required fullWidth />
         </Stack>
-        <TextField label="Fuso horario IANA" value={form.timeZone} onChange={(event) => update('timeZone', event.target.value)} required />
+        <TextField label="Fuso horário IANA" value={form.timeZone} onChange={(event) => update('timeZone', event.target.value)} required />
         <Button type="submit" variant="contained" disabled={saving} startIcon={saving ? <CircularProgress size={18} color="inherit" /> : <SaveOutlinedIcon />} sx={{ alignSelf: 'flex-start' }}>
-          Salvar alteracoes
+          Salvar alterações
         </Button>
       </Stack>
     </OperationCard>
@@ -171,7 +172,7 @@ function MembershipOperations({ canInvite, canManage }: { canInvite: boolean; ca
         );
       } else {
         if (!membership || membership.id !== Number(membershipId)) {
-          throw new Error('Consulte a Membership antes de alterar seu estado.');
+          throw new Error('Consulte o vínculo antes de alterar seu estado.');
         }
         response = await api.patch<MembershipResponse>(
           `/api/v1/organizations/${organizationId}/memberships/${membership.id}`,
@@ -184,7 +185,7 @@ function MembershipOperations({ canInvite, canManage }: { canInvite: boolean; ca
       setStatus(response.data.status);
       remember('membership', {
         id: response.data.id,
-        label: `Usuario ${response.data.userId}`,
+        label: `Usuário ${response.data.userId}`,
         version: response.data.version,
         snapshot: { ...response.data },
       });
@@ -198,23 +199,31 @@ function MembershipOperations({ canInvite, canManage }: { canInvite: boolean; ca
   return (
     <Stack spacing={2}>
       <Alert severity="info">
-        A API atual nao oferece listagem de Memberships. Cadastre pelo ID global do usuario ou consulte um vinculo conhecido.
+        A listagem de vínculos ainda não está disponível. Selecione o usuário pelo cadastro global ou consulte um vínculo conhecido.
       </Alert>
-      {canInvite && <OperationCard title="Adicionar usuario" description="Cria uma Membership ativa no tenant atual." error={error}>
+      {canInvite && <OperationCard title="Adicionar usuário" description="Cria um vínculo ativo com a organização atual." error={error}>
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-          <TextField label="ID global do usuario" type="number" value={userId} onChange={(event) => setUserId(event.target.value)} inputProps={{ min: 1 }} required fullWidth />
+          <Box sx={{ flex: 1 }}>
+            <ReferenceSelect
+              label="Usuário"
+              value={userId ? Number(userId) : null}
+              onChange={(value) => setUserId(value ? String(value) : '')}
+              reference={{ basePath: '/api/usuarios', labelField: 'nome' }}
+              required
+            />
+          </Box>
           <Button variant="contained" disabled={!userId || loading !== null} onClick={() => void run('create')} startIcon={loading === 'create' ? <CircularProgress size={18} color="inherit" /> : <GroupAddOutlinedIcon />}>
-            Criar vinculo
+            Criar vínculo
           </Button>
         </Stack>
       </OperationCard>}
       {canManage && <OperationCard
-        title="Consultar e alterar Membership"
-        description="A consulta recupera a versao exigida pelo PATCH concorrente. ENCERRADO e terminal."
+        title="Consultar e alterar vínculo"
+        description="Consulte os dados atuais antes de alterar. Um vínculo encerrado não pode ser reativado."
         error={error}
         result={membership ? <ResourceSnapshot data={{ id: membership.id, userId: membership.userId, status: membership.status, origin: membership.origin, version: membership.version, joinedAt: membership.joinedAt }} /> : undefined}
       >
-        <ResourceIdField label="ID da Membership" value={membershipId} onChange={setMembershipId} recent={recent('membership')} />
+        <ResourceIdField label="Vínculo" value={membershipId} onChange={setMembershipId} recent={recent('membership')} />
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
           <Button variant="outlined" disabled={!membershipId || loading !== null} onClick={() => void run('read')} startIcon={loading === 'read' ? <CircularProgress size={18} /> : <SearchOutlinedIcon />}>
             Consultar
@@ -236,6 +245,15 @@ function MembershipOperations({ canInvite, canManage }: { canInvite: boolean; ca
 const roleCodes = [
   'ADMIN_ORGANIZACAO', 'GESTOR', 'ORGANIZADOR', 'SUPERVISOR', 'OPERADOR', 'FISCAL_ACESSO',
 ] as const;
+
+const roleLabels: Record<(typeof roleCodes)[number], string> = {
+  ADMIN_ORGANIZACAO: 'Administrador da organização',
+  GESTOR: 'Gestor',
+  ORGANIZADOR: 'Organizador',
+  SUPERVISOR: 'Supervisor',
+  OPERADOR: 'Operador',
+  FISCAL_ACESSO: 'Fiscal de acesso',
+};
 
 function RoleOperations({ canGrant, canRevoke }: { canGrant: boolean; canRevoke: boolean }) {
   const { activeOrganization } = useAuth();
@@ -287,30 +305,30 @@ function RoleOperations({ canGrant, canRevoke }: { canGrant: boolean; canRevoke:
   return (
     <Stack spacing={2}>
       <Alert severity="info">
-        O catalogo abaixo reflete os papeis de sistema definidos nas migrations. A API ainda nao oferece leitura de papeis ou atribuicoes existentes.
+        O catálogo abaixo apresenta os papéis disponíveis no sistema. A leitura dos papéis já atribuídos ainda não está disponível.
       </Alert>
       {canGrant && <OperationCard
         title="Conceder papel"
-        description="A permissao efetiva passa a valer na proxima requisicao, sem reemitir o JWT."
+        description="A permissão passa a valer na próxima ação do usuário, sem exigir novo login."
         error={error}
         result={assignment ? <ResourceSnapshot data={{ id: assignment.id, membershipId: assignment.membershipId, roleCode: assignment.roleCode, version: assignment.version, revokedAt: assignment.revokedAt }} /> : undefined}
       >
-        <ResourceIdField label="ID da Membership" value={membershipId} onChange={setMembershipId} recent={recent('membership')} />
+        <ResourceIdField label="Vínculo" value={membershipId} onChange={setMembershipId} recent={recent('membership')} />
         <TextField select label="Papel" value={roleCode} onChange={(event) => setRoleCode(event.target.value as (typeof roleCodes)[number])}>
-          {roleCodes.map((code) => <MenuItem key={code} value={code}>{code}</MenuItem>)}
+          {roleCodes.map((code) => <MenuItem key={code} value={code}>{roleLabels[code]}</MenuItem>)}
         </TextField>
         <Button variant="contained" disabled={loading || !membershipId} onClick={() => void grant()} startIcon={loading ? <CircularProgress size={18} color="inherit" /> : <AdminPanelSettingsOutlinedIcon />} sx={{ alignSelf: 'flex-start' }}>
           Conceder papel
         </Button>
       </OperationCard>}
-      {canRevoke && <OperationCard title="Revogar atribuicao" description="Exige ID, versao conhecida e motivo auditavel." error={error}>
+      {canRevoke && <OperationCard title="Revogar atribuição" description="Informe a atribuição atual e registre o motivo da revogação." error={error}>
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-          <TextField label="ID da atribuicao" type="number" value={assignmentId} onChange={(event) => setAssignmentId(event.target.value)} inputProps={{ min: 1 }} required fullWidth />
-          <TextField label="Versao" type="number" value={assignmentVersion} onChange={(event) => setAssignmentVersion(event.target.value)} inputProps={{ min: 0 }} required fullWidth />
+          <TextField label="Atribuição" type="number" value={assignmentId} onChange={(event) => setAssignmentId(event.target.value)} inputProps={{ min: 1 }} required fullWidth />
+          <TextField label="Versão" type="number" value={assignmentVersion} onChange={(event) => setAssignmentVersion(event.target.value)} inputProps={{ min: 0 }} required fullWidth />
         </Stack>
-        <TextField label="Motivo da revogacao" value={reason} onChange={(event) => setReason(event.target.value)} inputProps={{ maxLength: 300 }} required multiline minRows={2} />
+        <TextField label="Motivo da revogação" value={reason} onChange={(event) => setReason(event.target.value)} inputProps={{ maxLength: 300 }} required multiline minRows={2} />
         <Button variant="outlined" color="error" disabled={loading || !membershipId || !assignmentId || !reason.trim()} onClick={() => void revoke()}>
-          Revogar atribuicao
+          Revogar atribuição
         </Button>
       </OperationCard>}
     </Stack>
@@ -325,12 +343,12 @@ export function AdministrationPage() {
   const canGrant = permissions.includes('roles:grant');
   const canRevoke = permissions.includes('roles:revoke');
   const available = [
-    canOrganization && { label: 'Organizacao', content: <OrganizationProfile /> },
+    canOrganization && { label: 'Organização', content: <OrganizationProfile /> },
     (canInvite || canOrganization) && {
-      label: 'Memberships', content: <MembershipOperations canInvite={canInvite} canManage={canOrganization} />,
+      label: 'Usuários e vínculos', content: <MembershipOperations canInvite={canInvite} canManage={canOrganization} />,
     },
     (canGrant || canRevoke) && {
-      label: 'Papeis e acessos', content: <RoleOperations canGrant={canGrant} canRevoke={canRevoke} />,
+      label: 'Papéis e acessos', content: <RoleOperations canGrant={canGrant} canRevoke={canRevoke} />,
     },
   ].filter(Boolean) as { label: string; content: ReactNode }[];
 
@@ -340,11 +358,11 @@ export function AdministrationPage() {
 
   return (
     <Box>
-      <PageHeader title="Administracao" subtitle="Organizacao, vinculos e autorizacao contextual do tenant ativo." />
+      <PageHeader title="Administração" subtitle="Organização, usuários, vínculos e permissões do contexto atual." />
       <Tabs value={tab} onChange={(_, value) => setTab(value)} variant="scrollable" sx={{ mb: 2 }}>
         {available.map((item) => <Tab key={item.label} label={item.label} />)}
       </Tabs>
-      {available[tab]?.content ?? <Alert severity="warning">Nenhuma operacao administrativa disponivel.</Alert>}
+      {available[tab]?.content ?? <Alert severity="warning">Nenhuma operação administrativa disponível.</Alert>}
     </Box>
   );
 }

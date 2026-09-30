@@ -22,7 +22,7 @@ import { useAuth } from '../auth/AuthContext';
 import { KpiCard } from '../components/common/KpiCard';
 import { PageHeader } from '../components/common/PageHeader';
 import { ErrorState } from '../components/listing/ErrorState';
-import { formatCurrency, formatDate } from '../utils/format';
+import { formatCurrency, formatDate, formatStatusLabel } from '../utils/format';
 import type {
   ContasAVencerResponse,
   EstoqueMinimoResponse,
@@ -222,7 +222,7 @@ export function DashboardPage({ embedded = false, financialPeriod = 'week', head
               {canSales && (sales.data?.content ?? []).slice(0, 5).map((sale) => (
                 <Stack key={sale.id} direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between">
                   <Typography variant="body2">Venda {sale.numero} · {sale.clienteNome}</Typography>
-                  <Typography variant="body2" color="text.secondary">{formatCurrency(sale.valorTotal)} · {sale.status.replace(/_/g, ' ')}</Typography>
+                  <Typography variant="body2" color="text.secondary">{formatCurrency(sale.valorTotal)} · {formatStatusLabel(sale.status)}</Typography>
                 </Stack>
               ))}
               {canPurchases && awaitingReceipt.slice(0, 5).map((order) => (

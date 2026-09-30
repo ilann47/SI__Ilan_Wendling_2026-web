@@ -883,6 +883,7 @@ export interface ContaPagarResponse {
   valorJuros: number;
   valorMulta: number;
   valorTotal: number;
+  saldo?: number;
   dataEmissao?: string;
   dataVencimento: string;
   dataPagamento?: string;

@@ -16,6 +16,23 @@ function response<T>(data: T): AxiosResponse<T> {
 describe('inboundNotes', () => {
   afterEach(() => vi.restoreAllMocks());
 
+  it('mantém chave de registro e recupera confirmação já aplicada após timeout', async () => {
+    const note = { id: 17, situacao: 'CONFIRMADA' };
+    const post = vi.spyOn(api, 'post').mockResolvedValueOnce(response(note));
+    const request = vi.spyOn(api, 'request').mockRejectedValue(new Error('timeout'));
+    vi.spyOn(api, 'get').mockResolvedValue(response(note));
+    const body = buildNotaEntradaPayload({ numero: 'N1', fornecedorId: 1, localEstoqueId: 2,
+      itens: [{ produtoId: 3, quantidade: 1, valorUnitario: 10 }] });
+    await inboundNotesApi.createIdempotent(body, 'same-key');
+    expect(post).toHaveBeenNthCalledWith(1, '/api/notas-entrada', body, { headers: { 'Idempotency-Key': 'same-key' } });
+    await expect(inboundNotesApi.confirmRecoverable(17)).resolves.toEqual(note);
+    expect(request).toHaveBeenCalledExactlyOnceWith({
+      method: 'post', url: '/api/notas-entrada/17/confirmacao', data: undefined, params: undefined,
+    });
+    expect(api.get).toHaveBeenCalledExactlyOnceWith('/api/notas-entrada/17');
+    expect(post).toHaveBeenCalledTimes(1);
+  });
+
   it('consulta o detalhe operacional integrado da nota', async () => {
     const payload = {
       nota: { id: 17 },

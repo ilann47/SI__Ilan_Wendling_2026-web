@@ -1,7 +1,6 @@
 import { createTheme, type ThemeOptions } from '@mui/material/styles';
 import { ptBR } from '@mui/material/locale';
 import type {} from '@mui/x-data-grid/themeAugmentation';
-import { APP_HEADER_HEIGHT } from './layout/layoutMetrics';
 import { getThemeTokens } from './theme/hubTokens';
 
 export type AppColorMode = 'light' | 'dark';
@@ -27,6 +26,10 @@ export function createAppTheme(mode: AppColorMode) {
       background: { default: c.background, paper: c.card },
       text: { primary: c.text, secondary: c.textMuted },
       divider: c.border,
+    },
+    zIndex: {
+      modal: 1600,
+      tooltip: 1800,
     },
     typography: {
       fontFamily: FONT,
@@ -109,14 +112,6 @@ export function createAppTheme(mode: AppColorMode) {
       MuiDialog: {
         defaultProps: { scroll: 'paper' },
         styleOverrides: {
-          root: {
-            zIndex: 1600,
-            // Desktop: dialogs abaixo do header. Mobile/fullscreen: viewport inteiro.
-            '@media (min-width: 900px)': {
-              top: APP_HEADER_HEIGHT,
-              '& .MuiBackdrop-root': { top: APP_HEADER_HEIGHT },
-            },
-          },
           container: {
             alignItems: 'center',
             justifyContent: 'center',
@@ -140,12 +135,7 @@ export function createAppTheme(mode: AppColorMode) {
             borderRadius: 16,
             overflow: 'hidden',
             margin: 0,
-            width: '100%',
-            maxWidth: '100%',
             maxHeight: `calc(100dvh - ${DIALOG_VIEWPORT_GAP * 2}px)`,
-            '@media (min-width: 900px)': {
-              maxHeight: `calc(100dvh - ${APP_HEADER_HEIGHT}px - ${DIALOG_VIEWPORT_GAP * 2}px)`,
-            },
           },
           paperFullScreen: {
             margin: 0,

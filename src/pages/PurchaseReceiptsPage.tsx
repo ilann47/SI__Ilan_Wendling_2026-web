@@ -37,7 +37,7 @@ import {
   inboundNoteFromReceiptPath,
   PurchaseProcessStrip,
 } from '../components/purchases/PurchaseProcessStrip';
-import { formatDateTime } from '../utils/format';
+import { formatDateTime, formatStatusLabel } from '../utils/format';
 
 const RECEIVABLE_STATUSES = 'APROVADA,PARCIALMENTE_RECEBIDA,RECEBIDA';
 
@@ -63,9 +63,14 @@ function OrderReceipts({
   selectedReceiptId: number | null;
   onSelect: (receipt: PurchaseReceipt) => void;
 }) {
+  const { permissions } = useAuth();
   const receipts = useQuery({
     queryKey: key(organizationId, order.id, 'receipts'),
     queryFn: () => purchaseApi.receipts(order.id),
+  });
+  const documents = useQuery({
+    queryKey: key(organizationId, order.id, 'documents'),
+    queryFn: () => purchaseApi.documents(order.id),
   });
 
   if (receipts.isLoading) {
@@ -80,12 +85,13 @@ function OrderReceipts({
   }
 
   return (
-    <Table size="small">
+    <TableContainer><Table size="small">
       <TableHead>
         <TableRow>
           <TableCell>Recebimento</TableCell>
           <TableCell>Local</TableCell>
           <TableCell>Data</TableCell>
+          <TableCell>Responsável</TableCell>
           <TableCell align="right">Itens</TableCell>
           <TableCell align="right">Ação</TableCell>
         </TableRow>
@@ -93,6 +99,7 @@ function OrderReceipts({
       <TableBody>
         {rows.map((receipt) => {
           const selected = selectedReceiptId === receipt.id;
+          const note = documents.data?.notas?.find((item) => item.recebimentoCompraId === receipt.id);
           return (
             <TableRow
               key={receipt.id}
@@ -104,9 +111,12 @@ function OrderReceipts({
               <TableCell>#{receipt.id}</TableCell>
               <TableCell>{receipt.localEstoqueNome}</TableCell>
               <TableCell>{formatDateTime(receipt.recebidoEm)}</TableCell>
+              <TableCell>{receipt.atorNome}</TableCell>
               <TableCell align="right">{receipt.itens.length}</TableCell>
               <TableCell align="right" onClick={(event) => event.stopPropagation()}>
-                <Button
+                {note && permissions.includes('fiscal:read') ? <Button component={RouterLink} to={`/app/notas-entrada/${note.id}`}>
+                  Ver nota {note.numero}
+                </Button> : permissions.includes('fiscal:manage') && <Button
                   size="small"
                   variant="contained"
                   component={RouterLink}
@@ -114,13 +124,13 @@ function OrderReceipts({
                   startIcon={<NoteAddOutlinedIcon />}
                 >
                   Gerar nota de entrada
-                </Button>
+                </Button>}
               </TableCell>
             </TableRow>
           );
         })}
       </TableBody>
-    </Table>
+    </Table></TableContainer>
   );
 }
 
@@ -211,12 +221,12 @@ export function PurchaseReceiptsPage() {
                         <TableCell>
                           {open ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
                         </TableCell>
-                        <TableCell>{order.numero}</TableCell>
+                        <TableCell>{order.numeroNota}</TableCell>
                         <TableCell>{order.fornecedorNome}</TableCell>
                         <TableCell>
                           <Chip
                             size="small"
-                            label={order.status.replace(/_/g, ' ')}
+                            label={formatStatusLabel(order.status)}
                             color={statusColor(order.status)}
                           />
                         </TableCell>
@@ -266,12 +276,12 @@ export function PurchaseReceiptsPage() {
                   sx={{ cursor: 'pointer' }}
                 >
                   <Box>
-                    <Typography fontWeight={700}>{order.numero}</Typography>
+                    <Typography fontWeight={700}>Nota {order.numeroNota}</Typography>
                     <Typography variant="body2">{order.fornecedorNome}</Typography>
                     <Chip
                       size="small"
                       sx={{ mt: 1 }}
-                      label={order.status.replace(/_/g, ' ')}
+                      label={formatStatusLabel(order.status)}
                       color={statusColor(order.status)}
                     />
                   </Box>

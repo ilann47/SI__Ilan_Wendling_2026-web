@@ -16,6 +16,7 @@ export interface HubModule {
   /** Prefixo ou path inicial ao abrir o módulo (landing da área). */
   homePath: string;
   groupLabel: string;
+  flowSummary?: string;
 }
 
 /** Áreas do Hub: navegação por processo, identidade Kaneko. */
@@ -43,6 +44,7 @@ export const hubModules: HubModule[] = [
     icon: <Inventory2OutlinedIcon />,
     homePath: '/app/areas/estoque',
     groupLabel: 'Estoque',
+    flowSummary: 'Ordem → Recebimento → Nota → Conta',
   },
   {
     id: 'financeiro',

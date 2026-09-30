@@ -67,8 +67,9 @@ motivo sao traduzidos sem perder o valor tecnico no contrato.
 - O QR é campo de senha, não é persistido no navegador pela página.
 - A camera usa `BarcodeDetector` e `getUserMedia` nativos; navegadores sem suporte
   mantem entrada manual, sem upload de imagem ou integracao externa.
-- Retry do mesmo acesso reutiliza a chave idempotente; mudança de payload cria
-  nova chave.
+- Retry após falha de transporte reutiliza a chave idempotente; depois de uma
+  resposta concluída, uma nova tentativa recebe chave nova para que uma segunda
+  passagem real seja novamente decidida pelo backend.
 - A validação usa o mesmo formulário e deixa explícito que não consome o
   direito nem solicita abertura de barreira.
 - Bloqueio exige motivo localmente e continua protegido pelo RBAC do backend.
@@ -95,3 +96,5 @@ motivo sao traduzidos sem perder o valor tecnico no contrato.
 | 2026-08-01 | Adiciona validação QR auditável sem consumo ao console operacional. |
 | 2026-08-01 | Adiciona feed paginado e filtrável de tentativas para auditoria. |
 | 2026-08-03 | Adiciona leitura nativa por camera, referencias recentes, confirmacao e historico da sessao. |
+| 2026-09-28 | Renova a idempotência após sucesso e preserva a chave somente para retry de falha de transporte. |
+| 2026-09-28 | Revisa tentativas, operação de pátio e restrições RBAC no navegador desktop/mobile, mantendo decisões reais da API. |

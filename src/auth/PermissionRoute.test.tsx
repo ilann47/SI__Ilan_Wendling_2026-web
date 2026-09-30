@@ -29,6 +29,6 @@ describe('PermissionRoute', () => {
       </MemoryRouter>,
     );
     expect(screen.queryByText('Auditoria')).not.toBeInTheDocument();
-    expect(screen.getByText('Acesso nao autorizado')).toBeInTheDocument();
+    expect(screen.getByText('Acesso não autorizado')).toBeInTheDocument();
   });
 });

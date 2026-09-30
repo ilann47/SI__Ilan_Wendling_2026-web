@@ -29,7 +29,7 @@ export function ListingCards<T>({ rows, getKey, getTitle, getFields, getActions,
                 <Typography variant="caption" color="text.secondary" sx={{ flexShrink: 0 }}>
                   {field.label}
                 </Typography>
-                <Typography variant="body2" textAlign="right" sx={{ wordBreak: 'break-word' }}>
+                <Typography component="div" variant="body2" textAlign="right" sx={{ wordBreak: 'break-word' }}>
                   {field.value}
                 </Typography>
               </Stack>

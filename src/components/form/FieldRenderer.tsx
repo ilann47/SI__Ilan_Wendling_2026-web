@@ -1,16 +1,19 @@
-import { Controller, useFormContext } from 'react-hook-form';
+import { Controller, useFormContext, useWatch } from 'react-hook-form';
 import {
+  Box,
+  Divider,
   FormControlLabel,
   InputAdornment,
   MenuItem,
   Switch,
   TextField,
+  Typography,
 } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import dayjs from 'dayjs';
 import type { FieldConfig } from './fieldConfig';
 import { ReferenceSelect } from './ReferenceSelect';
-import { SubItemsEditor } from './SubItemsEditor';
+import { PurchaseCostsSummary, SubItemsEditor } from './SubItemsEditor';
 import { DocumentField } from './DocumentField';
 
 interface Props {
@@ -21,14 +24,59 @@ interface Props {
 
 const NUMERIC: FieldConfig['type'][] = ['number', 'integer', 'money', 'percent'];
 
+export function normalizeNumericInput(value: string): string {
+  return value.replace(/^(-?)0+(?=\d)/, '$1');
+}
+
 export function FieldRenderer({ field, namePrefix = '', dense }: Props) {
-  const { control } = useFormContext();
+  const { clearErrors, control, setError, setValue } = useFormContext();
+  const formValues = useWatch({ control }) as Record<string, unknown>;
+  const disabled = field.disabled || field.disabledWhen?.(formValues);
   const name = `${namePrefix}${field.name}`;
-  const rules = { required: field.required ? 'Campo obrigatório' : false };
   const size = dense ? 'small' : 'small';
+  const isNumeric = NUMERIC.includes(field.type);
+  const isMoney = field.type === 'money';
+  const isPercent = field.type === 'percent';
+  const minimum = isNumeric ? field.min ?? 0 : undefined;
+  const maximum = isNumeric ? field.max ?? (isPercent ? 100 : undefined) : undefined;
+  const dependencies = field.dependsOn?.map((dependency) => `${namePrefix}${dependency}`);
+  const rules = {
+    required: field.required ? 'Campo obrigatório' : false,
+    ...(dependencies?.length ? { deps: dependencies } : {}),
+    ...(isNumeric ? {
+      validate: (value: unknown) => {
+        if (value === '' || value === undefined || value === null) return true;
+        const parsed = Number(value);
+        if (!Number.isFinite(parsed)) return 'Informe um número válido.';
+        if (field.type === 'integer' && !Number.isInteger(parsed)) return 'Informe um número inteiro.';
+        if (minimum !== undefined && parsed < minimum) return `O valor mínimo é ${minimum}.`;
+        if (maximum !== undefined && parsed > maximum) return `O valor máximo é ${maximum}.`;
+        return field.validate?.(value, formValues, namePrefix) ?? true;
+      },
+    } : field.validate ? {
+      validate: (value: unknown) => field.validate?.(value, formValues, namePrefix) ?? true,
+    } : {}),
+  };
+
+  if (field.type === 'section') {
+    return (
+      <Box sx={{ pt: 0.5 }}>
+        <Typography variant="subtitle1" fontWeight={700}>{field.label}</Typography>
+        {field.helperText && (
+          <Typography variant="body2" color="text.secondary">{field.helperText}</Typography>
+        )}
+        <Divider sx={{ mt: 1 }} />
+      </Box>
+    );
+  }
 
   if (field.type === 'subitems' && field.subFields) {
-    return <SubItemsEditor name={name} label={field.label} subFields={field.subFields} />;
+    return <SubItemsEditor name={name} label={field.label} subFields={field.subFields}
+      summary={field.subItemsSummary} disabled={disabled} />;
+  }
+
+  if (field.type === 'subitems-summary' && field.subItemsSummary === 'purchase-costs') {
+    return <PurchaseCostsSummary />;
   }
 
   if (field.type === 'document') {
@@ -46,7 +94,7 @@ export function FieldRenderer({ field, namePrefix = '', dense }: Props) {
               <Switch
                 checked={!!f.value}
                 onChange={(e) => f.onChange(e.target.checked)}
-                disabled={field.disabled}
+                disabled={disabled}
               />
             )}
             label={field.label}
@@ -66,11 +114,24 @@ export function FieldRenderer({ field, namePrefix = '', dense }: Props) {
           <ReferenceSelect
             label={field.label}
             value={f.value ?? null}
-            onChange={f.onChange}
+            onChange={(value, option) => {
+              f.onChange(value);
+              const inherited = field.reference?.inheritFields;
+              if (!inherited || (value != null && !option)) return;
+              for (const [source, target] of Object.entries(inherited)) {
+                setValue(`${namePrefix}${target}`, value == null ? '' : option?.[source] ?? '', {
+                  shouldDirty: true,
+                  shouldTouch: true,
+                  shouldValidate: true,
+                });
+              }
+            }}
             reference={field.reference!}
             required={field.required}
-            disabled={field.disabled}
+            disabled={disabled}
             error={fieldState.error?.message}
+            helperText={field.helperText}
+            reserveHelperSpace={dense}
           />
         )}
       />
@@ -85,16 +146,21 @@ export function FieldRenderer({ field, namePrefix = '', dense }: Props) {
         rules={rules}
         render={({ field: f, fieldState }) => (
           <DatePicker
+            disabled={disabled}
             label={field.label}
             value={f.value ? dayjs(f.value) : null}
             onChange={(d) => f.onChange(d && d.isValid() ? d.format('YYYY-MM-DD') : undefined)}
             slotProps={{
+              popper: {
+                sx: (theme) => ({ zIndex: theme.zIndex.modal + 1 }),
+              },
               textField: {
                 fullWidth: true,
                 size,
                 required: field.required,
                 error: !!fieldState.error,
-                helperText: fieldState.error?.message || field.helperText,
+                helperText: fieldState.error?.message || field.helperText || (dense ? ' ' : undefined),
+                FormHelperTextProps: dense ? { sx: { minHeight: '1.25rem', mt: 0.5 } } : undefined,
               },
             }}
           />
@@ -116,11 +182,12 @@ export function FieldRenderer({ field, namePrefix = '', dense }: Props) {
             size={size}
             label={field.label}
             required={field.required}
-            disabled={field.disabled}
+            disabled={disabled}
             value={f.value ?? ''}
             onChange={(e) => f.onChange(e.target.value === '' ? undefined : e.target.value)}
             error={!!fieldState.error}
-            helperText={fieldState.error?.message || field.helperText}
+            helperText={fieldState.error?.message || field.helperText || (dense ? ' ' : undefined)}
+            FormHelperTextProps={dense ? { sx: { minHeight: '1.25rem', mt: 0.5 } } : undefined}
           >
             <MenuItem value="">
               <em>—</em>
@@ -136,9 +203,6 @@ export function FieldRenderer({ field, namePrefix = '', dense }: Props) {
     );
   }
 
-  const isNumeric = NUMERIC.includes(field.type);
-  const isMoney = field.type === 'money';
-  const isPercent = field.type === 'percent';
   // Cadastro em CAIXA ALTA: campos de texto viram maiúsculo ao digitar.
   // Exceção: senha (type 'password', quebraria o login) e e-mail.
   const upper = (field.type === 'text' || field.type === 'textarea') && field.name !== 'email';
@@ -154,22 +218,45 @@ export function FieldRenderer({ field, namePrefix = '', dense }: Props) {
           size={size}
           label={field.label}
           required={field.required}
-          disabled={field.disabled}
+          disabled={disabled}
           type={field.type === 'password' ? 'password' : isNumeric ? 'number' : 'text'}
           multiline={field.type === 'textarea'}
           minRows={field.type === 'textarea' ? 2 : undefined}
           value={f.value ?? ''}
+          onFocus={(event) => {
+            if (isNumeric && (f.value === 0 || f.value === '0')) event.target.select();
+          }}
+          onKeyDown={(event) => {
+            if (!isNumeric) return;
+            if (['e', 'E', '+'].includes(event.key)
+              || (event.key === '-' && minimum !== undefined && minimum >= 0)) {
+              event.preventDefault();
+            }
+          }}
           onChange={(e) => {
             const v = e.target.value;
-            if (isNumeric) f.onChange(v === '' ? undefined : Number(v));
+            if (isNumeric) {
+              if (v.startsWith('-') && minimum !== undefined && minimum >= 0) {
+                setError(name, { type: 'min', message: `O valor mínimo é ${minimum}.` });
+                return;
+              }
+              clearErrors(name);
+              f.onChange(v === '' ? undefined : normalizeNumericInput(v));
+            }
             else f.onChange(upper ? v.toUpperCase() : v);
           }}
           inputProps={{
-            ...(isNumeric ? { step: field.step ?? (field.type === 'integer' ? 1 : 0.01) } : {}),
+            ...(isNumeric ? {
+              step: field.step ?? (field.type === 'integer' ? 1 : 0.01),
+              min: minimum,
+              max: maximum,
+              inputMode: field.type === 'integer' ? 'numeric' : 'decimal',
+            } : {}),
             ...(upper ? { style: { textTransform: 'uppercase' } } : {}),
           }}
           error={!!fieldState.error}
-          helperText={fieldState.error?.message || field.helperText}
+          helperText={fieldState.error?.message || field.helperText || (dense ? ' ' : undefined)}
+          FormHelperTextProps={dense ? { sx: { minHeight: '1.25rem', mt: 0.5 } } : undefined}
           InputProps={{
             startAdornment: isMoney ? <InputAdornment position="start">R$</InputAdornment> : undefined,
             endAdornment: isPercent ? <InputAdornment position="end">%</InputAdornment> : undefined,

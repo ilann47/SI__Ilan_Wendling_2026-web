@@ -34,7 +34,7 @@ import { ListingSkeleton } from '../components/listing/ListingSkeleton';
 import { PrimaryButton } from '../components/listing/PrimaryButton';
 import { PurchaseProcessStrip } from '../components/purchases/PurchaseProcessStrip';
 import { useSnackbar } from '../components/SnackbarProvider';
-import { formatCurrency, formatDate, formatDateTime, formatNumber } from '../utils/format';
+import { formatCurrency, formatDate, formatDateTime, formatNumber, formatStatusLabel } from '../utils/format';
 
 function key(organizationId: number, ...parts: readonly unknown[]) {
   return tenantQueryKey(organizationId, 'notas-entrada', ...parts);
@@ -75,7 +75,7 @@ export function InboundNoteDetailPage() {
     && queryClient.invalidateQueries({ queryKey: key(organizationId) });
 
   const confirmMutation = useMutation({
-    mutationFn: () => inboundNotesApi.confirm(noteId),
+    mutationFn: () => inboundNotesApi.confirmRecoverable(noteId),
     onSuccess: () => {
       setConfirming(false);
       notify('Nota de entrada confirmada.', 'success');
@@ -266,30 +266,37 @@ export function InboundNoteDetailPage() {
               <ShoppingCartOutlinedIcon color="primary" />
               <Typography variant="h6">Origem da entrada</Typography>
             </Stack>
-            {integrated.ordemCompra ? (
+            {integrated.ordemCompra && permissions.includes('purchases:read') ? (
               <Stack spacing={1.25}>
                 <Field label="Ordem de compra">
-                  {integrated.ordemCompra.numero} · {integrated.ordemCompra.status.replace(/_/g, ' ')}
+                  {integrated.ordemCompra.numero} · {formatStatusLabel(integrated.ordemCompra.status)}
                 </Field>
                 {integrated.recebimento && (
                   <>
                     <Field label="Recebido em">{formatDateTime(integrated.recebimento.recebidoEm)}</Field>
                     <Field label="Recebido por">{integrated.recebimento.atorNome}</Field>
                     <Field label="Local">{integrated.recebimento.localEstoqueNome}</Field>
+                    <Box>
+                      <Typography variant="overline" color="text.secondary">Itens recebidos da compra</Typography>
+                      {integrated.recebimento.itens.map((item) => <Typography key={item.id} variant="body2">
+                        {item.produtoNome} · {formatNumber(item.quantidade, 3)} recebidos
+                        <Typography component="span" variant="caption" color="text.secondary"> · referência do item na compra #{item.itemOrdemCompraId}</Typography>
+                      </Typography>)}
+                    </Box>
                   </>
                 )}
                 <Stack direction="row" spacing={1} flexWrap="wrap">
-                  <Button component={RouterLink} to="/app/ordens-compra" size="small" variant="outlined">
+                  <Button component={RouterLink} to={`/app/ordens-compra?detail=${integrated.ordemCompra.id}`} size="small" variant="outlined">
                     Ver ordem
                   </Button>
-                  <Button component={RouterLink} to="/app/recebimentos" size="small" variant="outlined">
+                  <Button component={RouterLink} to={`/app/ordens-compra?detail=${integrated.ordemCompra.id}&recebimentoId=${integrated.recebimento?.id ?? ''}`} size="small" variant="outlined">
                     Ver recebimentos
                   </Button>
                 </Stack>
               </Stack>
             ) : (
               <Typography variant="body2" color="text.secondary">
-                Entrada lançada diretamente, sem ordem de compra.
+                {note.recebimentoCompraId ? 'Recebimento vinculado. Seu perfil não permite consultar a compra.' : 'Entrada lançada diretamente, sem ordem de compra.'}
               </Typography>
             )}
           </Card>
@@ -299,16 +306,16 @@ export function InboundNoteDetailPage() {
               <AccountBalanceWalletOutlinedIcon color="primary" />
               <Typography variant="h6">Contas a pagar</Typography>
             </Stack>
-            {integrated.contasPagar.length > 0 ? (
+            {!permissions.includes('finance:read') || integrated.contasPagar === null ? <Typography color="text.secondary">Seu perfil não permite consultar contas a pagar.</Typography> : integrated.contasPagar.length > 0 ? (
               <Stack spacing={1.5}>
                 {integrated.contasPagar.map((account) => (
                   <Box key={account.id} sx={{ display: 'flex', justifyContent: 'space-between', gap: 2 }}>
                     <Box>
-                      <Typography fontWeight={700}>
+                      <Button component={RouterLink} to={`/app/contas-pagar?detail=${account.id}`} size="small">
                         Parcela {account.numeroParcela ?? 1}/{account.totalParcelas ?? 1}
-                      </Typography>
+                      </Button>
                       <Typography variant="body2" color="text.secondary">
-                        Vence em {formatDate(account.dataVencimento)} · {account.situacao.replace(/_/g, ' ')}
+                        Vence em {formatDate(account.dataVencimento)} · {formatStatusLabel(account.situacao)}
                       </Typography>
                     </Box>
                     <Typography fontWeight={700}>{formatCurrency(account.valorTotal)}</Typography>
@@ -337,7 +344,7 @@ export function InboundNoteDetailPage() {
             <Inventory2OutlinedIcon color="primary" />
             <Typography variant="h6">Entrada no estoque</Typography>
           </Stack>
-          {integrated.movimentosEstoque.length > 0 ? (
+          {!permissions.includes('stock:read') || integrated.movimentosEstoque === null ? <Typography color="text.secondary">Seu perfil não permite consultar o estoque.</Typography> : integrated.movimentosEstoque.length > 0 ? (
             <TableContainer>
               <Table size="small">
                 <TableHead>
@@ -387,7 +394,7 @@ export function InboundNoteDetailPage() {
       <ConfirmDialog
         open={confirming}
         title="Confirmar nota de entrada"
-        message="Confirmar a nota? Isso soma o estoque e gera as contas a pagar."
+        message={note.recebimentoCompraId ? 'Confirmar a nota e gerar as contas a pagar? O estoque já foi registrado no recebimento e não será somado novamente.' : 'Confirmar a nota? Isso soma o estoque e gera as contas a pagar.'}
         confirmLabel="Confirmar"
         loading={confirmMutation.isPending}
         onClose={() => setConfirming(false)}

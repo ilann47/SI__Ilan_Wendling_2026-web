@@ -85,9 +85,11 @@ describe('OrganizationSelectionPage', () => {
       isContextLoading: false,
     } as unknown as ReturnType<typeof useAuth>);
 
+    vi.spyOn(api, 'get').mockResolvedValue({ data: { id: 9, perfil: 'OPERADOR', login: 'op' } });
     renderPage();
     expect(await screen.findByText(/Solicite um convite ao administrador/i)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Criar/i })).not.toBeInTheDocument();
+    await waitFor(() => expect(api.get).toHaveBeenCalledWith('/api/v1/me'));
   });
 
   it('USUARIO cria organizacao sem ativar automaticamente e permite entrar depois', async () => {

@@ -97,7 +97,7 @@ export const navGroups: NavGroup[] = [
     label: 'Vendas',
     items: [
       {
-        label: 'Vendas Administrativas',
+        label: 'Pedidos de venda',
         path: '/app/vendas-administrativas',
         icon: <SellOutlinedIcon fontSize="small" />,
         permissions: ['sales:read'],

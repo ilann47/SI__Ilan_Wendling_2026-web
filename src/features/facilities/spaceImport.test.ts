@@ -13,4 +13,8 @@ describe('parseSpacesText', () => {
   it('rejeita categoria fora do catalogo', () => {
     expect(() => parseSpacesText('A-01;INVALIDA;nao;')).toThrow('Linha 1');
   });
+
+  it('aceita não com acento no campo de acessibilidade', () => {
+    expect(parseSpacesText('A-03;COMUM;não;')[0].accessible).toBe(false);
+  });
 });

@@ -2,7 +2,8 @@ import AddOutlinedIcon from '@mui/icons-material/AddOutlined';
 import CancelOutlinedIcon from '@mui/icons-material/CancelOutlined';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
-import { Alert, Box, Card, Stack, useMediaQuery } from '@mui/material';
+import { Alert, Box, Button, Card, Stack, useMediaQuery } from '@mui/material';
+import UploadFileOutlinedIcon from '@mui/icons-material/UploadFileOutlined';
 import { useTheme } from '@mui/material/styles';
 import { DataGrid, type GridColDef, type GridPaginationModel } from '@mui/x-data-grid';
 import { ptBR } from '@mui/x-data-grid/locales';
@@ -102,7 +103,7 @@ export function InboundNotesPage() {
   const failure = (error: unknown) => notify(describeError(error), 'error');
 
   const confirmMutation = useMutation({
-    mutationFn: (note: NotaEntradaResponse) => inboundNotesApi.confirm(note.id),
+    mutationFn: (note: NotaEntradaResponse) => inboundNotesApi.confirmRecoverable(note.id),
     onSuccess: () => {
       setConfirming(null);
       notify('Nota de entrada confirmada.', 'success');
@@ -234,11 +235,14 @@ export function InboundNotesPage() {
         title="Notas de Entrada"
         subtitle={notaEntradaConfig.subtitle}
         count={list.data?.totalElements}
-        action={canCreate ? (
-          <PrimaryButton startIcon={<AddOutlinedIcon />} onClick={openCreate}>
+        action={<Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
+          <Button startIcon={<UploadFileOutlinedIcon />} onClick={() => navigate('/app/notas-entrada/importar')}>
+            {canManage ? 'Importar XML' : 'Consultar importações'}
+          </Button>
+          {canCreate && <PrimaryButton startIcon={<AddOutlinedIcon />} onClick={openCreate}>
             Nova nota
-          </PrimaryButton>
-        ) : undefined}
+          </PrimaryButton>}
+        </Stack>}
       />
       <PurchaseProcessStrip active="nota" />
       <ListingToolbar
@@ -352,7 +356,7 @@ export function InboundNotesPage() {
       <ConfirmDialog
         open={!!confirming}
         title="Confirmar nota de entrada"
-        message="Confirmar a nota? Isso soma o estoque e gera as contas a pagar."
+        message={confirming?.recebimentoCompraId ? 'Confirmar a nota e gerar as contas a pagar? O estoque do recebimento não será somado novamente.' : 'Confirmar a nota? Isso soma o estoque e gera as contas a pagar.'}
         confirmLabel="Confirmar"
         loading={confirmMutation.isPending}
         onClose={() => setConfirming(null)}

@@ -23,6 +23,7 @@ import {
 } from '@mui/material';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useEffect, useMemo, useState } from 'react';
+import { purchaseReceiptValues } from '../api/purchaseReceiptValues';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { describeError } from '../api/client';
 import {
@@ -44,7 +45,7 @@ import { useSnackbar } from '../components/SnackbarProvider';
 import { notaEntradaConfig } from '../resources/fiscal';
 import { tipoFreteOptions } from '../resources/options';
 import type { TipoFrete } from '../types';
-import { formatCurrency, formatDateTime } from '../utils/format';
+import { formatCurrency, formatDateTime, formatStatusLabel } from '../utils/format';
 
 const STEPS = [
   'Como chegou',
@@ -58,7 +59,7 @@ const STEPS = [
 
 type OriginMode = 'manual' | 'recebimento';
 
-interface WizardItem {
+export interface WizardItem {
   produtoId: number | null;
   produtoNome?: string;
   quantidade: number;
@@ -66,7 +67,7 @@ interface WizardItem {
   valorDesconto: number;
 }
 
-interface WizardState {
+export interface WizardState {
   origin: OriginMode;
   ordemCompraId: number | null;
   recebimentoCompraId: number | null;
@@ -115,22 +116,58 @@ const initialState = (): WizardState => ({
   condicaoPagamentoId: null,
 });
 
-function applyReceipt(state: WizardState, order: PurchaseOrder, receipt: PurchaseReceipt): WizardState {
+function applyReceipt(state: WizardState, order: PurchaseOrder, receipt: PurchaseReceipt, receipts: PurchaseReceipt[]): WizardState {
   return {
     ...state,
     origin: 'recebimento',
     ordemCompraId: order.id,
     recebimentoCompraId: receipt.id,
     fornecedorId: order.fornecedorId,
+    numero: order.numeroNota,
+    serie: order.serieNota,
+    modelo: order.modeloNota,
     localEstoqueId: receipt.localEstoqueId,
-    itens: receipt.itens.map((item) => ({
-      produtoId: item.produtoId,
-      produtoNome: item.produtoNome,
-      quantidade: item.quantidade,
-      valorUnitario: item.custoUnitario,
-      valorDesconto: 0,
-    })),
+    ...purchaseReceiptValues(order, receipt, receipts),
   };
+}
+
+export function validateInboundNoteStep(state: WizardState, index: number): string | null {
+  if (index === 0 && state.origin === 'recebimento') {
+    if (!state.ordemCompraId) return 'Selecione uma ordem de compra.';
+    if (!state.recebimentoCompraId) return 'Selecione um recebimento.';
+  }
+  if (index === 1) {
+    if (!state.numero.trim()) return 'Informe o número da nota.';
+    if (!state.fornecedorId) return 'Selecione o fornecedor.';
+    if (state.dataEmissao && state.dataChegada && state.dataChegada < state.dataEmissao) {
+      return 'A data de chegada não pode ser anterior à emissão.';
+    }
+  }
+  if (index === 2) {
+    if (state.itens.length === 0) return 'Inclua ao menos um item.';
+    if (state.itens.some((item) => !item.produtoId || !Number.isFinite(item.quantidade) || item.quantidade <= 0)) {
+      return 'Cada item precisa de produto e quantidade positiva.';
+    }
+    if (state.itens.some((item) => !Number.isFinite(item.valorUnitario) || item.valorUnitario < 0)) {
+      return 'O valor unitário dos itens não pode ser negativo.';
+    }
+    if (state.itens.some((item) => !Number.isFinite(item.valorDesconto) || item.valorDesconto < 0
+      || item.valorDesconto > item.quantidade * item.valorUnitario)) {
+      return 'O desconto de cada item deve estar entre zero e o valor bruto do item.';
+    }
+  }
+  if (index === 3) {
+    const costs = [state.valorFrete, state.valorSeguro, state.outrasDespesas, state.valorDesconto];
+    if (costs.some((value) => !Number.isFinite(value) || value < 0)) {
+      return 'Frete, seguro, outras despesas e desconto não podem ser negativos.';
+    }
+    const products = state.itens.reduce((sum, item) => sum + itemSubtotal(item), 0);
+    if (state.valorDesconto > products + state.valorFrete + state.valorSeguro + state.outrasDespesas) {
+      return 'O desconto da nota não pode exceder o valor da entrada.';
+    }
+  }
+  if (index === 4 && !state.localEstoqueId) return 'Selecione o local de estoque.';
+  return null;
 }
 
 export function InboundNoteWizardPage() {
@@ -144,6 +181,7 @@ export function InboundNoteWizardPage() {
   const [formError, setFormError] = useState<string | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [orderSearch, setOrderSearch] = useState('');
+  const [draftKey] = useState(() => crypto.randomUUID());
 
   const canCreate = hasResourceActionPermission(notaEntradaConfig, 'create', permissions);
   const fromOrderId = Number(searchParams.get('ordemId'));
@@ -194,11 +232,11 @@ export function InboundNoteWizardPage() {
         ]);
         const receipt = receiptList.find((item) => item.id === fromReceiptId);
         if (!cancelled && receipt) {
-          setState((current) => applyReceipt(current, order, receipt));
+          setState((current) => applyReceipt(current, order, receipt, receiptList));
           setStep(1);
         }
-      } catch {
-        // Prefill opcional — o usuário ainda pode escolher manualmente.
+      } catch (error) {
+        if (!cancelled) setFormError(describeError(error));
       }
     })();
     return () => { cancelled = true; };
@@ -220,24 +258,7 @@ export function InboundNoteWizardPage() {
 
   const patch = (partial: Partial<WizardState>) => setState((current) => ({ ...current, ...partial }));
 
-  const validateStep = (index: number): string | null => {
-    if (index === 0 && state.origin === 'recebimento') {
-      if (!state.ordemCompraId) return 'Selecione uma ordem de compra.';
-      if (!state.recebimentoCompraId) return 'Selecione um recebimento.';
-    }
-    if (index === 1) {
-      if (!state.numero.trim()) return 'Informe o número da nota.';
-      if (!state.fornecedorId) return 'Selecione o fornecedor.';
-    }
-    if (index === 2) {
-      if (state.itens.length === 0) return 'Inclua ao menos um item.';
-      if (state.itens.some((item) => !item.produtoId || item.quantidade <= 0)) {
-        return 'Cada item precisa de produto e quantidade positiva.';
-      }
-    }
-    if (index === 4 && !state.localEstoqueId) return 'Selecione o local de estoque.';
-    return null;
-  };
+  const validateStep = (index: number): string | null => validateInboundNoteStep(state, index);
 
   const goNext = () => {
     const error = validateStep(step);
@@ -276,7 +297,7 @@ export function InboundNoteWizardPage() {
   const saveDraft = useMutation({
     mutationFn: async () => {
       const payload = buildNotaEntradaPayload(buildValues());
-      return inboundNotesApi.create(payload);
+      return inboundNotesApi.createIdempotent(payload, draftKey);
     },
     onSuccess: (note) => {
       notify('Rascunho da nota salvo.', 'success');
@@ -288,13 +309,15 @@ export function InboundNoteWizardPage() {
   const saveAndConfirm = useMutation({
     mutationFn: async () => {
       const payload = buildNotaEntradaPayload(buildValues());
-      const created = await inboundNotesApi.create(payload);
-      await inboundNotesApi.confirm(created.id);
+      const created = await inboundNotesApi.createIdempotent(payload, draftKey);
+      await inboundNotesApi.confirmRecoverable(created.id);
       return created;
     },
     onSuccess: (note) => {
       setConfirmOpen(false);
-      notify('Nota confirmada: estoque e contas a pagar atualizados.', 'success');
+      notify(state.recebimentoCompraId
+        ? 'Nota confirmada e contas a pagar geradas. O estoque permanece o do recebimento.'
+        : 'Nota confirmada: estoque e contas a pagar atualizados.', 'success');
       navigate(`/app/notas-entrada/${note.id}`);
     },
     onError: (error) => {
@@ -375,7 +398,7 @@ export function InboundNoteWizardPage() {
               >
                 {receivableOrders.map((order) => (
                   <MenuItem key={order.id} value={order.id}>
-                    {order.numero} — {order.fornecedorNome} ({order.status.replace(/_/g, ' ')})
+                    Nota {order.numeroNota} · série {order.serieNota} — {order.fornecedorNome} ({formatStatusLabel(order.status)})
                   </MenuItem>
                 ))}
               </TextField>
@@ -389,7 +412,7 @@ export function InboundNoteWizardPage() {
                     const receiptId = event.target.value ? Number(event.target.value) : null;
                     const receipt = (receipts.data ?? []).find((item) => item.id === receiptId);
                     if (receipt && selectedOrder) {
-                      setState((current) => applyReceipt(current, selectedOrder, receipt));
+                      setState((current) => applyReceipt(current, selectedOrder, receipt, receipts.data ?? []));
                     } else {
                       patch({ recebimentoCompraId: receiptId });
                     }
@@ -423,6 +446,7 @@ export function InboundNoteWizardPage() {
               required
               size="small"
               fullWidth
+              disabled={lockedFromReceipt}
               value={state.numero}
               onChange={(event) => patch({ numero: event.target.value })}
             />
@@ -430,6 +454,7 @@ export function InboundNoteWizardPage() {
               label="Série"
               size="small"
               fullWidth
+              disabled={lockedFromReceipt}
               value={state.serie}
               onChange={(event) => patch({ serie: event.target.value })}
             />
@@ -437,6 +462,7 @@ export function InboundNoteWizardPage() {
               label="Modelo"
               size="small"
               fullWidth
+              disabled={lockedFromReceipt}
               value={state.modelo}
               onChange={(event) => patch({ modelo: event.target.value })}
             />
@@ -597,6 +623,7 @@ export function InboundNoteWizardPage() {
             type="number"
             size="small"
             value={state.valorFrete}
+            inputProps={{ min: 0, step: 0.01 }}
             onChange={(event) => patch({ valorFrete: Number(event.target.value) })}
           />
           <TextField
@@ -604,6 +631,7 @@ export function InboundNoteWizardPage() {
             type="number"
             size="small"
             value={state.valorSeguro}
+            inputProps={{ min: 0, step: 0.01 }}
             onChange={(event) => patch({ valorSeguro: Number(event.target.value) })}
           />
           <TextField
@@ -611,6 +639,7 @@ export function InboundNoteWizardPage() {
             type="number"
             size="small"
             value={state.outrasDespesas}
+            inputProps={{ min: 0, step: 0.01 }}
             onChange={(event) => patch({ outrasDespesas: Number(event.target.value) })}
           />
           <TextField
@@ -618,6 +647,7 @@ export function InboundNoteWizardPage() {
             type="number"
             size="small"
             value={state.valorDesconto}
+            inputProps={{ min: 0, step: 0.01 }}
             onChange={(event) => patch({ valorDesconto: Number(event.target.value) })}
           />
           <Alert severity="info">Total geral: {formatCurrency(totals.total)}</Alert>
@@ -671,7 +701,7 @@ export function InboundNoteWizardPage() {
           </Box>
           {state.recebimentoCompraId && (
             <Typography>
-              <strong>Origem:</strong> recebimento do pedido {selectedOrder?.numero ?? 'selecionado'}
+              <strong>Origem:</strong> recebimento da nota {selectedOrder?.numeroNota ?? 'selecionada'}
             </Typography>
           )}
         </Stack>
@@ -693,7 +723,7 @@ export function InboundNoteWizardPage() {
                 variant="outlined"
                 disabled={saveDraft.isPending || saveAndConfirm.isPending}
                 onClick={() => {
-                  const error = validateStep(1) || validateStep(2) || validateStep(4);
+                  const error = validateStep(1) || validateStep(2) || validateStep(3) || validateStep(4);
                   if (error) {
                     setFormError(error);
                     return;
@@ -706,7 +736,7 @@ export function InboundNoteWizardPage() {
               <PrimaryButton
                 disabled={saveDraft.isPending || saveAndConfirm.isPending}
                 onClick={() => {
-                  const error = validateStep(1) || validateStep(2) || validateStep(4);
+                  const error = validateStep(1) || validateStep(2) || validateStep(3) || validateStep(4);
                   if (error) {
                     setFormError(error);
                     return;

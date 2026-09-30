@@ -55,6 +55,10 @@ divergentes permanecem regras do backend e sao exibidos via Problem Details.
 
 Vitest cobre conversao temporal e criacao idempotente de evento.
 
+Os testes de criação e alteração de política simulam e verificam o GET de
+atualização do catálogo após a mutação. Não dependem de um backend acessível
+durante o Vitest. Esta manutenção de testes não altera o comportamento da tela.
+
 ## Decisoes Tecnicas
 
 - Disponibilidade nao e apresentada como garantia; somente hold garante estoque.
@@ -84,3 +88,5 @@ Vitest cobre conversao temporal e criacao idempotente de evento.
 | 2026-08-03 | Alinha abas e acoes as permissoes contextuais do backend. |
 | 2026-08-03 | Herda periodo e quota da alocacao ao configurar produto. |
 | 2026-08-03 | Impede envio nulo ao definir politica em evento legado. |
+| 2026-09-12 | Completa mocks e assertivas da atualização do catálogo após criar/alterar evento, evitando rede real durante os testes. |
+| 2026-09-28 | Valida evento, alocação, produto, lote e disponibilidade no navegador e apresenta categoria, preço e estados em linguagem operacional. |

@@ -23,6 +23,7 @@ function renderPage() {
 describe('EventsPage', () => {
   it('usa politica explicita ao atualizar evento legado sem politica', async () => {
     const remember = vi.fn();
+    vi.spyOn(api, 'get').mockResolvedValue({ data: { content: [], totalElements: 0, totalPages: 0 } });
     vi.mocked(useAuth).mockReturnValue({ permissions: ['events:create'] } as unknown as ReturnType<typeof useAuth>);
     vi.mocked(useOperationalWorkspace).mockReturnValue({
       recent: (kind: string) => kind === 'event' ? [{
@@ -42,14 +43,21 @@ describe('EventsPage', () => {
 
     renderPage();
     await userEvent.click(screen.getByRole('button', { name: 'Festival legado #1' }));
-    await userEvent.click(screen.getByRole('button', { name: 'Executar operacao' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Executar operação' }));
 
     await waitFor(() => expect(api.patch).toHaveBeenCalledOnce());
     expect(vi.mocked(api.patch).mock.calls[0][1]).toEqual({ reentryPolicy: 'ENTRADA_UNICA' });
+    await waitFor(() => expect(api.get).toHaveBeenCalledWith('/api/v1/events', expect.objectContaining({ params: expect.any(Object) })));
   });
 
   it('herda janela e quota da alocacao real ao configurar produto', async () => {
-    vi.mocked(useAuth).mockReturnValue({ permissions: ['pricing:manage'] } as unknown as ReturnType<typeof useAuth>);
+    vi.spyOn(api, 'get').mockImplementation(async (path) => ({ data: String(path) === '/api/v1/events'
+      ? { content: [{ id: 1, name: 'Evento 1' }], totalElements: 1, totalPages: 1 }
+      : [] }));
+    vi.mocked(useAuth).mockReturnValue({
+      permissions: ['pricing:manage', 'events:read'],
+      activeOrganization: { organizationId: 1 },
+    } as unknown as ReturnType<typeof useAuth>);
     vi.mocked(useOperationalWorkspace).mockReturnValue({
       recent: (kind: string) => kind === 'allocation' ? [{
         id: 3,
@@ -66,11 +74,13 @@ describe('EventsPage', () => {
     } as unknown as ReturnType<typeof useOperationalWorkspace>);
 
     renderPage();
+    await waitFor(() => expect(api.get).toHaveBeenCalledWith('/api/v1/events', expect.any(Object)));
+    await userEvent.click(screen.getByRole('tab', { name: 'Produto' }));
     await userEvent.click(screen.getByRole('button', { name: 'Evento 1 / Patio 1 #3' }));
 
-    expect(screen.getByLabelText(/ID do evento/)).toHaveValue(1);
-    expect(screen.getByLabelText(/Quota/)).toHaveValue(9);
-    expect(screen.getByLabelText(/Inicio do acesso/)).toHaveValue(fromApiDateTime('2026-08-04T03:34:00Z'));
+    expect(screen.getByLabelText('Evento para listar produtos', { exact: true })).toHaveTextContent('Evento 1');
+    expect(screen.getByLabelText(/Cota/)).toHaveValue(9);
+    expect(screen.getByLabelText(/Início do acesso/)).toHaveValue(fromApiDateTime('2026-08-04T03:34:00Z'));
     expect(screen.getByLabelText(/Fim do acesso/)).toHaveValue(fromApiDateTime('2026-08-04T08:34:00Z'));
   });
 
@@ -84,12 +94,13 @@ describe('EventsPage', () => {
 
     expect(screen.getByRole('tab', { name: 'Disponibilidade' })).toBeInTheDocument();
     expect(screen.queryByRole('tab', { name: 'Evento' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('tab', { name: 'Alocacao' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('tab', { name: 'Alocação' })).not.toBeInTheDocument();
     expect(screen.queryByRole('tab', { name: 'Produto' })).not.toBeInTheDocument();
   });
 
   it('cria evento com contrato temporal e chave idempotente', async () => {
     const remember = vi.fn();
+    vi.spyOn(api, 'get').mockResolvedValue({ data: { content: [], totalElements: 0, totalPages: 0 } });
     vi.mocked(useAuth).mockReturnValue({ permissions: ['events:create'] } as unknown as ReturnType<typeof useAuth>);
     vi.mocked(useOperationalWorkspace).mockReturnValue({
       recent: () => [], remember,
@@ -109,7 +120,7 @@ describe('EventsPage', () => {
     renderPage();
     const user = userEvent.setup();
     await user.type(screen.getByLabelText(/Nome do evento/), 'Festival Kaneko');
-    await user.type(screen.getByLabelText(/ID do local/), '3');
+    await user.type(screen.getByLabelText(/Local do evento/), '3');
     await user.click(screen.getByRole('button', { name: 'Criar evento' }));
 
     await waitFor(() => expect(api.post).toHaveBeenCalledOnce());
@@ -117,6 +128,7 @@ describe('EventsPage', () => {
     expect(payload).toMatchObject({ name: 'Festival Kaneko', venueId: 3 });
     expect(config?.headers).toHaveProperty('Idempotency-Key');
     expect(remember).toHaveBeenCalledWith('event', expect.objectContaining({ id: 12, version: 0 }));
+    await waitFor(() => expect(api.get).toHaveBeenCalledWith('/api/v1/events', expect.objectContaining({ params: expect.any(Object) })));
   });
 
   it('lista eventos persistidos e permite seleciona-los', async () => {

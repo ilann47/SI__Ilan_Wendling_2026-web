@@ -77,6 +77,11 @@ Backend Spring Boot via `VITE_BACKEND_URL` (proxy Vite `/api`).
 `RegisterPage.test.tsx`, `AuthContext.test.tsx`, `NoOrganizationAccessPage.test.tsx`,
 `LoginPage.test.tsx` e suites existentes via `npm test`.
 
+Os testes do seletor simulam também o GET de perfil para OPERADOR. O teste de
+falha ao ativar contexto aguarda a consulta de permissões antes de verificar
+que o JWT anterior foi preservado; os mocks não são restaurados enquanto essa
+chamada ainda estiver pendente. Nenhuma alteração de autenticação em produção.
+
 ## Decisoes Tecnicas
 
 - O cliente envia somente `organizationId` na troca de contexto.
@@ -108,3 +113,4 @@ Backend Spring Boot via `VITE_BACKEND_URL` (proxy Vite `/api`).
 | 2026-09-10 | Remove auto-selecao de org unica; permite reabrir escolha e criar org (ADMIN). |
 | 2026-09-10 | Self-service USUARIO via `/api/v1/me/organizations`; seletor unificado sem auto-ativar. |
 | 2026-09-11 | Centraliza mensagens amigaveis em `describeError` e isenta login/cadastro do logout 401. |
+| 2026-09-12 | Estabiliza testes de perfil OPERADOR e falha de ativação contextual, cobrindo consultas e evitando requisições não simuladas ao encerrar o teste. |

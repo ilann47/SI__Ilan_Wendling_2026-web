@@ -18,6 +18,7 @@ import FactCheckOutlinedIcon from '@mui/icons-material/FactCheckOutlined';
 import RestartAltOutlinedIcon from '@mui/icons-material/RestartAltOutlined';
 import { api, describeError } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
+import { formatStatusLabel } from '../utils/format';
 import { PageHeader } from '../components/common/PageHeader';
 import { ConfirmDialog } from '../components/common/ConfirmDialog';
 import { QrScannerButton } from '../components/enterprise/QrScannerDialog';
@@ -92,6 +93,7 @@ export function EventAccessPage() {
       const { data } = await api.post<AccessResponse>(`/api/v1/${operation}`, payload, {
         headers: { 'Idempotency-Key': idempotencyKey },
       });
+      retry.current = null;
       setResult(data);
       setHistory((current) => [{ ...data, operation }, ...current].slice(0, 10));
     } catch (cause) {
@@ -127,7 +129,7 @@ export function EventAccessPage() {
       setBlockingResult(data);
       remember('credential', {
         id: data.id,
-        label: `Credencial ${data.id} · ${data.status}`,
+        label: `Credencial ${data.id} · ${formatStatusLabel(data.status)}`,
         version: data.version,
         snapshot: { ...data },
       });

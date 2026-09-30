@@ -22,6 +22,11 @@ rota /app/fornecedores -> PermissionRoute suppliers:read -> CrudResourcePage
   -> /api/fornecedores -> organização resolvida pelo JWT contextual
 ```
 
+Nos documentos de compra, `ReferenceSelect` e `QuickCreateProvider` permitem
+pesquisar ou cadastrar o fornecedor sem sair do formulário original. O cadastro
+usa os campos reais de `fornecedoresConfig`; a resposta salva é selecionada sem
+redigitar identificadores e sem perder os produtos já informados.
+
 ## Endpoints (se houver)
 
 | Método | Contrato | Permissão |
@@ -52,6 +57,11 @@ O cliente central converte Problem Details. Contexto inválido retorna `401`,
 falta de `suppliers:read` ou `suppliers:manage` retorna `403`, recurso ausente ou
 de outra organização retorna `404` e conflitos de integridade permanecem `409`.
 
+Uma falha no seletor é mostrada como erro com nova tentativa, não como ausência
+de fornecedores. O cadastro contextual mantém os valores quando o servidor
+recusa o envio. Cancelar não altera o documento original. Uma troca de empresa
+ou revogação de permissão descarta o contexto do diálogo, não os dados do banco.
+
 ## Testes (curl ou equivalente)
 
 - `npm test -- --run src/components/crud/resourceConfig.test.ts src/layout/navigation.test.tsx src/App.test.tsx`
@@ -59,6 +69,7 @@ de outra organização retorna `404` e conflitos de integridade permanecem `409`
 - `npm run lint`
 - `npm test`
 - `npm run build`
+- `npm test -- --run src/context/QuickCreateContext.test.tsx src/components/form/ReferenceSelect.test.tsx`
 
 ## Decisões Técnicas
 
@@ -68,6 +79,10 @@ de outra organização retorna `404` e conflitos de integridade permanecem `409`
 - Listagens e referências usam chaves React Query iniciadas por
   `['tenant', organizationId]`.
 - `produtoFornecedoresConfig`, notas e recursos financeiros não foram alterados.
+- A criação contextual exige `suppliers:manage`; consulta exige
+  `suppliers:read`. O provider também verifica a permissão antes de abrir e
+  enviar. A resposta de uma empresa anterior não é selecionada após trocar o
+  contexto. Envio pendente não é repetido por clique duplo.
 
 ## Módulos relacionados
 
@@ -84,3 +99,4 @@ de outra organização retorna `404` e conflitos de integridade permanecem `409`
 | Data | Ação |
 |---|---|
 | 2026-08-03 | Adapta exclusivamente Fornecedores ao contrato multiempresa V42. |
+| 2026-09-12 | Valida cadastro contextual real, cancelamento e erro sem perder itens, seleção automática do cadastro salvo, RBAC e isolamento por organização. |

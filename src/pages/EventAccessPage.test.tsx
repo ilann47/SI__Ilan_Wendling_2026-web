@@ -36,4 +36,34 @@ describe('EventAccessPage', () => {
     await waitFor(() => expect(api.post).toHaveBeenCalledOnce());
     expect(vi.mocked(api.post).mock.calls[0][2]?.headers).toHaveProperty('Idempotency-Key');
   });
+
+  it('gera uma nova tentativa depois de um sucesso, mesmo com a mesma leitura', async () => {
+    vi.mocked(useAuth).mockReturnValue({ permissions: ['access:checkin'] } as unknown as ReturnType<typeof useAuth>);
+    vi.mocked(useOperationalWorkspace).mockReturnValue({ recent: () => [], remember: vi.fn() } as unknown as ReturnType<typeof useOperationalWorkspace>);
+    vi.spyOn(api, 'post')
+      .mockResolvedValueOnce({ data: {
+        accessAttemptId: 91, decision: 'AUTORIZADA', reasonCode: 'AUTORIZADA', decidedAt: '2026-08-03T04:00:00Z',
+      } })
+      .mockResolvedValueOnce({ data: {
+        accessAttemptId: 92, decision: 'RECUSADA', reasonCode: 'ENTRADA_DUPLICADA', decidedAt: '2026-08-03T04:01:00Z',
+      } });
+
+    render(<EventAccessPage />);
+    const user = userEvent.setup();
+    await user.type(screen.getByLabelText(/QR da credencial/), 'token-seguro');
+    await user.type(screen.getByLabelText(/ID do evento/), '5');
+    await user.type(screen.getByLabelText(/ID do patio/), '7');
+    const submit = screen.getByRole('button', { name: 'Registrar entrada' });
+
+    await user.click(submit);
+    await screen.findByText(/tentativa #91/);
+    await user.click(submit);
+    await screen.findByText(/tentativa #92/);
+
+    const firstKey = vi.mocked(api.post).mock.calls[0][2]?.headers?.['Idempotency-Key'];
+    const secondKey = vi.mocked(api.post).mock.calls[1][2]?.headers?.['Idempotency-Key'];
+    expect(firstKey).toBeTruthy();
+    expect(secondKey).toBeTruthy();
+    expect(secondKey).not.toBe(firstKey);
+  });
 });

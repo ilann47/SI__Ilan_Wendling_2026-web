@@ -28,7 +28,9 @@ formulario -> /api/v1 -> resposta/207 parcial -> workspace tenant-aware
 
 ## Estrutura de Dados (DTOs, Entidades)
 
-Os formularios refletem os DTOs de Venue, PatioInstalacao, Setor e Vaga. O lote
+Os formularios refletem os DTOs de Venue, PatioInstalacao, Setor e Vaga. Cidade
+é escolhida por autocomplete pesquisável sobre `/api/cidades`, sem digitação de
+ID técnico. O lote
 de vagas usa o formato por linha `codigo;categoria;acessivel;posicao` e converte
 para `spaces[]` antes da chamada.
 
@@ -69,3 +71,5 @@ Vitest cobre conversao do lote e rejeicao de categorias fora do catalogo.
 | 2026-08-03 | Implementa fluxo completo de criacao da estrutura fisica. |
 | 2026-08-03 | Alinha acesso da interface a permissao `facilities:manage`. |
 | 2026-08-03 | Separa a permissao de Venue das demais instalacoes. |
+| 2026-09-28 | Substitui IDs manuais de cidade por seleção pesquisável em Venue e Pátio. |
+| 2026-09-28 | Expõe honestamente a ausência das listagens de Venue/instalações no contrato atual, sem criar dados ou endpoints fictícios. |

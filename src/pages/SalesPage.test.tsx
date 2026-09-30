@@ -24,7 +24,7 @@ describe('SalesPage', () => {
     render(<SalesPage />);
 
     expect(screen.getByRole('tab', { name: 'Credenciais' })).toBeInTheDocument();
-    expect(screen.queryByRole('tab', { name: 'Holds' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('tab', { name: 'Reservas' })).not.toBeInTheDocument();
     expect(screen.queryByRole('tab', { name: 'Pedidos' })).not.toBeInTheDocument();
   });
 
@@ -39,7 +39,7 @@ describe('SalesPage', () => {
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     render(<QueryClientProvider client={client}><SalesPage /></QueryClientProvider>);
 
-    expect(screen.getByText('Confirmacao manual')).toBeInTheDocument();
+    expect(screen.getByText('Confirmação manual')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Criar pedido' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Consultar' })).not.toBeInTheDocument();
   });
@@ -58,8 +58,8 @@ describe('SalesPage', () => {
 
     render(<SalesPage />);
     const user = userEvent.setup();
-    await user.type(screen.getByLabelText(/ID do produto/), '7');
-    await user.click(screen.getByRole('button', { name: 'Criar hold' }));
+    await user.type(screen.getByLabelText(/^Produto/), '7');
+    await user.click(screen.getByRole('button', { name: 'Reservar vaga' }));
 
     await waitFor(() => expect(api.post).toHaveBeenCalledOnce());
     expect(vi.mocked(api.post).mock.calls[0][1]).toMatchObject({ parkingProductId: 7, quantity: 1, channel: 'WEB' });

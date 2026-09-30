@@ -59,3 +59,4 @@ Vitest valida os 13 IDs unicos, ausencia de botoes e filtragem local.
 | Data | Acao |
 |---|---|
 | 2026-08-03 | Implementa catalogo administrativo dos bloqueios oficiais. |
+| 2026-09-28 | Revisa textos no navegador, corrige acentuação e troca jargões técnicos por termos operacionais sem simular integrações ausentes. |

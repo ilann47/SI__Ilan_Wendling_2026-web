@@ -25,7 +25,8 @@ import { PageHeader } from '../components/common/PageHeader';
 import { OperationCard } from '../components/enterprise/OperationCard';
 import { ResourceIdField } from '../components/enterprise/ResourceIdField';
 import { ResourceSnapshot } from '../components/enterprise/ResourceSnapshot';
-import { facilityCategories, parseSpacesText, type FacilityCategory } from '../features/facilities/spaceImport';
+import { ReferenceSelect } from '../components/form/ReferenceSelect';
+import { facilityCategories, facilityCategoryLabel, parseSpacesText, type FacilityCategory } from '../features/facilities/spaceImport';
 import { useOperationalWorkspace } from '../workspace/OperationalWorkspaceContext';
 
 interface VenueResponse {
@@ -59,17 +60,25 @@ function AddressFields({ form, setForm, withTimeZone = false }: {
   return (
     <Stack spacing={2}>
       <TextField label="Nome" value={form.name} onChange={(event) => update('name', event.target.value)} required inputProps={{ maxLength: 160 }} />
-      <TextField label="Endereco" value={form.address} onChange={(event) => update('address', event.target.value)} required inputProps={{ maxLength: 120 }} />
+      <TextField label="Endereço" value={form.address} onChange={(event) => update('address', event.target.value)} required inputProps={{ maxLength: 120 }} />
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-        <TextField label="Numero" value={form.number} onChange={(event) => update('number', event.target.value)} inputProps={{ maxLength: 10 }} fullWidth />
+        <TextField label="Número" value={form.number} onChange={(event) => update('number', event.target.value)} inputProps={{ maxLength: 10 }} fullWidth />
         <TextField label="Complemento" value={form.complement} onChange={(event) => update('complement', event.target.value)} inputProps={{ maxLength: 100 }} fullWidth />
       </Stack>
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
         <TextField label="Bairro" value={form.district} onChange={(event) => update('district', event.target.value)} required inputProps={{ maxLength: 60 }} fullWidth />
         <TextField label="CEP" value={form.postalCode} onChange={(event) => update('postalCode', event.target.value)} required inputProps={{ maxLength: 9 }} fullWidth />
-        <TextField label="ID da cidade" type="number" value={form.cityId} onChange={(event) => update('cityId', event.target.value)} required inputProps={{ min: 1 }} fullWidth />
+        <Box sx={{ flex: 1 }}>
+          <ReferenceSelect
+            label="Cidade"
+            value={form.cityId ? Number(form.cityId) : null}
+            onChange={(value) => update('cityId', value ? String(value) : '')}
+            reference={{ basePath: '/api/cidades', labelField: 'nome' }}
+            required
+          />
+        </Box>
       </Stack>
-      {withTimeZone && <TextField label="Fuso horario IANA" value={form.timeZone ?? ''} onChange={(event) => update('timeZone', event.target.value)} required />}
+      {withTimeZone && <TextField label="Fuso horário IANA" value={form.timeZone ?? ''} onChange={(event) => update('timeZone', event.target.value)} required />}
     </Stack>
   );
 }
@@ -91,7 +100,7 @@ function VenueForm() {
     } catch (cause) { setError(describeError(cause)); } finally { setLoading(false); }
   };
   return (
-    <OperationCard title="Novo local de evento" description="O local representa o endereco principal onde o evento acontece." error={error} result={result ? <ResourceSnapshot data={{ id: result.id, name: result.name, type: result.type, cityId: result.cityId, timeZone: result.timeZone, version: result.version }} /> : undefined}>
+    <OperationCard title="Novo local de evento" description="O local representa o endereço principal onde o evento acontece." error={error} result={result ? <ResourceSnapshot data={{ id: result.id, name: result.name, type: result.type, cityId: result.cityId, timeZone: result.timeZone, version: result.version }} /> : undefined}>
       <Stack component="form" spacing={2} onSubmit={(event) => void submit(event)}>
         <AddressFields form={form} setForm={setForm} withTimeZone />
         <Button type="submit" variant="contained" disabled={loading} startIcon={loading ? <CircularProgress size={18} color="inherit" /> : <DomainAddOutlinedIcon />} sx={{ alignSelf: 'flex-start' }}>Criar local</Button>
@@ -123,15 +132,15 @@ function FacilityForm() {
     } catch (cause) { setError(describeError(cause)); } finally { setLoading(false); }
   };
   return (
-    <OperationCard title="Novo patio" description="Capacidade operacional nao pode superar a capacidade fisica." error={error} result={result ? <ResourceSnapshot data={{ id: result.id, name: result.name, physicalCapacity: result.physicalCapacity, operationalCapacity: result.operationalCapacity, active: result.active, version: result.version }} /> : undefined}>
+    <OperationCard title="Novo pátio" description="A capacidade operacional não pode superar a capacidade física." error={error} result={result ? <ResourceSnapshot data={{ id: result.id, name: result.name, physicalCapacity: result.physicalCapacity, operationalCapacity: result.operationalCapacity, active: result.active, version: result.version }} /> : undefined}>
       <Stack component="form" spacing={2} onSubmit={(event) => void submit(event)}>
         <AddressFields form={form} setForm={setForm} />
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-          <TextField label="Capacidade fisica" type="number" value={form.physicalCapacity} onChange={(event) => setForm((current) => ({ ...current, physicalCapacity: event.target.value }))} inputProps={{ min: 1 }} required fullWidth />
+          <TextField label="Capacidade física" type="number" value={form.physicalCapacity} onChange={(event) => setForm((current) => ({ ...current, physicalCapacity: event.target.value }))} inputProps={{ min: 1 }} required fullWidth />
           <TextField label="Capacidade operacional" type="number" value={form.operationalCapacity} onChange={(event) => setForm((current) => ({ ...current, operationalCapacity: event.target.value }))} inputProps={{ min: 0 }} required fullWidth />
         </Stack>
         <TextField label="Observacoes" value={form.notes} onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))} multiline minRows={2} inputProps={{ maxLength: 255 }} />
-        <Button type="submit" variant="contained" disabled={loading} startIcon={loading ? <CircularProgress size={18} color="inherit" /> : <LocalParkingOutlinedIcon />} sx={{ alignSelf: 'flex-start' }}>Criar patio</Button>
+        <Button type="submit" variant="contained" disabled={loading} startIcon={loading ? <CircularProgress size={18} color="inherit" /> : <LocalParkingOutlinedIcon />} sx={{ alignSelf: 'flex-start' }}>Criar pátio</Button>
       </Stack>
     </OperationCard>
   );
@@ -155,9 +164,9 @@ function SectorForm() {
     } catch (cause) { setError(describeError(cause)); } finally { setLoading(false); }
   };
   return (
-    <OperationCard title="Novo setor" description="Categorias definem os tipos fisicos aceitos no setor." error={error} result={result ? <ResourceSnapshot data={{ id: result.id, parkingFacilityId: result.parkingFacilityId, code: result.code, name: result.name, capacity: result.capacity, categories: result.categories, version: result.version }} /> : undefined}>
+    <OperationCard title="Novo setor" description="As categorias definem os tipos de vaga aceitos no setor." error={error} result={result ? <ResourceSnapshot data={{ id: result.id, parkingFacilityId: result.parkingFacilityId, code: result.code, name: result.name, capacity: result.capacity, categories: result.categories, version: result.version }} /> : undefined}>
       <Stack component="form" spacing={2} onSubmit={(event) => void submit(event)}>
-        <ResourceIdField label="ID do patio" value={facilityId} onChange={setFacilityId} recent={recent('facility')} />
+        <ResourceIdField label="Pátio" value={facilityId} onChange={setFacilityId} recent={recent('facility')} />
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
           <TextField label="Codigo" value={form.code} onChange={(event) => setForm((current) => ({ ...current, code: event.target.value }))} required fullWidth />
           <TextField label="Nome" value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} required fullWidth />
@@ -165,8 +174,8 @@ function SectorForm() {
         </Stack>
         <FormControl>
           <InputLabel id="sector-categories-label">Categorias</InputLabel>
-          <Select multiple labelId="sector-categories-label" label="Categorias" value={form.categories} onChange={(event) => setForm((current) => ({ ...current, categories: event.target.value as FacilityCategory[] }))} renderValue={(selected) => selected.join(', ')}>
-            {facilityCategories.map((category) => <MenuItem key={category} value={category}><Checkbox checked={form.categories.includes(category)} /><ListItemText primary={category} /></MenuItem>)}
+          <Select multiple labelId="sector-categories-label" label="Categorias" value={form.categories} onChange={(event) => setForm((current) => ({ ...current, categories: event.target.value as FacilityCategory[] }))} renderValue={(selected) => selected.map(facilityCategoryLabel).join(', ')}>
+            {facilityCategories.map((category) => <MenuItem key={category} value={category}><Checkbox checked={form.categories.includes(category)} /><ListItemText primary={facilityCategoryLabel(category)} /></MenuItem>)}
           </Select>
         </FormControl>
         <Button type="submit" variant="contained" disabled={loading || form.categories.length === 0} startIcon={loading ? <CircularProgress size={18} color="inherit" /> : <AddLocationAltOutlinedIcon />} sx={{ alignSelf: 'flex-start' }}>Criar setor</Button>
@@ -178,7 +187,7 @@ function SectorForm() {
 function SpaceImportForm() {
   const { recent, remember } = useOperationalWorkspace();
   const [sectorId, setSectorId] = useState('');
-  const [text, setText] = useState('A-01;COMUM;nao;\nA-02;PCD;sim;Proxima ao acesso');
+  const [text, setText] = useState('A-01;COMUM;não;\nA-02;PCD;sim;Próxima ao acesso');
   const [result, setResult] = useState<SpaceBatchResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -194,10 +203,10 @@ function SpaceImportForm() {
     } catch (cause) { setError(describeError(cause)); } finally { setLoading(false); }
   };
   return (
-    <OperationCard title="Importar vagas" description="Uma linha por vaga: codigo;categoria;sim|nao;posicao. O backend pode retornar 207 para resultado parcial." error={error} result={result ? <ResourceSnapshot data={{ sectorId: result.sectorId, requested: result.requested, created: result.created, existing: result.existing, conflicts: result.conflicts }} /> : undefined}>
+    <OperationCard title="Importar vagas" description="Informe uma vaga por linha: código;categoria;sim|não;posição. Vagas já existentes serão informadas no resultado." error={error} result={result ? <ResourceSnapshot data={{ sectorId: result.sectorId, requested: result.requested, created: result.created, existing: result.existing, conflicts: result.conflicts }} /> : undefined}>
       <Stack component="form" spacing={2} onSubmit={(event) => void submit(event)}>
-        <ResourceIdField label="ID do setor" value={sectorId} onChange={setSectorId} recent={recent('sector')} />
-        <TextField label="Vagas" value={text} onChange={(event) => setText(event.target.value)} multiline minRows={8} required helperText="Categorias: COMUM, VIP, PCD, STAFF, ONIBUS, VAN, CORTESIA" />
+        <ResourceIdField label="Setor" value={sectorId} onChange={setSectorId} recent={recent('sector')} />
+        <TextField label="Vagas" value={text} onChange={(event) => setText(event.target.value)} multiline minRows={8} required helperText="Categorias: Comum, VIP, PCD, Equipe, Ônibus, Van ou Cortesia" />
         <Button type="submit" variant="contained" disabled={loading} startIcon={loading ? <CircularProgress size={18} color="inherit" /> : <GridViewOutlinedIcon />} sx={{ alignSelf: 'flex-start' }}>Importar lote</Button>
       </Stack>
     </OperationCard>
@@ -209,7 +218,7 @@ export function FacilitiesPage() {
   const [tab, setTab] = useState(0);
   const content = [
     permissions.includes('organizations:admin') && { label: 'Locais', content: <VenueForm /> },
-    { label: 'Patios', content: <FacilityForm /> },
+    { label: 'Pátios', content: <FacilityForm /> },
     { label: 'Setores', content: <SectorForm /> },
     { label: 'Vagas', content: <SpaceImportForm /> },
   ].filter(Boolean) as { label: string; content: ReactNode }[];
@@ -218,8 +227,8 @@ export function FacilitiesPage() {
   }, [content.length, tab]);
   return (
     <Box>
-      <PageHeader title="Instalacoes" subtitle="Cadastre a estrutura fisica usada pelos eventos, do local ate as vagas." />
-      <Alert severity="info" sx={{ mb: 2 }}>As APIs atuais sao orientadas a criacao e ainda nao oferecem listagens. Recursos confirmados ficam disponiveis como referencias recentes deste tenant.</Alert>
+      <PageHeader title="Instalações" subtitle="Cadastre a estrutura física usada pelos eventos, do local até as vagas." />
+      <Alert severity="info" sx={{ mb: 2 }}>A consulta completa das instalações ainda não está disponível. Os cadastros confirmados nesta sessão ficam acessíveis como referências recentes da organização.</Alert>
       <Tabs value={tab} onChange={(_, value) => setTab(value)} variant="scrollable" sx={{ mb: 2 }}>
         {content.map((item) => <Tab key={item.label} label={item.label} />)}
       </Tabs>

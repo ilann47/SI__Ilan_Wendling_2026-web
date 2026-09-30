@@ -12,6 +12,9 @@ vi.mock('../workspace/OperationalWorkspaceContext', () => ({ useOperationalWorks
 vi.mock('../components/SnackbarProvider', () => ({
   useSnackbar: () => ({ notify: vi.fn() }),
 }));
+vi.mock('../components/form/ReferenceSelect', () => ({
+  ReferenceSelect: ({ label }: { label: string }) => <label>{label}<input /></label>,
+}));
 
 afterEach(() => vi.restoreAllMocks());
 
@@ -25,7 +28,8 @@ describe('AdministrationPage', () => {
 
     render(<AdministrationPage />);
 
-    expect(screen.getByRole('button', { name: 'Criar vinculo' })).toBeInTheDocument();
+    expect(screen.getByText(/Selecione o usuário pelo cadastro global/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Criar vínculo' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Consultar' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Alterar estado' })).not.toBeInTheDocument();
   });
@@ -40,7 +44,7 @@ describe('AdministrationPage', () => {
     render(<AdministrationPage />);
 
     expect(screen.getByRole('button', { name: 'Conceder papel' })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Revogar atribuicao' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Revogar atribuição' })).not.toBeInTheDocument();
   });
 
   it('atualiza a organizacao usando a versao carregada', async () => {
@@ -69,10 +73,10 @@ describe('AdministrationPage', () => {
 
     render(<QueryClientProvider client={queryClient}><AdministrationPage /></QueryClientProvider>);
     const user = userEvent.setup();
-    const legalName = await screen.findByLabelText(/Razao social/);
+    const legalName = await screen.findByLabelText(/Razão social/);
     await user.clear(legalName);
     await user.type(legalName, 'Kaneko Eventos');
-    await user.click(screen.getByRole('button', { name: 'Salvar alteracoes' }));
+    await user.click(screen.getByRole('button', { name: 'Salvar alterações' }));
 
     await waitFor(() => expect(api.patch).toHaveBeenCalledOnce());
     expect(vi.mocked(api.patch).mock.calls[0][2]).toEqual({ headers: { 'If-Match': '"4"' } });

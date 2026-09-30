@@ -72,6 +72,7 @@ export const cidadesConfig: ResourceConfig = {
   basePath: '/api/cidades',
   singular: 'Cidade',
   plural: 'Cidades',
+  grammaticalGender: 'feminine',
   subtitle: 'Municípios por estado.',
   defaultSort: 'nome,asc',
   columns: [

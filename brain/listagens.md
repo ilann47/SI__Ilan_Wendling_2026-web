@@ -51,6 +51,13 @@ quando a busca ou o filtro não encontra registros.
 
 `src/components/listing/listing.test.tsx` cobre estados vazios, chips e detalhe.
 As páginas CRUD existentes continuam passando pela suíte Vitest.
+`ListingCards.test.tsx` verifica campos com Chip usando estrutura HTML válida,
+com e sem abertura de detalhe pelo card.
+Os testes compartilhados de dialog cobrem fechamento acessível, bloqueio durante
+processamento e largura; testes das páginas mantêm compras, estoque, financeiro,
+vendas e serviços sobre o mesmo shell modal.
+`PurchaseOrdersPage.test.tsx` impede a volta da navegação duplicada à listagem e
+confirma o andamento contextual com recebimento, nota e conta vinculados.
 
 ## Decisões Técnicas
 
@@ -64,6 +71,17 @@ As páginas CRUD existentes continuam passando pela suíte Vitest.
   ficam no menu secundário. O detalhe mantém a ação e o mobile usa `ListingCards`.
   Todas as mutações continuam confirmadas e usam os contratos/versões existentes.
 - Nota de Entrada usa listagem dedicada + rota de detalhe (não só drawer CRUD).
+- `ResourceFormDialog.submitLabel` permite nomear o comando operacional; o padrão continua `Salvar` para manter compatibilidade. Recebimentos usam `Confirmar recebimento`.
+- Formulários, confirmações, filtros mobile, seletores e detalhes mobile usam
+  `AppDialog`; drawers desktop continuam laterais por serem superfícies de consulta.
+- Cada item de um seletor de referência oferece “Editar” quando o cadastro
+  possui formulário e o usuário tem permissão de atualização. A edição abre
+  empilhada, retorna à lista e não descarta o formulário principal.
+- O valor dos campos em `ListingCards` usa `Typography component="div"` para
+  aceitar chips de situação sem inserir elementos de bloco dentro de parágrafos.
+- A listagem de compras mantém somente ação primária, busca, filtros e registros.
+  O fluxo genérico e os atalhos duplicados foram removidos; o progresso aparece
+  apenas no detalhe da compra e é calculado com os documentos reais vinculados.
 
 ## Módulos relacionados
 
@@ -77,9 +95,15 @@ As páginas CRUD existentes continuam passando pela suíte Vitest.
 
 | Data | Ação |
 |---|---|
+| 2026-09-29 | Remove a trilha decorativa e os atalhos duplicados da listagem de compras; mantém andamento contextual apenas no detalhe. |
+| 2026-09-29 | Inclui ação de edição por item nos seletores de referência, respeitando RBAC e concorrência otimista. |
+| 2026-09-12 | Permite título operacional no botão de submissão do formulário, preservando Salvar como padrão e cobrindo ambas as variantes nos testes. |
+| 2026-09-12 | Corrige estrutura HTML dos campos com chips no mobile e cobre as variantes do card com teste de regressão de nesting. |
 | 2026-09-04 | Cria o shell de listagem/detalhe e alinha o tema ao Hub YES7. |
 | 2026-09-04 | Reforça login split-screen, sidebar com marca e item ativo em pill suave. |
 | 2026-09-04 | Alinha tokens (#6B46FE, #F4F5FB), hexágono e login ao código-fonte do Hub YES7. |
 | 2026-09-11 | Listagem/detalhe dedicados de Nota de Entrada; backlog de vínculos ausentes. |
 | 2026-09-11 | Ordens de compra passam a usar menu secundário e `ListingCards` no mobile. |
 | 2026-09-12 | Adiciona detalhes por URL tenant-aware, ações contextuais de OS e RBAC dos comandos financeiros; mantém compatibilidade das listagens. |
+| 2026-09-28 | Padroniza rótulos de estados, campos e detalhes nas listagens verificadas no navegador, ocultando IDs técnicos quando existe informação operacional. |
+| 2026-09-29 | Unifica os modais de listagens e fluxos operacionais em AppDialog, com tamanhos previsíveis, scroll interno e ações persistentes. |

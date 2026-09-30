@@ -4,7 +4,6 @@ import {
   Badge,
   Box,
   Button,
-  Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
@@ -19,6 +18,7 @@ import { useState, type ReactNode } from 'react';
 import { useColorMode } from '../../context/ColorModeContext';
 import { getThemeTokens } from '../../theme/hubTokens';
 import type { FilterConfig } from '../crud/resourceConfig';
+import { AppDialog } from '../common/AppDialog';
 
 interface Props {
   searchValue: string;
@@ -49,14 +49,15 @@ export function ListingToolbar({
   const panel = (
     <>
       {isMobile ? (
-        <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="sm" aria-labelledby="filtros-titulo">
-          <DialogTitle id="filtros-titulo">Filtros</DialogTitle>
-          <DialogContent>{filterForm}</DialogContent>
-          <DialogActions>
+        <AppDialog open={open} onClose={() => setOpen(false)} title="Filtros" maxWidth="sm" fullScreenOnMobile
+          actions={(
+            <>
             {onClear && <Button color="inherit" onClick={onClear}>Limpar filtros</Button>}
             <Button variant="contained" onClick={() => setOpen(false)}>Aplicar</Button>
-          </DialogActions>
-        </Dialog>
+            </>
+          )}>
+          {filterForm}
+        </AppDialog>
       ) : (
         <Drawer
           anchor="right"

@@ -3,7 +3,7 @@ import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { api } from '../api/client';
-import { RelatoriosPage } from './RelatoriosPage';
+import { RelatoriosPage, tituloOrigemLabel } from './RelatoriosPage';
 
 vi.mock('../auth/AuthContext', () => ({ useAuth: () => ({ activeOrganization: { organizationId: 2 }, permissions: ['stock:read'] }) }));
 afterEach(() => vi.restoreAllMocks());
@@ -23,5 +23,15 @@ describe('pendência de estoque', () => {
     setup();
     expect(await screen.findByRole('button', { name: /Tentar novamente/ })).toBeInTheDocument();
     expect(screen.queryByText('Estoque saudável.')).not.toBeInTheDocument();
+  });
+});
+
+describe('textos dos relatórios', () => {
+  it.each([
+    ['DESPESA_AVULSA', 'Despesa avulsa'],
+    ['CONTA_PAGAR', 'Conta a pagar'],
+    ['CONTA_RECEBER', 'Conta a receber'],
+  ])('traduz a origem %s', (origem, label) => {
+    expect(tituloOrigemLabel(origem)).toBe(label);
   });
 });

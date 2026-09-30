@@ -1,11 +1,7 @@
 import {
   Button,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogContentText,
-  DialogTitle,
 } from '@mui/material';
+import { AppDialog } from './AppDialog';
 
 interface Props {
   open: boolean;
@@ -29,19 +25,26 @@ export function ConfirmDialog({
   onClose,
 }: Props) {
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth aria-labelledby="confirm-dialog-title">
-      <DialogTitle id="confirm-dialog-title">{title}</DialogTitle>
-      <DialogContent>
-        <DialogContentText>{message}</DialogContentText>
-      </DialogContent>
-      <DialogActions sx={{ px: 3, py: 2 }}>
-        <Button onClick={onClose} color="inherit">
+    <AppDialog
+      open={open}
+      onClose={onClose}
+      title={title}
+      maxWidth="xs"
+      role="alertdialog"
+      busy={loading}
+      contentDividers={false}
+      actions={(
+        <>
+        <Button onClick={onClose} color="inherit" disabled={loading} autoFocus>
           Cancelar
         </Button>
         <Button onClick={onConfirm} variant="contained" color={confirmColor} disabled={loading}>
           {confirmLabel}
         </Button>
-      </DialogActions>
-    </Dialog>
+        </>
+      )}
+    >
+      {message}
+    </AppDialog>
   );
 }

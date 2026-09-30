@@ -15,9 +15,9 @@ export function PermissionRoute({ anyOf, children }: PermissionRouteProps) {
   return (
     <Box sx={{ maxWidth: 640, mx: 'auto', py: 6 }}>
       <Alert severity="warning" icon={<LockOutlinedIcon />}>
-        <Typography variant="subtitle1">Acesso nao autorizado</Typography>
+        <Typography variant="subtitle1">Acesso não autorizado</Typography>
         <Typography variant="body2">
-          Seu vinculo atual nao possui permissao para esta area.
+          Seu vínculo atual não possui permissão para esta área.
         </Typography>
       </Alert>
     </Box>

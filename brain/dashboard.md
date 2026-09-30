@@ -36,11 +36,13 @@ permissoes -> relatorios/listagens existentes
 - `GET /api/v1/purchase-orders`
 - `GET /api/v1/administrative-sales`
 - `GET /api/v1/service-orders`
+- `GET /api/v1/operational-pendencies?limit=5`
 
 ## Estrutura de Dados (DTOs, Entidades)
 
 O dashboard usa apenas totais presentes nas respostas e decisões dos últimos 20
 itens. Não estima ocupação, receita ou vendas sem contrato correspondente.
+O painel de pendências do Hub agora utiliza projeção específica com totais completos por categoria, independente das páginas do resumo. Apresenta até 5 itens por categoria e informa explicitamente quando existem outros; o total não é fabricado pela contagem da página.
 `dashboardContext` define períodos inclusivos e mapeia `CONTA_PAGAR`,
 `CONTA_RECEBER` e `DESPESA_AVULSA` aos detalhes corretos. Origem desconhecida
 não recebe um destino presumido.
@@ -59,6 +61,8 @@ consulta; erro não é tratado como ausência de pendências. A tentativa de nov
 leitura pode ser feita no resumo, usando o mesmo cache.
 
 ## Testes (curl ou equivalente)
+
+Entrega integrada de 2026-09-12: HubHomePage.test.tsx tem 7 testes verdes (desktop/mobile, contagem completa limitada, links exatos, isolamento de permissões, erro honesto e período aplicado somente ao resumo). Gates finais do recorte financeiro/home/estoque: 19 testes/6 arquivos, typecheck, lint e build verdes. Esta rodada foi automatizada; a validação visual histórica abaixo não substitui smoke do backend atualizado.
 
 Vitest cobre decisões consultadas, ausência de navegação duplicada, perfil sem
 permissão (sem consultas indevidas), listas vazias e redirects de URLs antigas.
@@ -92,6 +96,7 @@ preexistentes de XHR no jsdom e chunk MUI de 603,25 kB no build.
 - Consultas paginadas incompletas são identificadas também quando não há
   pendências na amostra. Contadores globais dependem do backend registrado no backlog.
 - Consultas seguem permissões efetivas e cache por organização.
+- Pendências incluem compras aguardando recebimento, vendas confirmadas sem nota, OS concluídas sem nota e contas vencidas de todo o histórico. Período financeiro filtra somente os indicadores do resumo. Cada item abre o registro exato, e grupos sem permissão são removidos também na apresentação.
 - Indicadores são informativos; a navegação principal fica no menu superior.
   Os cartões de módulo da home abrem esse mesmo menu, não páginas intermediárias.
 - Hold continua sendo a unica garantia de inventario.
@@ -139,3 +144,4 @@ preexistentes de XHR no jsdom e chunk MUI de 603,25 kB no build.
 | 2026-09-11 | Unifica a home no resumo do dia e elimina launcher, atalhos repetidos e páginas intermediárias; mantém leituras reais e permissões. |
 | 2026-09-11 | Recupera o Hub inicial com módulos e pendências e coloca o resumo abaixo; cartões abrem a navegação existente e consultas são deduplicadas. |
 | 2026-09-12 | Compacta a home, separa pagar/receber, explicita períodos e cobertura, e conecta pendências aos detalhes reais sem novos endpoints. |
+| 2026-09-12 | Integra operational-pendencies com totais completos e links exatos de compras/vendas/OS/financeiro; preserva Hub e resumo e não esconde vencidas anteriores ao período. |

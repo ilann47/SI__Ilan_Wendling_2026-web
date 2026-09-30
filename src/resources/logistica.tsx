@@ -7,6 +7,7 @@ export const transportadorasConfig: ResourceConfig = {
   basePath: '/api/transportadoras',
   singular: 'Transportadora',
   plural: 'Transportadoras',
+  grammaticalGender: 'feminine',
   tenantAware: true,
   permissions: {
     read: ['logistics:read'],

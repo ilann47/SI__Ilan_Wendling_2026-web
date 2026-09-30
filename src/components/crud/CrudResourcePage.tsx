@@ -13,7 +13,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tansta
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useLinkedDetail } from '../../hooks/useLinkedDetail';
-import { describeError } from '../../api/client';
+import { describeError, getHttpStatus } from '../../api/client';
 import {
   createResourceApi,
   isResourcePreconditionConflict,
@@ -34,6 +34,7 @@ import { ListingToolbar } from '../listing/ListingToolbar';
 import { countAppliedFilters, formatDetailValue, primarySearchFilter } from '../listing/listingUtils';
 import { PrimaryButton } from '../listing/PrimaryButton';
 import { ResourceDetailBody } from '../listing/ResourceDetailBody';
+import { DocumentOriginLinks } from '../listing/DocumentOriginLinks';
 import { SecondaryActionsMenu, type SecondaryAction } from '../listing/SecondaryActionsMenu';
 import { useSnackbar } from '../SnackbarProvider';
 import { ActionRunner } from './ActionRunner';
@@ -43,6 +44,8 @@ import {
   resourceQueryKey,
   type FilterConfig,
   type ResourceConfig,
+  newResourceLabel,
+  resourceNotFoundLabel,
   type RowAction,
 } from './resourceConfig';
 
@@ -71,6 +74,22 @@ function asRow(value: unknown): ResourceRow | null {
   const id = Number((value as { id: unknown }).id);
   if (!Number.isFinite(id)) return null;
   return { ...(value as Record<string, unknown>), id };
+}
+
+export async function loadResourcePageById(
+  get: (id: number) => Promise<unknown>,
+  rawId: string,
+  pageSize: number,
+): Promise<Page<ResourceRow>> {
+  const id = Number(rawId);
+  if (!Number.isInteger(id) || id <= 0) return pageVazia(pageSize);
+  try {
+    const row = asRow(await get(id));
+    return row ? pageUnica(row, pageSize) : pageVazia(pageSize);
+  } catch (error) {
+    if (getHttpStatus(error) === 404) return pageVazia(pageSize);
+    throw error;
+  }
 }
 
 export function CrudResourcePage({ config }: { config: ResourceConfig }) {
@@ -170,14 +189,7 @@ export function CrudResourcePage({ config }: { config: ResourceConfig }) {
     ),
     queryFn: async (): Promise<Page<ResourceRow>> => {
       if (buscaId !== null) {
-        const numId = Number(buscaId);
-        if (!Number.isInteger(numId) || numId <= 0) return pageVazia(pagination.pageSize);
-        try {
-          const row = asRow(await resource.get(numId));
-          return row ? pageUnica(row, pagination.pageSize) : pageVazia(pagination.pageSize);
-        } catch {
-          return pageVazia(pagination.pageSize);
-        }
+        return loadResourcePageById(resource.get, buscaId, pagination.pageSize);
       }
       const page = await resource.list(params);
       return { ...page, content: page.content.map((row) => asRow(row)).filter((row): row is ResourceRow => !!row) };
@@ -429,7 +441,7 @@ export function CrudResourcePage({ config }: { config: ResourceConfig }) {
         count={listQuery.data?.totalElements}
         action={canCreate ? (
           <PrimaryButton startIcon={<AddIcon />} onClick={openCreate}>
-            Novo {config.singular.toLowerCase()}
+            {newResourceLabel(config)}
           </PrimaryButton>
         ) : undefined}
       />
@@ -465,12 +477,12 @@ export function CrudResourcePage({ config }: { config: ResourceConfig }) {
       {linked.requested && linked.isError && <ErrorState message={describeError(linked.error)} onRetry={() => void linked.refetch()} />}
       {!listQuery.isLoading && !listQuery.isError && rows.length === 0 && (
         <EmptyState
-          title={`Nenhum ${config.singular.toLowerCase()} encontrado`}
+          title={resourceNotFoundLabel(config)}
           description={appliedCount > 0 || debouncedSearch
             ? 'Nenhum registro corresponde aos filtros atuais.'
             : `Ainda não há ${config.plural.toLowerCase()} neste contexto.`}
           action={canCreate && !debouncedSearch && appliedCount === 0
-            ? <EmptyStateAction label={`Novo ${config.singular.toLowerCase()}`} onClick={openCreate} />
+            ? <EmptyStateAction label={newResourceLabel(config)} onClick={openCreate} />
             : undefined}
         />
       )}
@@ -556,7 +568,8 @@ export function CrudResourcePage({ config }: { config: ResourceConfig }) {
       >
         {detailRow && (
           <ResourceDetailBody
-            row={detailRow}
+            row={Object.fromEntries(Object.entries(detailRow).filter(([field]) => !config.detailLinks?.some((link) => link.field === field)))}
+            extra={<DocumentOriginLinks row={detailRow} links={config.detailLinks ?? []} permissions={permissions} />}
             unavailable={config.unavailableRelations ?? []}
           />
         )}
@@ -564,7 +577,7 @@ export function CrudResourcePage({ config }: { config: ResourceConfig }) {
 
       <ResourceFormDialog
         open={formOpen}
-        title={editing ? `Editar ${config.singular}` : `Novo ${config.singular}`}
+        title={editing ? `Editar ${config.singular}` : newResourceLabel(config)}
         fields={config.fields}
         initialValues={initialValues}
         submitting={saveMutation.isPending}

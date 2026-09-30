@@ -12,6 +12,8 @@ encontram endpoint estável. Não inventar mocks para esconder estas lacunas.
 | Movimentos de estoque da confirmação | Resolvido pelo array `movimentosEstoque` do detalhe integrado | Integrado no detalhe dedicado |
 | Histórico de ações (criar/confirmar/cancelar) | Sem auditoria por recurso na API atual | Eventos/auditoria por `notaEntradaId` |
 | Lista global de recebimentos | Só `GET /api/v1/purchase-orders/{id}/receipts` | Opcional: listagem paginada de recebimentos; UI atual compõe via OC |
+| Notas e contas no contexto da compra | Resolvido por `GET /api/v1/purchase-orders/{id}/documents` | Integrado no detalhe da OC; seções respeitam RBAC e links abrem registros exatos |
+| Reenvio de criação após timeout | Resolvido por `Idempotency-Key` opcional em `POST /api/notas-entrada` | Wizard mantém a chave; confirmação recupera situação via GET sem novo POST automático |
 
 ## Navegação / Estoque
 
@@ -22,10 +24,18 @@ Nenhuma mudança de contrato exigida para a navegação.
 
 | Necessidade UX | Evidência/limite atual | Tratamento nesta entrega |
 |---|---|---|
-| Total completo de compras aguardando recebimento e serviços abertos | `OrdemCompraController.listar` e `OrdemServicoController.listar` aceitam somente `Pageable`; não há filtro de situação nem agregação de pendências | A home identifica a amostra e não apresenta zero como total global. Links individuais usam o GET por ID existente. Backend precisa fornecer contadores e listagens filtradas antes de prometer cobertura integral |
-| Lista financeira filtrada por situação, fornecedor ou vencimento | `ContaPagarController.listar` e `ContaReceberController.listar` recebem somente `Pageable`; filtros presentes no frontend não são aplicados por esses métodos | Nenhum novo atalho depende desses filtros. Indicadores abrem os títulos reais do relatório por período; cada título abre seu GET por ID |
-| Total de vencidas de todo o histórico | `RelatorioService.contasAVencer` consulta títulos abertos com vencimento entre início/fim e calcula vencidas apenas nesse conjunto | Período explícito (hoje, sete datas incluindo hoje, mês corrente). Não buscar desde uma data histórica arbitrária; agregar todas as vencidas depende de contrato backend |
-| Ligar OS concluída à nota e conta correspondentes | `ServiceOrder` não traz os IDs desses documentos | Ações Iniciar/Concluir seguem estado e RBAC; não é inventado atalho de faturamento nem vínculo de documento |
+| Total completo das pendências operacionais | Resolvido por `GET /api/v1/operational-pendencies`: compras a receber, vendas confirmadas sem nota, OS concluídas sem nota, títulos vencidos | Hub usa contagem completa e informa o limite de itens por grupo; indicadores de ordens abertas no resumo continuam distinguindo amostra |
+| Lista financeira filtrada por situação, pessoa, vencimento ou origem | Resolvido por filtros de servidor em contas-pagar/receber e `/resumo` com totais do conjunto filtrado | Páginas dedicadas aplicam filtros URL, paginação, ordenação e acesso ao título/histórico; baixa tem chave idempotente e lock no backend |
+| Total de vencidas de todo o histórico | Resolvido na consulta de pendências, sem data inicial arbitrária | Hub não usa mais o recorte de contasAVencer para detectar vencidas antigas. Seletor de período permanece somente nos indicadores financeiros |
+| Ligar OS concluída à nota e conta correspondentes | Resolvido por `GET /api/v1/service-orders/{id}/documents` e `POST /api/v1/service-orders/{id}/service-note` | Detalhe prepara a nota a partir da OS concluída, abre a nota existente e os títulos; preparar não cobra, emissão interna gera recebíveis uma única vez |
 
-Não foram alterados backend, migrations ou contratos. O relatório de estoque
-mínimo já retorna a relação completa e é aberto diretamente em sua aba existente.
+A rodada inicial era somente frontend. Na implementação integrada de 2026-09-12,
+os contratos financeiros e de pendências acima foram entregues no backend;
+o relatório de estoque mínimo continua abrindo a relação completa em sua aba existente.
+
+## Importação XML e emissão externa — 2026-09-12
+
+- Importação, conciliação, conferência e confirmação estão integradas em `/app/notas-entrada/importar`, com persistência em `/api/notas-entrada/importacoes`, controle de versão e recuperação por consulta após timeout. Não dependem de referência salva apenas no navegador.
+- O recorte aceita NF-e modelo 55, versão 4.00, saída normal do fornecedor. Devoluções, complementos, ajustes e valores que o domínio atual não consegue representar não são confirmados silenciosamente.
+- Validação estrutural do XML não equivale a validação completa de XSD, assinatura ou autorização fiscal. A interface não deve apresentar a importação ou a emissão interna como autorização externa.
+- Emissão externa permanece bloqueada: não foi encontrado adaptador/contrato configurado de homologação para NF-e/NFS-e. Antes de expor envio/autorização reais, são necessários provedor com cobertura confirmada para cada documento, acesso de homologação, certificado quando exigido e configuração fiscal por empresa/município.

@@ -113,6 +113,9 @@ describe('describeError', () => {
   it('mapeia demais status amigaveis', () => {
     expect(describeError(axiosError({ status: 403 }))).toBe('Você não possui permissão para realizar esta operação.');
     expect(describeError(axiosError({ status: 404 }))).toBe('O recurso solicitado não foi encontrado.');
+    expect(describeError(axiosError({ status: 405 }))).toBe('Esta operação não está disponível neste endereço.');
+    expect(describeError(axiosError({ status: 415 }))).toBe('O formato enviado não é aceito pelo sistema.');
+    expect(describeError(axiosError({ status: 428 }))).toBe('Recarregue o registro antes de tentar alterá-lo.');
     expect(describeError(axiosError({ status: 409 }))).toBe('Operação não permitida por conflito de dados.');
     expect(describeError(axiosError({ status: 412 }))).toBe('Os dados foram alterados. Recarregue e tente novamente.');
     expect(describeError(axiosError({ status: 422 }))).toBe('Não foi possível processar os dados informados.');

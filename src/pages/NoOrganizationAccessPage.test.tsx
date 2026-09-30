@@ -27,9 +27,7 @@ describe('NoOrganizationAccessPage', () => {
 
     expect(screen.getByRole('heading', { name: 'Bem-vindo ao Kaneko' })).toBeInTheDocument();
     expect(screen.getByText(/ainda não possui acesso a uma organização/i)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Criar organização' })).toBeDisabled();
-    expect(screen.getByText('Criação de organização estará disponível em breve.')).toBeInTheDocument();
-    expect(screen.queryByText('Provisionamento admin')).not.toBeInTheDocument();
+    expect(screen.getByText('Provisionamento admin')).toBeInTheDocument();
     expect(screen.queryByText('Operação')).not.toBeInTheDocument();
     expect(screen.queryByText('Administração')).not.toBeInTheDocument();
 

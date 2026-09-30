@@ -17,8 +17,8 @@ import { PageHeader } from '../components/common/PageHeader';
 import { blockerStatuses, productBlockers, type BlockerStatus } from '../features/blockers/blockers';
 
 const statusLabels: Record<BlockerStatus, string> = {
-  BLOQUEADA_EXTERNAMENTE: 'Dependencia externa',
-  BLOQUEADA_POR_DECISAO_DE_NEGOCIO: 'Decisao de negocio',
+  BLOQUEADA_EXTERNAMENTE: 'Dependência externa',
+  BLOQUEADA_POR_DECISAO_DE_NEGOCIO: 'Decisão de negócio',
   BLOQUEADA_POR_INFRAESTRUTURA: 'Infraestrutura',
 };
 
@@ -37,17 +37,17 @@ export function BlockersPage() {
 
   return (
     <Box>
-      <PageHeader title="Bloqueios e dependencias" subtitle="Capacidades interrompidas por decisoes, infraestrutura ou provedores ainda indisponiveis." />
+      <PageHeader title="Bloqueios e dependências" subtitle="Capacidades interrompidas por decisões, infraestrutura ou provedores ainda indisponíveis." />
       <Alert severity="info" sx={{ mb: 2 }}>
-        Catalogo informativo sincronizado com <code>docs/especificacao/bloqueios-externos.md</code>.
-        Nenhuma operacao financeira, fiscal, offline ou de equipamento e simulada nesta tela.
+        Catálogo informativo sincronizado com <code>docs/especificacao/bloqueios-externos.md</code>.
+        Nenhuma operação financeira, fiscal, offline ou de equipamento é simulada nesta tela.
       </Alert>
       <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} sx={{ mb: 2 }}>
         <TextField
           label="Buscar bloqueio"
           value={search}
           onChange={(event) => setSearch(event.target.value)}
-          placeholder="Historia, dependencia ou modulo"
+          placeholder="História, dependência ou módulo"
           fullWidth
           InputProps={{ startAdornment: <InputAdornment position="start"><SearchOutlinedIcon /></InputAdornment> }}
         />
@@ -78,7 +78,7 @@ export function BlockersPage() {
                   <BlockedFeatureNotice blocker={blocker} />
                 </Box>
                 <Box sx={{ flex: 1, minWidth: 0 }}>
-                  <Typography variant="subtitle2" gutterBottom>Parte concluida</Typography>
+                  <Typography variant="subtitle2" gutterBottom>Parte concluída</Typography>
                   <Typography variant="body2" color="text.secondary" paragraph>{blocker.completed}</Typography>
                   <Typography variant="subtitle2" gutterBottom>Parte pendente</Typography>
                   <Typography variant="body2" color="text.secondary">{blocker.pending}</Typography>

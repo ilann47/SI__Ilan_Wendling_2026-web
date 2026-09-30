@@ -37,6 +37,7 @@ describe('home com resumo integrado', () => {
     state.permissions = ['stock:read', 'purchases:read'];
     vi.spyOn(api, 'get').mockImplementation(async (url) => ({ data: String(url).includes('estoque-minimo')
       ? { total: 0, itens: [] }
+      : String(url).includes('operational-pendencies') ? { referencia: '2026-09-12', total: 0, limitePorGrupo: 5, grupos: [] }
       : { content: [], totalElements: 0 } }));
   });
   afterEach(() => vi.restoreAllMocks());
@@ -49,7 +50,8 @@ describe('home com resumo integrado', () => {
     expect(await screen.findByText('Nenhuma pendência nas consultas disponíveis')).toBeInTheDocument();
     expect(screen.getAllByRole('heading', { name: 'Pendências' })).toHaveLength(1);
     expect(screen.queryByText('Pendências e atividades recentes')).not.toBeInTheDocument();
-    expect(api.get).toHaveBeenCalledTimes(2);
+    expect(screen.getByText('Ordem → Recebimento → Nota → Conta')).toBeInTheDocument();
+    expect(api.get).toHaveBeenCalledTimes(3);
     expect(screen.queryByRole('button', { name: 'Abrir módulo Financeiro' })).not.toBeInTheDocument();
   });
 
@@ -73,23 +75,42 @@ describe('home com resumo integrado', () => {
     expect(screen.queryByText('Nenhuma pendência nas consultas disponíveis')).not.toBeInTheDocument();
   });
 
-  it('abre a compra exata e identifica a consulta parcial mesmo sem pendências visíveis', async () => {
+  it('abre a compra exata e identifica o total completo das pendências', async () => {
     state.permissions = ['purchases:read'];
-    vi.mocked(api.get).mockResolvedValue({ data: { content: [{ id: 42, numero: 'OC-42', fornecedorNome: 'Fornecedor A', status: 'APROVADA' }], totalElements: 100 } });
+    vi.mocked(api.get).mockImplementation(async (url) => ({ data: String(url).includes('operational-pendencies')
+      ? { referencia: '2026-09-12', total: 100, limitePorGrupo: 5, grupos: [{ tipo: 'COMPRA_RECEBER', total: 100, itens: [
+        { id: 42, titulo: 'Ordem OC-42 aguarda recebimento', contraparte: 'Fornecedor A', caminho: '/app/ordens-compra?detail=42', data: '2026-09-10', valor: 100 },
+      ] }] } : { content: [], totalElements: 0 } }));
     setup();
     expect(await screen.findByRole('link', { name: /Ordem OC-42 aguarda recebimento/ })).toHaveAttribute('href', '/app/ordens-compra?detail=42');
-    expect(screen.getByText(/Compras: 1 de 100 ordens consultadas/)).toBeInTheDocument();
+    expect(screen.getByText(/Mostrando 1 de 100 pendências operacionais/)).toBeInTheDocument();
   });
 
-  it('mantém a escolha de período entre pendências e indicadores, sem duplicar consultas', async () => {
+  it('período muda somente indicadores e não esconde contas vencidas antigas', async () => {
     state.permissions = ['finance:read'];
-    vi.mocked(api.get).mockResolvedValue({ data: { totalAPagar: 0, totalAReceber: 0, vencidoAPagar: 0, vencidoAReceber: 0, aPagar: [], aReceber: [] } });
+    vi.mocked(api.get).mockImplementation(async (url) => ({ data: String(url).includes('operational-pendencies')
+      ? { referencia: '2026-09-12', total: 0, limitePorGrupo: 5, grupos: [] }
+      : { totalAPagar: 0, totalAReceber: 0, vencidoAPagar: 0, vencidoAReceber: 0, aPagar: [], aReceber: [] } }));
     const user = setup();
     await screen.findByText('Nenhuma pendência nas consultas disponíveis');
     await user.click(screen.getByRole('combobox', { name: 'Período financeiro' }));
     await user.click(screen.getByRole('option', { name: 'Hoje' }));
-    await waitFor(() => expect(api.get).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(api.get).toHaveBeenCalledTimes(3));
     const [, config] = vi.mocked(api.get).mock.calls.at(-1)!;
     expect(config?.params.inicio).toBe(config?.params.fim);
+    expect(screen.getByText(/Contas vencidas incluem todo o histórico/)).toBeInTheDocument();
+  });
+
+  it('vendas e serviços sem nota abrem documentos exatos e respeitam permissões', async () => {
+    state.permissions = ['sales:read'];
+    vi.mocked(api.get).mockImplementation(async (url) => ({ data: String(url).includes('operational-pendencies') ? {
+      referencia: '2026-09-12', total: 2, limitePorGrupo: 5, grupos: [
+        { tipo: 'VENDA_SEM_NOTA', total: 1, itens: [{ id: 7, titulo: 'Venda V-7 confirmada sem nota', contraparte: 'Maria', caminho: '/app/vendas-administrativas?detail=7' }] },
+        { tipo: 'SERVICO_SEM_NOTA', total: 1, itens: [{ id: 8, titulo: 'Ordem OS-8 concluída sem nota', contraparte: 'Cliente restrito', caminho: '/app/ordens-servico?detail=8' }] },
+      ],
+    } : { content: [], totalElements: 0 } }));
+    setup();
+    expect(await screen.findByRole('link', { name: /Venda V-7 confirmada sem nota/ })).toHaveAttribute('href', '/app/vendas-administrativas?detail=7');
+    expect(screen.queryByText('Cliente restrito')).not.toBeInTheDocument();
   });
 });

@@ -47,6 +47,27 @@ Somente o backend configurado por `VITE_API_URL` ou `/api` no mesmo host.
 O interceptor Axios preserva o token contextual e `describeError` converte
 Problem Details em mensagens operacionais.
 
+Rotas inexistentes, métodos indisponíveis, formatos não suportados e recursos
+desatualizados recebem mensagens próprias para 404, 405, 415 e 428, sem expor
+o texto técnico do Axios ao usuário final.
+
+O formulário compartilhado valida números no próprio campo. Valores monetários,
+quantidades e inteiros são não negativos por padrão; percentuais aceitam de 0 a
+100; limites específicos usam `min`/`max`. Campos inválidos mantêm a ação Salvar
+desabilitada e expoentes ou sinal positivo não são aceitos pelo input numérico.
+Todo diálogo compartilhado confirma o descarte quando há alteração não salva;
+formulário intacto continua fechando diretamente.
+
+Seletores de referência oferecem criação e edição contextual quando o perfil
+possui a permissão correspondente. A edição reutiliza o formulário oficial do
+recurso, preserva o documento principal e mantém `ETag`/`If-Match` nos cadastros
+versionados.
+
+Todos os modais passam por `AppDialog`: o backdrop bloqueia a aplicação inteira,
+as larguras `xs/sm/md/lg` voltam a representar a complexidade do fluxo, somente
+o conteúdo rola e título, fechamento e ações permanecem visíveis. Operações em
+andamento bloqueiam Escape/backdrop; confirmações críticas usam `alertdialog`.
+
 O cliente HTTP possui timeout de 15 segundos, preserva `Authorization` explícita
 na validação de JWT candidato e centraliza o formato estrito de `If-Match`. Chaves
 de consultas enterprise começam por `['tenant', organizationId]`.
@@ -72,6 +93,15 @@ navegador local cobriu a composição completa, cartão abrindo o menu existente
 drawer mobile, sem overflow; o tamanho original da prévia foi restaurado.
 Permanecem mensagens XHR `AggregateError` de testes preexistentes no jsdom
 (sem testes falhando) e o aviso de chunk MUI de 603 kB no build.
+
+Regressão completa de 2026-09-29: 358 testes em 66 arquivos passaram; typecheck,
+lint e build também foram aprovados. A rodada inclui autenticação/tenant, menus,
+formulários compartilhados, eventos/acesso, instalações, compras, estoque,
+fiscal, financeiro, vendas, serviços e CRUDs legados. O build mantém apenas o
+aviso conhecido de chunks MUI/DataGrid acima de 500 kB.
+
+`AppDialog.test.tsx` e `theme.test.ts` protegem rótulo acessível, botão fechar,
+bloqueio durante submissão, largura semântica e backdrop de viewport inteiro.
 
 Regressão focalizada de 2026-09-12: 15 testes em 3 arquivos passaram. Os testes
 de layout verificam menus de conta/contexto acima do cabeçalho, e os de navegação
@@ -125,6 +155,15 @@ jsdom e o aviso do chunk MUI de 603,25 kB, sem reprovação dos gates.
   `appBar + 1`, drawer na camada padrão `drawer` e menus de conta/contexto na
   camada padrão `modal`. Isso impede que a navegação encubra menus ou diálogos,
   sem aumentar arbitrariamente o z-index de cada sobreposição.
+- O tema declara `modal = 1600` como fonte única da camada de diálogos. Popovers
+  de calendário usam `modal + 1`, evitando que o seletor de data abra atrás do
+  formulário.
+- `AppDialog` é a única porta para modais MUI. Confirmações usam `xs`, formulários
+  simples `sm`, formulários gerais `md` e ordens com itens `lg`; telas pequenas
+  usam fullscreen apenas para tarefas que exigem espaço.
+- `QuickCreateProvider` mantém um registro adicional para cadastros contextuais
+  de módulos com tela própria. Isso permite criar referências ausentes sem gerar
+  rotas CRUD duplicadas e sem perder o formulário principal em andamento.
 - Nota de Entrada é página dedicada (lista/wizard/detalhe), fora do CRUD genérico.
 - Componentes ativos do shell: `AppHeader`, `HeaderAreaNavigation`,
   `ContextSelector`, `UserAccountMenu` e métricas de layout (`layoutMetrics`).
@@ -169,6 +208,9 @@ jsdom e o aviso do chunk MUI de 603,25 kB, sem reprovação dos gates.
 
 | Data | Ação |
 |---|---|
+| 2026-09-29 | Adiciona edição contextual aos itens dos seletores, com RBAC, formulário compartilhado, preservação do documento e suporte a ETag. |
+| 2026-09-29 | Estende o cadastro rápido a recursos especializados sem criar rotas CRUD duplicadas. |
+| 2026-09-29 | Amplia a Ordem de Compra com dados comerciais e logísticos sem misturar a identidade fiscal da Nota de Entrada. |
 | 2026-08-01 | Inicializa o brain do frontend e registra o contexto multiempresa. |
 | 2026-08-01 | Adiciona console operacional QR mobile-first para eventos. |
 | 2026-08-01 | Registra bloqueio operacional de credencial e dívida de bundle. |
@@ -211,3 +253,8 @@ jsdom e o aviso do chunk MUI de 603,25 kB, sem reprovação dos gates.
 | 2026-09-11 | Restaura a home do Hub com pendências e resumo do dia abaixo, conforme ajuste do usuário; cartões reutilizam o menu e as consultas são compartilhadas. |
 | 2026-09-12 | Corrige menu de conta encoberto pela navegação, alinhando as camadas do cabeçalho/menus ao tema MUI e adicionando regressão de sobreposição. |
 | 2026-09-12 | Torna pendências acionáveis, compacta a home e separa finanças por período; alinha detalhes de compras/serviços e permissões financeiras. |
+| 2026-09-28 | Centraliza a camada real dos modais no tema e mantém calendários acima dos formulários. |
+| 2026-09-28 | Adiciona validação numérica compartilhada, limites inline e bloqueio de submissão inválida nos formulários. |
+| 2026-09-28 | Protege o descarte em todos os formulários compartilhados, mantém erros reais na busca por ID e traduz 405/415/428 em mensagens operacionais. |
+| 2026-09-28 | Percorre 45 rotas, 22 formulários e fluxos especializados no navegador desktop/mobile; padroniza estados, detalhes e mensagens operacionais encontrados durante a execução. |
+| 2026-09-29 | Centraliza todos os modais em AppDialog, restaura larguras semânticas, backdrop integral, cabeçalho/ações fixos e acessibilidade de confirmações. |

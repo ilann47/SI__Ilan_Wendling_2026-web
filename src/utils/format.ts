@@ -1,8 +1,8 @@
 import dayjs from 'dayjs';
 
-export function formatCurrency(value?: number | null): string {
+export function formatCurrency(value?: number | null, currency = 'BRL'): string {
   if (value === null || value === undefined) return '—';
-  return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  return value.toLocaleString('pt-BR', { style: 'currency', currency });
 }
 
 export function formatNumber(value?: number | null, digits = 0): string {
@@ -40,7 +40,18 @@ export function minutesToHuman(min?: number | null): string {
 
 export function formatStatusLabel(status?: string | null): string {
   if (!status) return '—';
-  return status.replace(/_/g, ' ');
+  const knownLabels: Record<string, string> = {
+    EM_EXECUCAO: 'Em execução',
+    CONCLUIDA: 'Concluída',
+    FISICA: 'Física',
+    JURIDICA: 'Jurídica',
+    VIUVO: 'Viúvo',
+    SAIDA: 'Saída',
+    OPERACAO: 'Operação',
+  };
+  if (knownLabels[status]) return knownLabels[status];
+  const normalized = status.replace(/_/g, ' ').toLocaleLowerCase('pt-BR');
+  return normalized.charAt(0).toLocaleUpperCase('pt-BR') + normalized.slice(1);
 }
 
 /** Cor (palette MUI) para uma situacao/status conhecido. */
@@ -69,6 +80,7 @@ export function statusColor(
     case 'CANCELADA':
     case 'CANCELADO':
     case 'RECUSADA':
+    case 'REJEITADA':
     case 'VENCIDO':
     case 'INATIVO':
       return 'error';

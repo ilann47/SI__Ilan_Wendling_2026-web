@@ -11,6 +11,7 @@ export const contaPagarConfig: ResourceConfig = {
   basePath: '/api/contas-pagar',
   singular: 'Conta a Pagar',
   plural: 'Contas a Pagar',
+  grammaticalGender: 'feminine',
   tenantAware: true,
   permissions: {
     read: ['finance:read'],
@@ -134,6 +135,7 @@ export const contaReceberConfig: ResourceConfig = {
   basePath: '/api/contas-receber',
   singular: 'Conta a Receber',
   plural: 'Contas a Receber',
+  grammaticalGender: 'feminine',
   tenantAware: true,
   permissions: { read: ['finance:read'], create: ['finance:manage'], update: ['finance:manage'] },
   requiredAllPermissions: { create: ['customers:read'] },
@@ -236,6 +238,7 @@ export const contaPagarAvulsaConfig: ResourceConfig = {
   },
   singular: 'Despesa Avulsa',
   plural: 'Despesas avulsas',
+  grammaticalGender: 'feminine',
   subtitle: 'Despesas avulsas sem vínculo obrigatório com fornecedor.',
   defaultSort: 'dataVencimento,asc',
   canEdit: true,

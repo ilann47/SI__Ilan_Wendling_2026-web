@@ -38,6 +38,8 @@ export interface ResourceConfig {
   basePath: string;
   singular: string;
   plural: string;
+  /** Gênero gramatical usado nas mensagens e ações geradas pela tela genérica. */
+  grammaticalGender?: 'masculine' | 'feminine';
   subtitle?: string;
   columns: GridColDef[];
   fields: FieldConfig[];
@@ -61,8 +63,26 @@ export interface ResourceConfig {
   searchFilter?: string;
   /** Relacoes conhecidas que a API atual nao entrega neste detalhe. */
   unavailableRelations?: string[];
+  /** Navegação para documentos já vinculados pela resposta, respeitando o módulo de destino. */
+  detailLinks?: DocumentOriginLink[];
   /** Converte a linha (Response) em valores iniciais do formulario de edicao. */
   toFormValues?: (row: Record<string, unknown>) => Record<string, unknown>;
+}
+
+export function newResourceLabel(config: ResourceConfig): string {
+  return `${config.grammaticalGender === 'feminine' ? 'Nova' : 'Novo'} ${config.singular.toLowerCase()}`;
+}
+
+export function resourceNotFoundLabel(config: ResourceConfig): string {
+  const feminine = config.grammaticalGender === 'feminine';
+  return `${feminine ? 'Nenhuma' : 'Nenhum'} ${config.singular.toLowerCase()} ${feminine ? 'encontrada' : 'encontrado'}`;
+}
+
+export interface DocumentOriginLink {
+  field: string;
+  label: string;
+  path: string;
+  permissions: string[];
 }
 
 export function hasResourceActionPermission(

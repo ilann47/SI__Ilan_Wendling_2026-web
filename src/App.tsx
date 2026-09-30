@@ -41,8 +41,12 @@ const InboundNoteWizardPage = lazy(() => import('./pages/InboundNoteWizardPage')
   .then((module) => ({ default: module.InboundNoteWizardPage })));
 const InboundNoteDetailPage = lazy(() => import('./pages/InboundNoteDetailPage')
   .then((module) => ({ default: module.InboundNoteDetailPage })));
+const XmlInboundImportPage = lazy(() => import('./pages/XmlInboundImportPage')
+  .then((module) => ({ default: module.XmlInboundImportPage })));
 const ContasPagarPage = lazy(() => import('./pages/ContasPagarPage')
   .then((module) => ({ default: module.ContasPagarPage })));
+const ContasReceberPage = lazy(() => import('./pages/ContasReceberPage')
+  .then((module) => ({ default: module.ContasReceberPage })));
 const AdministrativeSalesPage = lazy(() => import('./pages/AdministrativeSalesPage')
   .then((module) => ({ default: module.AdministrativeSalesPage })));
 const ServiceOrdersPage = lazy(() => import('./pages/ServiceOrdersPage')
@@ -59,7 +63,7 @@ function LoadingPage() {
 }
 
 const crudConfigs = allConfigs.filter(
-  (config) => config.key !== 'notas-entrada' && config.key !== 'contas-pagar',
+  (config) => !['notas-entrada', 'contas-pagar', 'contas-receber'].includes(config.key),
 );
 
 export function App() {
@@ -128,8 +132,14 @@ export function App() {
           <Route path="notas-entrada/:id" element={
             <PermissionRoute anyOf={['fiscal:read']}><InboundNoteDetailPage /></PermissionRoute>
           } />
+          <Route path="notas-entrada/importar" element={
+            <PermissionRoute anyOf={['fiscal:read']}><XmlInboundImportPage /></PermissionRoute>
+          } />
           <Route path="contas-pagar" element={
             <PermissionRoute anyOf={['finance:read']}><ContasPagarPage /></PermissionRoute>
+          } />
+          <Route path="contas-receber" element={
+            <PermissionRoute anyOf={['finance:read']}><ContasReceberPage /></PermissionRoute>
           } />
           <Route path="vendas-administrativas" element={
             <PermissionRoute anyOf={['sales:read']}><AdministrativeSalesPage /></PermissionRoute>

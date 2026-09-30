@@ -1,5 +1,6 @@
 import { api, ifMatchHeaders } from './client';
 import type { Page, PageParams } from './resource';
+import type { StockMovement } from './stock';
 
 export type AdministrativeSaleStatus = 'RASCUNHO' | 'CONFIRMADA' | 'CANCELADA';
 export interface AdministrativeSaleItem {
@@ -19,6 +20,37 @@ export interface AdministrativeSaleRequest {
   localEstoqueId: number; dataEmissao?: string; moeda: string;
   valorDesconto: number; observacao?: string;
   itens: Array<{ produtoId: number; quantidade: number; valorUnitario: number; valorDesconto: number }>;
+}
+
+/** Campos usados no vínculo; a resposta fiscal conserva o contrato completo existente. */
+export interface SaleOutboundNote {
+  id: number; numero: string; serie?: string; modelo?: string;
+  situacao: 'PENDENTE' | 'CONFIRMADA' | 'CANCELADA'; valorTotal: number;
+  vendaAdministrativaId?: number;
+}
+export interface SaleReceivable {
+  id: number; numeroParcela: number; totalParcelas: number;
+  dataVencimento: string; valorOriginal: number; valorRecebido: number;
+  valorTotal: number; situacao: string;
+}
+export interface AdministrativeSaleDocuments {
+  nota: SaleOutboundNote | null;
+  contas: SaleReceivable[] | null;
+  movimentos: StockMovement[] | null;
+}
+export interface SaleOutboundNoteRequest {
+  numero: string; modelo?: string; serie?: string; dataEmissao?: string; dataSaida?: string;
+}
+
+export function buildSaleOutboundNotePayload(values: Record<string, unknown>): SaleOutboundNoteRequest {
+  const numero = typeof values.numero === 'string' ? values.numero.trim() : '';
+  if (!numero || numero.length > 20) throw new Error('Informe o número da nota com até 20 caracteres.');
+  const body: SaleOutboundNoteRequest = { numero };
+  for (const field of ['modelo', 'serie', 'dataEmissao', 'dataSaida'] as const) {
+    const value = typeof values[field] === 'string' ? values[field].trim() : '';
+    if (value) body[field] = value;
+  }
+  return body;
 }
 
 const positiveId = (value: unknown, label: string) => {
@@ -64,6 +96,13 @@ export function buildAdministrativeSalePayload(
 }
 
 export const administrativeSalesApi = {
+  get: (id: number) => api.get<AdministrativeSale>(`/api/v1/administrative-sales/${id}`)
+    .then((response) => response.data),
+  documents: (id: number) => api.get<AdministrativeSaleDocuments>(`/api/v1/administrative-sales/${id}/documents`)
+    .then((response) => response.data),
+  outboundNote: (id: number, body: SaleOutboundNoteRequest, key: string) => api.post<SaleOutboundNote>(
+    `/api/v1/administrative-sales/${id}/outbound-note`, body,
+    { headers: { 'Idempotency-Key': key } }).then((response) => response.data),
   list: (params: PageParams = {}) => api.get<Page<AdministrativeSale>>(
     '/api/v1/administrative-sales', { params }).then((response) => response.data),
   create: (body: AdministrativeSaleRequest, key: string) => api.post<AdministrativeSale>(

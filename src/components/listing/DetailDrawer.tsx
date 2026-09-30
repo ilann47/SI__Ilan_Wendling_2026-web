@@ -1,9 +1,6 @@
 import CloseOutlinedIcon from '@mui/icons-material/CloseOutlined';
 import {
   Box,
-  Dialog,
-  DialogContent,
-  DialogTitle,
   Drawer,
   IconButton,
   Stack,
@@ -12,6 +9,7 @@ import {
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import type { ReactNode } from 'react';
+import { AppDialog } from '../common/AppDialog';
 
 interface Props {
   open: boolean;
@@ -20,9 +18,18 @@ interface Props {
   onClose: () => void;
   actions?: ReactNode;
   children: ReactNode;
+  width?: 'default' | 'wide';
 }
 
-export function DetailDrawer({ open, title, subtitle, onClose, actions, children }: Props) {
+export function DetailDrawer({
+  open,
+  title,
+  subtitle,
+  onClose,
+  actions,
+  children,
+  width = 'default',
+}: Props) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const header = (
@@ -39,13 +46,11 @@ export function DetailDrawer({ open, title, subtitle, onClose, actions, children
 
   if (isMobile) {
     return (
-      <Dialog open={open} onClose={onClose} fullScreen aria-labelledby="detalhe-titulo">
-        <DialogTitle id="detalhe-titulo" sx={{ pb: 1 }}>{header}</DialogTitle>
-        <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-          {children}
-          {actions && <Box sx={{ mt: 'auto', pt: 2 }}>{actions}</Box>}
-        </DialogContent>
-      </Dialog>
+      <AppDialog open={open} onClose={onClose} title={title} description={subtitle}
+        fullScreenOnMobile fullScreenBreakpoint="md" maxWidth={width === 'wide' ? 'lg' : 'md'}
+        contentSx={{ display: 'flex', flexDirection: 'column', gap: 2 }} actions={actions}>
+        {children}
+      </AppDialog>
     );
   }
 
@@ -57,7 +62,11 @@ export function DetailDrawer({ open, title, subtitle, onClose, actions, children
       PaperProps={{
         role: 'dialog',
         'aria-labelledby': 'detalhe-titulo',
-        sx: { width: { md: 480, lg: 560 }, maxWidth: '100vw', p: 3 },
+        sx: {
+          width: width === 'wide' ? { md: 720, lg: 800 } : { md: 480, lg: 560 },
+          maxWidth: '100vw',
+          p: 3,
+        },
       }}
     >
       <Box id="detalhe-titulo">{header}</Box>

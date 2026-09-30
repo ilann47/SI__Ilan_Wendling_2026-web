@@ -80,6 +80,7 @@ export const formasPagamentoConfig: ResourceConfig = {
   basePath: '/api/formas-pagamento',
   singular: 'Forma de Pagamento',
   plural: 'Formas de Pagamento',
+  grammaticalGender: 'feminine',
   tenantAware: true,
   permissions: {
     read: ['payments:read'],
@@ -124,6 +125,7 @@ export const condicoesPagamentoConfig: ResourceConfig = {
   basePath: '/api/condicoes-pagamento',
   singular: 'Condição de Pagamento',
   plural: 'Condições de Pagamento',
+  grammaticalGender: 'feminine',
   tenantAware: true,
   permissions: {
     read: ['payments:read'],

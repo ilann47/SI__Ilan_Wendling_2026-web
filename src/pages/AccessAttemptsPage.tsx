@@ -77,6 +77,12 @@ const reasons = [
 
 const emptyFilters: Filters = { eventId: '', decision: '', reason: '' };
 
+const operationLabels: Record<AccessAttempt['operation'], string> = {
+  VALIDACAO: 'Validação',
+  CHECKIN: 'Entrada',
+  CHECKOUT: 'Saída',
+};
+
 export function AccessAttemptsPage() {
   const { activeOrganization, permissions } = useAuth();
   const { recent } = useOperationalWorkspace();
@@ -122,7 +128,7 @@ export function AccessAttemptsPage() {
         <CardContent>
           <Box component="form" onSubmit={applyFilters}>
             <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
-              <ResourceIdField label="ID do evento" value={draft.eventId} onChange={(eventId) => setDraft({ ...draft, eventId })} recent={recent('event')} required={false} />
+              <ResourceIdField label="Evento" value={draft.eventId} onChange={(eventId) => setDraft({ ...draft, eventId })} recent={recent('event')} required={false} />
               <TextField
                 select
                 label="Decisão"
@@ -143,7 +149,7 @@ export function AccessAttemptsPage() {
               >
                 <MenuItem value="">Todos</MenuItem>
                 {reasons.map((reason) => (
-                  <MenuItem key={reason} value={reason}>{reason}</MenuItem>
+                  <MenuItem key={reason} value={reason}>{accessReasonLabel(reason)}</MenuItem>
                 ))}
               </TextField>
               <Button type="submit" variant="contained" startIcon={<SearchOutlinedIcon />}>
@@ -180,7 +186,7 @@ export function AccessAttemptsPage() {
                   <TableRow key={attempt.id} hover>
                     <TableCell>{attempt.id}</TableCell>
                     <TableCell><StatusChip status={attempt.decision} /></TableCell>
-                    <TableCell>{attempt.operation}</TableCell>
+                    <TableCell>{operationLabels[attempt.operation]}</TableCell>
                     <TableCell>{accessReasonLabel(attempt.reasonCode)}</TableCell>
                     <TableCell>{attempt.eventId} / {attempt.parkingFacilityId}</TableCell>
                     <TableCell>{attempt.lane}</TableCell>

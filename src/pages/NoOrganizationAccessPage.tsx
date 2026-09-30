@@ -55,36 +55,11 @@ export function NoOrganizationAccessPage() {
         {refreshError ? (
           <Alert severity="error">{refreshError}</Alert>
         ) : null}
-        {user?.perfil === 'ADMIN' && <OrganizationProvisioningCard />}
-        {user?.perfil !== 'ADMIN' && (
-          <Box>
-            <Button
-              variant="outlined"
-              disabled
-              aria-disabled="true"
-              aria-describedby="criar-organizacao-indisponivel"
-              sx={{
-                alignSelf: 'flex-start',
-                color: 'text.secondary',
-                borderColor: 'divider',
-                '&.Mui-disabled': {
-                  color: 'text.secondary',
-                  borderColor: 'divider',
-                  opacity: 1,
-                },
-              }}
-            >
-              Criar organização
-            </Button>
-            <Typography
-              id="criar-organizacao-indisponivel"
-              variant="caption"
-              color="text.secondary"
-              sx={{ display: 'block', mt: 0.75 }}
-            >
-              Criação de organização estará disponível em breve.
-            </Typography>
-          </Box>
+        {(user?.perfil === 'ADMIN' || user?.perfil === 'USUARIO') && <OrganizationProvisioningCard />}
+        {user?.perfil === 'OPERADOR' && (
+          <Alert severity="info">
+            Solicite ao administrador da organização um convite para acessar o ambiente.
+          </Alert>
         )}
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.25}>
           <Button

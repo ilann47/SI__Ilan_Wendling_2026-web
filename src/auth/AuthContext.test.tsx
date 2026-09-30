@@ -96,7 +96,9 @@ describe('AuthProvider', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Selecionar' }));
 
-    await waitFor(() => expect(api.get).toHaveBeenCalled());
+    await waitFor(() => expect(api.get).toHaveBeenCalledWith('/api/v1/me/permissions', {
+      headers: { Authorization: 'Bearer token-contextual' },
+    }));
     expect(getToken()).toBe('token-global');
     expect(screen.getByText('Tenant: nenhum')).toBeInTheDocument();
     expect(screen.getByText('Permissoes: nenhuma')).toBeInTheDocument();

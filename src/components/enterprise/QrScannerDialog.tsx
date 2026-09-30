@@ -2,14 +2,11 @@ import CameraswitchOutlinedIcon from '@mui/icons-material/CameraswitchOutlined';
 import {
   Alert,
   Button,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
   Stack,
   Typography,
 } from '@mui/material';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { AppDialog } from '../common/AppDialog';
 
 interface DetectedBarcode { rawValue?: string }
 interface NativeBarcodeDetector {
@@ -81,9 +78,8 @@ export function QrScannerDialog({ open, onClose, onScan }: QrScannerDialogProps)
   }, [onClose, onScan, open]);
 
   return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
-      <DialogTitle>Escanear credencial</DialogTitle>
-      <DialogContent>
+    <AppDialog open={open} onClose={onClose} title="Escanear credencial" maxWidth="sm" fullScreenOnMobile
+      actions={<Button onClick={onClose}>Fechar</Button>}>
         <Stack spacing={2}>
           <Typography variant="body2" color="text.secondary">
             Aponte a camera para o QR. A imagem nao e enviada nem armazenada.
@@ -91,9 +87,7 @@ export function QrScannerDialog({ open, onClose, onScan }: QrScannerDialogProps)
           {error && <Alert severity="warning">{error}</Alert>}
           <video ref={videoRef} muted playsInline aria-label="Camera para leitura QR" style={{ width: '100%', minHeight: 240, borderRadius: 12, background: '#111', objectFit: 'cover' }} />
         </Stack>
-      </DialogContent>
-      <DialogActions><Button onClick={onClose}>Fechar</Button></DialogActions>
-    </Dialog>
+    </AppDialog>
   );
 }
 

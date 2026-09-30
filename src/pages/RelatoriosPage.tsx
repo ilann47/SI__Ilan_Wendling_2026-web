@@ -50,6 +50,14 @@ const kpiGrid = {
   gap: 2,
 } as const;
 
+export function tituloOrigemLabel(origem: string): string {
+  return ({
+    DESPESA_AVULSA: 'Despesa avulsa',
+    CONTA_PAGAR: 'Conta a pagar',
+    CONTA_RECEBER: 'Conta a receber',
+  } as Record<string, string>)[origem] ?? origem.replace(/_/g, ' ').toLocaleLowerCase('pt-BR');
+}
+
 function FaturamentoTab({ organizationId, enabled }: { organizationId: number; enabled: boolean }) {
   const [inicio, setInicio] = useState<Dayjs>(dayjs());
   const [fim, setFim] = useState<Dayjs>(dayjs());
@@ -103,7 +111,7 @@ function TitulosTable({ titulos }: { titulos: Titulo[] }) {
         <TableBody>
           {titulos.map((t) => (
             <TableRow key={`${t.origem}-${t.id}`}>
-              <TableCell>{t.origem}</TableCell>
+              <TableCell>{tituloOrigemLabel(t.origem)}</TableCell>
               <TableCell>{t.contraparte}</TableCell>
               <TableCell>
                 {formatDate(t.vencimento)} {t.vencido && <Chip size="small" color="error" label="vencido" sx={{ ml: 1 }} />}

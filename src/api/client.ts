@@ -110,9 +110,12 @@ function messageForStatus(status: number, context: 'login' | 'default'): string 
   }
   if (status === 403) return 'Você não possui permissão para realizar esta operação.';
   if (status === 404) return 'O recurso solicitado não foi encontrado.';
+  if (status === 405) return 'Esta operação não está disponível neste endereço.';
   if (status === 409) return 'Operação não permitida por conflito de dados.';
   if (status === 412) return 'Os dados foram alterados. Recarregue e tente novamente.';
+  if (status === 415) return 'O formato enviado não é aceito pelo sistema.';
   if (status === 422) return 'Não foi possível processar os dados informados.';
+  if (status === 428) return 'Recarregue o registro antes de tentar alterá-lo.';
   if (status === 429) return 'Muitas tentativas. Aguarde um momento e tente novamente.';
   if (status >= 500) return 'O sistema encontrou um problema. Tente novamente.';
   return 'Não foi possível concluir a operação. Tente novamente.';

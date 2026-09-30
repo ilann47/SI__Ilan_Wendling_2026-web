@@ -19,8 +19,8 @@ export interface NotaEntradaDetail {
   nota: NotaEntradaResponse;
   ordemCompra?: LinkedPurchaseOrder | null;
   recebimento?: PurchaseReceipt | null;
-  contasPagar: ContaPagarResponse[];
-  movimentosEstoque: StockMovement[];
+  contasPagar: ContaPagarResponse[] | null;
+  movimentosEstoque: StockMovement[] | null;
 }
 
 function positiveId(value: unknown, label: string): number {
@@ -131,6 +131,21 @@ const resource = createResourceApi<NotaEntradaResponse, NotaEntradaRequest>('/ap
 
 export const inboundNotesApi = {
   ...resource,
+  createIdempotent: (body: NotaEntradaRequest, key: string) => api
+    .post<NotaEntradaResponse>('/api/notas-entrada', body, { headers: { 'Idempotency-Key': key } })
+    .then((response) => response.data),
+  confirmRecoverable: async (id: number): Promise<NotaEntradaResponse> => {
+    try {
+      return await resource.action('post', `/${id}/confirmacao`);
+    } catch (error) {
+      // Uma leitura confirma o efeito; nunca fazemos um segundo POST às cegas.
+      try {
+        const current = await resource.get(id);
+        if (current.situacao === 'CONFIRMADA') return current;
+      } catch { /* Preserva o erro do comando quando a consulta também falha. */ }
+      throw error;
+    }
+  },
   details: (id: number) => api
     .get<NotaEntradaDetail>(`/api/notas-entrada/${id}/detalhes`)
     .then((response) => response.data),

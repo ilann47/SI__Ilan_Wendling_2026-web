@@ -1,11 +1,9 @@
 import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined';
 import {
-  Box, Button, ButtonBase, Chip, Dialog, DialogContent, DialogTitle, IconButton,
+  Box, Button, ButtonBase, Chip,
   Divider, InputAdornment, LinearProgress, List, ListItemButton, ListItemText,
-  Stack, TextField, Typography, useMediaQuery,
+  Stack, TextField, Typography,
 } from '@mui/material';
-import { useTheme } from '@mui/material/styles';
-import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 import { useQuery } from '@tanstack/react-query';
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -16,6 +14,8 @@ import { useAuth } from '../../auth/AuthContext';
 import { rememberRecentSearch } from '../../preferences/uiPreferences';
 import { highlightTerm } from '../listing/listingUtils';
 import { ErrorState } from '../listing/ErrorState';
+import { formatStatusLabel } from '../../utils/format';
+import { AppDialog } from '../common/AppDialog';
 
 const RECENT_KEY = 'kaneko.search.recent';
 
@@ -41,8 +41,6 @@ function Highlight({ text, term }: { text: string; term: string }) {
 }
 
 export function GlobalSearch() {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const { activeOrganization } = useAuth();
   const navigate = useNavigate();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -142,32 +140,15 @@ export function GlobalSearch() {
           Ctrl + K
         </Typography>
       </ButtonBase>
-      <Dialog
+      <AppDialog
         open={open}
         onClose={close}
+        title="Buscar em toda a plataforma"
         maxWidth="sm"
-        fullWidth
-        fullScreen={isMobile}
-        aria-labelledby="busca-global-titulo"
+        fullScreenOnMobile
+        fullScreenBreakpoint="md"
+        contentSx={{ px: 0 }}
       >
-        <DialogTitle
-          id="busca-global-titulo"
-          sx={{
-            pb: 1,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: 1,
-          }}
-        >
-          Buscar em toda a plataforma
-          {isMobile ? (
-            <IconButton aria-label="Fechar busca" onClick={close} sx={{ width: 44, height: 44 }}>
-              <CloseRoundedIcon />
-            </IconButton>
-          ) : null}
-        </DialogTitle>
-        <DialogContent sx={{ px: 0 }}>
           <Box sx={{ px: 3, pb: 2 }}>
             <TextField
               inputRef={inputRef}
@@ -223,7 +204,7 @@ export function GlobalSearch() {
                         primary={<Highlight text={result.titulo} term={query} />}
                         secondary={result.subtitulo ? <Highlight text={result.subtitulo} term={query} /> : undefined}
                       />
-                      {result.status && <Chip label={result.status.replace(/_/g, ' ')} size="small" variant="outlined" />}
+                      {result.status && <Chip label={formatStatusLabel(result.status)} size="small" variant="outlined" />}
                     </ListItemButton>
                   );
                 })}
@@ -235,8 +216,7 @@ export function GlobalSearch() {
               <Button onClick={() => void search.refetch()}>Tentar novamente</Button>
             </Box>
           )}
-        </DialogContent>
-      </Dialog>
+      </AppDialog>
     </>
   );
 }

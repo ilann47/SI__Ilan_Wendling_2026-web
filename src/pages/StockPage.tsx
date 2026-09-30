@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link as RouterLink, useSearchParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Alert,
@@ -9,10 +9,6 @@ import {
   CardContent,
   Chip,
   CircularProgress,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
   MenuItem,
   Stack,
   Tab,
@@ -22,6 +18,7 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  TablePagination,
   Tabs,
   TextField,
   Typography,
@@ -48,8 +45,13 @@ import {
 } from '../api/stock';
 import { useAuth } from '../auth/AuthContext';
 import { ConfirmDialog } from '../components/common/ConfirmDialog';
+import { AppDialog } from '../components/common/AppDialog';
 import { PageHeader } from '../components/common/PageHeader';
 import { ResourceFormDialog } from '../components/form/ResourceFormDialog';
+import { stockLocationFields } from '../resources/estoque';
+import { ReferenceSelect } from '../components/form/ReferenceSelect';
+import { ListingCards } from '../components/listing/ListingCards';
+import { useLinkedDetail } from '../hooks/useLinkedDetail';
 import { useSnackbar } from '../components/SnackbarProvider';
 import { formatDateTime, formatNumber } from '../utils/format';
 import { toApiDateTime } from '../utils/dateTime';
@@ -95,14 +97,40 @@ interface PositionFilters {
 
 const emptyPositionFilters: PositionFilters = { produtoId: '', localEstoqueId: '', abaixoMinimo: '' };
 
+const movementLabels: Record<string, string> = { RECEBIMENTO: 'Entrada', BAIXA: 'Saída', AJUSTE: 'Ajuste', COMPENSACAO: 'Compensação' };
+const originPermissions: Record<string, string> = { NOTA_ENTRADA: 'fiscal:read', NOTA_SAIDA: 'fiscal:read',
+  VENDA_ADMINISTRATIVA: 'sales:read', RECEBIMENTO_COMPRA: 'purchases:read', ORDEM_COMPRA: 'purchases:read' };
+
+function StockReferences({ draft, change }: { draft: { produtoId: string; localEstoqueId: string }; change: (field: 'produtoId' | 'localEstoqueId', value: string) => void }) {
+  const { permissions } = useAuth();
+  return <>
+    {permissions.includes('catalog:read') && <ReferenceSelect label="Produto" value={draft.produtoId ? Number(draft.produtoId) : null}
+      onChange={(value) => change('produtoId', value ? String(value) : '')}
+      reference={{ basePath: '/api/produtos', labelField: 'nome', readPermissions: ['catalog:read'] }} />}
+    <ReferenceSelect label="Local de estoque" value={draft.localEstoqueId ? Number(draft.localEstoqueId) : null}
+      onChange={(value) => change('localEstoqueId', value ? String(value) : '')}
+      reference={{ basePath: '/api/v1/stock-locations', labelField: 'nome', readPermissions: ['stock:read'] }} />
+  </>;
+}
+
+function StockPagination({ total, page, change }: { total: number; page: number; change: (value: number) => void }) {
+  return <TablePagination component="div" count={total} page={page} rowsPerPage={20} rowsPerPageOptions={[20]}
+    onPageChange={(_, next) => change(next)} labelDisplayedRows={({ from, to, count }) => `${from}–${to} de ${count}`} />;
+}
+
 function PositionPanel({ organizationId }: { organizationId: number }) {
+  const [, setSearchParams] = useSearchParams();
+  const [positionPage, setPositionPage] = useState(0);
+  const [balancePage, setBalancePage] = useState(0);
   const [draft, setDraft] = useState(emptyPositionFilters);
   const [filters, setFilters] = useState(emptyPositionFilters);
   const positionParams = {
+    page: positionPage, size: 20,
     produtoId: filters.produtoId ? Number(filters.produtoId) : undefined,
     abaixoMinimo: filters.abaixoMinimo === '' ? undefined : filters.abaixoMinimo === 'true',
   };
   const balanceParams = {
+    page: balancePage, size: 20,
     produtoId: filters.produtoId ? Number(filters.produtoId) : undefined,
     localEstoqueId: filters.localEstoqueId ? Number(filters.localEstoqueId) : undefined,
   };
@@ -118,14 +146,17 @@ function PositionPanel({ organizationId }: { organizationId: number }) {
   const filter = (event: FormEvent) => {
     event.preventDefault();
     setFilters(draft);
+    setPositionPage(0); setBalancePage(0);
   };
+  const openMovements = (produtoId: number, localEstoqueId?: number) => setSearchParams({
+    tab: 'razao', produtoId: String(produtoId), ...(localEstoqueId ? { localEstoqueId: String(localEstoqueId) } : {}),
+  });
 
   return (
     <Stack spacing={2}>
       <Card><CardContent>
         <Stack component="form" onSubmit={filter} direction={{ xs: 'column', md: 'row' }} spacing={2}>
-          <TextField label="ID do produto" type="number" value={draft.produtoId} onChange={(event) => setDraft({ ...draft, produtoId: event.target.value })} fullWidth />
-          <TextField label="ID do local" type="number" value={draft.localEstoqueId} onChange={(event) => setDraft({ ...draft, localEstoqueId: event.target.value })} fullWidth />
+          <StockReferences draft={draft} change={(field, value) => setDraft({ ...draft, [field]: value })} />
           <TextField select label="Abaixo do mínimo" value={draft.abaixoMinimo} onChange={(event) => setDraft({ ...draft, abaixoMinimo: event.target.value })} fullWidth>
             <MenuItem value="">Todos</MenuItem><MenuItem value="true">Sim</MenuItem><MenuItem value="false">Não</MenuItem>
           </TextField>
@@ -137,25 +168,28 @@ function PositionPanel({ organizationId }: { organizationId: number }) {
       <QueryFeedback loading={positions.isLoading} error={positions.error} />
       {!positions.isLoading && !positions.isError && (
         <Card><TableContainer><Table size="small" aria-label="Posição de estoque"><TableHead><TableRow>
-          <TableCell>Produto</TableCell><TableCell align="right">Saldo</TableCell><TableCell align="right">Mínimo</TableCell><TableCell>Situação</TableCell>
+          <TableCell>Produto</TableCell><TableCell align="right">Saldo</TableCell><TableCell align="right">Mínimo</TableCell><TableCell>Situação</TableCell><TableCell>Histórico</TableCell>
         </TableRow></TableHead><TableBody>
           {rows<StockPosition>(positions.data).map((item) => <TableRow key={item.produtoId}>
             <TableCell>{item.produto}</TableCell><TableCell align="right">{formatNumber(item.quantidade, 3)}</TableCell><TableCell align="right">{formatNumber(item.quantidadeMinima, 3)}</TableCell>
             <TableCell><Chip size="small" color={item.abaixoMinimo ? 'warning' : 'success'} label={item.abaixoMinimo ? 'Abaixo do mínimo' : 'Regular'} /></TableCell>
+            <TableCell><Button size="small" onClick={() => openMovements(item.produtoId)}>Ver movimentos</Button></TableCell>
           </TableRow>)}
-        </TableBody></Table></TableContainer></Card>
+          {!positions.data?.content.length && <TableRow><TableCell colSpan={5}>Nenhum produto encontrado.</TableCell></TableRow>}
+        </TableBody></Table></TableContainer><StockPagination total={positions.data?.totalElements ?? 0} page={positionPage} change={setPositionPage} /></Card>
       )}
 
       <Typography variant="h6">Saldos por local</Typography>
       <QueryFeedback loading={balances.isLoading} error={balances.error} />
       {!balances.isLoading && !balances.isError && (
         <Card><TableContainer><Table size="small" aria-label="Saldos por local"><TableHead><TableRow>
-          <TableCell>Produto</TableCell><TableCell>Local</TableCell><TableCell align="right">Saldo</TableCell><TableCell>Atualização</TableCell>
+          <TableCell>Produto</TableCell><TableCell>Local</TableCell><TableCell align="right">Saldo</TableCell><TableCell>Histórico</TableCell>
         </TableRow></TableHead><TableBody>
           {rows<StockBalance>(balances.data).map((item) => <TableRow key={item.id}>
-            <TableCell>{item.produto}</TableCell><TableCell>{item.localEstoque}</TableCell><TableCell align="right">{formatNumber(item.quantidade, 3)}</TableCell><TableCell>v{item.version}</TableCell>
+            <TableCell>{item.produto}</TableCell><TableCell>{item.localEstoque}</TableCell><TableCell align="right">{formatNumber(item.quantidade, 3)}</TableCell><TableCell><Button size="small" onClick={() => openMovements(item.produtoId, item.localEstoqueId)}>Ver movimentos</Button></TableCell>
           </TableRow>)}
-        </TableBody></Table></TableContainer></Card>
+          {!balances.data?.content.length && <TableRow><TableCell colSpan={4}>Nenhum saldo encontrado.</TableCell></TableRow>}
+        </TableBody></Table></TableContainer><StockPagination total={balances.data?.totalElements ?? 0} page={balancePage} change={setBalancePage} /></Card>
       )}
     </Stack>
   );
@@ -172,15 +206,25 @@ interface MovementFilters {
 const emptyMovementFilters: MovementFilters = { produtoId: '', localEstoqueId: '', tipo: '', de: '', ate: '' };
 
 function MovementPanel({ organizationId, canManage }: { organizationId: number; canManage: boolean }) {
+  const { permissions } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initial = { ...emptyMovementFilters, produtoId: searchParams.get('produtoId') ?? '', localEstoqueId: searchParams.get('localEstoqueId') ?? '' };
   const queryClient = useQueryClient();
   const { notify } = useSnackbar();
-  const [draft, setDraft] = useState(emptyMovementFilters);
-  const [filters, setFilters] = useState(emptyMovementFilters);
-  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [draft, setDraft] = useState(initial);
+  const [filters, setFilters] = useState(initial);
+  const [page, setPage] = useState(0);
+  const detail = useLinkedDetail(organizationId, 'stock-movement', stockApi.movement, true);
+  const origin = useQuery({ queryKey: stockQueryKey(organizationId, 'origin', detail.data?.id, permissions),
+    queryFn: () => stockApi.origin(detail.data!.id), enabled: !!detail.data });
+  const originPermission = origin.data ? originPermissions[origin.data.tipo] : undefined;
+  const canReadOrigin = !originPermission || permissions.includes(originPermission);
+  const openDetail = (id: number) => setSearchParams((current) => { const next = new URLSearchParams(current); next.set('detail', String(id)); return next; });
   const [compensating, setCompensating] = useState<StockMovement | null>(null);
   const [motivo, setMotivo] = useState('');
   const [compensationKey, setCompensationKey] = useState('');
   const params = {
+    page, size: 20,
     produtoId: filters.produtoId ? Number(filters.produtoId) : undefined,
     localEstoqueId: filters.localEstoqueId ? Number(filters.localEstoqueId) : undefined,
     tipo: filters.tipo || undefined,
@@ -190,11 +234,6 @@ function MovementPanel({ organizationId, canManage }: { organizationId: number; 
   const movements = useQuery({
     queryKey: stockQueryKey(organizationId, 'movements', params),
     queryFn: () => stockApi.movements(params),
-  });
-  const detail = useQuery({
-    queryKey: stockQueryKey(organizationId, 'movement', selectedId),
-    queryFn: () => stockApi.movement(selectedId!),
-    enabled: selectedId !== null,
   });
   const compensation = useMutation({
     mutationFn: () => stockApi.compensate(
@@ -207,43 +246,63 @@ function MovementPanel({ organizationId, canManage }: { organizationId: number; 
       setCompensating(null);
       setMotivo('');
       void queryClient.invalidateQueries({ queryKey: stockInvalidationKey(organizationId) });
+      if (detail.requested) void detail.refetch();
     },
   });
 
   return (
     <Stack spacing={2}>
-      <Card><CardContent><Stack component="form" onSubmit={(event) => { event.preventDefault(); setFilters(draft); }} direction={{ xs: 'column', lg: 'row' }} spacing={2}>
-        <TextField label="ID do produto" type="number" value={draft.produtoId} onChange={(event) => setDraft({ ...draft, produtoId: event.target.value })} />
-        <TextField label="ID do local" type="number" value={draft.localEstoqueId} onChange={(event) => setDraft({ ...draft, localEstoqueId: event.target.value })} />
-        <TextField select label="Tipo" value={draft.tipo} onChange={(event) => setDraft({ ...draft, tipo: event.target.value })}><MenuItem value="">Todos</MenuItem>{['RECEBIMENTO', 'BAIXA', 'AJUSTE', 'COMPENSACAO'].map((tipo) => <MenuItem key={tipo} value={tipo}>{tipo}</MenuItem>)}</TextField>
+      <Card><CardContent><Stack component="form" onSubmit={(event) => { event.preventDefault(); setFilters(draft); setPage(0); }} direction={{ xs: 'column', lg: 'row' }} spacing={2}>
+        <StockReferences draft={draft} change={(field, value) => setDraft({ ...draft, [field]: value })} />
+        <TextField select label="Tipo" value={draft.tipo} onChange={(event) => setDraft({ ...draft, tipo: event.target.value })} sx={{ minWidth: 120 }}><MenuItem value="">Todos</MenuItem>{Object.entries(movementLabels).map(([tipo, label]) => <MenuItem key={tipo} value={tipo}>{label}</MenuItem>)}</TextField>
         <TextField label="De" type="datetime-local" value={draft.de} onChange={(event) => setDraft({ ...draft, de: event.target.value })} InputLabelProps={{ shrink: true }} />
         <TextField label="Até" type="datetime-local" value={draft.ate} onChange={(event) => setDraft({ ...draft, ate: event.target.value })} InputLabelProps={{ shrink: true }} />
         <Button type="submit" variant="contained">Filtrar</Button>
+        <Button onClick={() => { setDraft(emptyMovementFilters); setFilters(emptyMovementFilters); setPage(0); setSearchParams({ tab: 'razao' }); }}>Limpar</Button>
       </Stack></CardContent></Card>
       <QueryFeedback loading={movements.isLoading} error={movements.error} />
       {!movements.isLoading && !movements.isError && (
-        <Card><TableContainer><Table size="small" aria-label="Razão de estoque"><TableHead><TableRow>
-          <TableCell>ID</TableCell><TableCell>Produto</TableCell><TableCell>Local</TableCell><TableCell>Tipo</TableCell><TableCell align="right">Delta</TableCell><TableCell>Data</TableCell><TableCell>Ações</TableCell>
+        <Box><ListingCards rows={rows<StockMovement>(movements.data)} getKey={(item) => item.id} getTitle={(item) => item.produto} onOpen={(item) => openDetail(item.id)}
+          getFields={(item) => [{ label: 'Local', value: item.localEstoque }, { label: 'Movimento', value: movementLabels[item.tipo] ?? item.tipo },
+            { label: 'Quantidade', value: formatNumber(item.delta, 3) }, { label: 'Responsável', value: item.atorNome ?? 'Não informado' }, { label: 'Data', value: formatDateTime(item.ocorridoEm) }]} />
+        <Card sx={{ display: { xs: 'none', md: 'block' } }}><TableContainer><Table size="small" aria-label="Razão de estoque"><TableHead><TableRow>
+          <TableCell>Produto</TableCell><TableCell>Local</TableCell><TableCell>Tipo</TableCell><TableCell align="right">Quantidade</TableCell><TableCell>Data</TableCell><TableCell>Responsável</TableCell><TableCell>Ações</TableCell>
         </TableRow></TableHead><TableBody>
           {rows<StockMovement>(movements.data).map((item) => <TableRow key={item.id}>
-            <TableCell>{item.id}</TableCell><TableCell>{item.produto}</TableCell><TableCell>{item.localEstoque}</TableCell><TableCell>{item.tipo}</TableCell>
+            <TableCell>{item.produto}</TableCell><TableCell>{item.localEstoque}</TableCell><TableCell>{movementLabels[item.tipo] ?? item.tipo}</TableCell>
             <TableCell align="right">{formatNumber(item.delta, 3)}</TableCell><TableCell>{formatDateTime(item.ocorridoEm)}</TableCell>
-            <TableCell><Button size="small" startIcon={<VisibilityOutlinedIcon />} onClick={() => setSelectedId(item.id)}>Detalhe</Button>
-              {canManage && <Button size="small" color="warning" startIcon={<ReplayOutlinedIcon />} onClick={() => { compensation.reset(); setMotivo(''); setCompensating(item); setCompensationKey(intentKey()); }}>Compensar</Button>}
+            <TableCell>{item.atorNome ?? 'Não informado'}</TableCell>
+            <TableCell><Button size="small" startIcon={<VisibilityOutlinedIcon />} onClick={() => openDetail(item.id)}>Detalhe</Button>
             </TableCell>
           </TableRow>)}
         </TableBody></Table></TableContainer></Card>
+        {!movements.data?.content.length && <Alert severity="info">Nenhum movimento encontrado para os filtros.</Alert>}
+        <StockPagination total={movements.data?.totalElements ?? 0} page={page} change={setPage} /></Box>
       )}
 
-      <Dialog open={selectedId !== null} onClose={() => setSelectedId(null)} maxWidth="sm" fullWidth><DialogTitle>Detalhe do movimento</DialogTitle><DialogContent dividers>
+      <AppDialog open={detail.requested} onClose={detail.close} title="Detalhe do movimento" maxWidth="sm"
+        fullScreenOnMobile actions={<>
+          {canManage && detail.data && detail.data.tipo !== 'COMPENSACAO' && <Button color="warning" startIcon={<ReplayOutlinedIcon />} onClick={() => { compensation.reset(); setMotivo(''); setCompensating(detail.data!); setCompensationKey(intentKey()); }}>Compensar movimento</Button>}
+          <Button onClick={detail.close}>Fechar</Button>
+        </>}>
         <QueryFeedback loading={detail.isLoading} error={detail.error} />
-        {detail.data && <Stack spacing={1}><Typography>Produto: {detail.data.produto}</Typography><Typography>Local: {detail.data.localEstoque}</Typography><Typography>Tipo: {detail.data.tipo}</Typography><Typography>Delta: {formatNumber(detail.data.delta, 3)}</Typography><Typography>Saldo posterior: {formatNumber(detail.data.saldoPosterior, 3)}</Typography><Typography>Origem: {detail.data.origemTipo} {detail.data.origemChave}</Typography><Typography>Motivo: {detail.data.motivo ?? '—'}</Typography></Stack>}
-      </DialogContent><DialogActions><Button onClick={() => setSelectedId(null)}>Fechar</Button></DialogActions></Dialog>
+        {detail.data && <Stack spacing={1}><Typography>Produto: {detail.data.produto}</Typography><Typography>Local: {detail.data.localEstoque}</Typography><Typography>Tipo: {movementLabels[detail.data.tipo] ?? detail.data.tipo}</Typography>
+          <Typography>Quantidade movimentada: {formatNumber(detail.data.delta, 3)}</Typography><Typography>Saldo anterior: {formatNumber(detail.data.saldoAnterior, 3)}</Typography><Typography>Saldo posterior: {formatNumber(detail.data.saldoPosterior, 3)}</Typography>
+          <Typography>Responsável: {detail.data.atorNome ?? 'Não informado'}</Typography><Typography>Data: {formatDateTime(detail.data.ocorridoEm)}</Typography><Typography>Motivo: {detail.data.motivo ?? 'Não informado'}</Typography>
+          <QueryFeedback loading={origin.isLoading} error={origin.error} />
+          {origin.data && (!canReadOrigin ? <Typography color="text.secondary">Seu acesso não permite consultar o documento de origem.</Typography>
+            : origin.data.caminho ? <Button component={RouterLink} to={origin.data.caminho}>{origin.data.descricao}</Button> : <Typography color="text.secondary">{origin.data.descricao}</Typography>)}
+        </Stack>}
+      </AppDialog>
 
-      <Dialog open={compensating !== null} onClose={() => setCompensating(null)} maxWidth="xs" fullWidth><DialogTitle>Compensar movimento</DialogTitle><DialogContent dividers>
+      <AppDialog open={compensating !== null} onClose={() => setCompensating(null)} title="Compensar movimento"
+        maxWidth="xs" role="alertdialog" busy={compensation.isPending} actions={<>
+          <Button onClick={() => setCompensating(null)}>Cancelar</Button>
+          <Button variant="contained" color="warning" disabled={compensation.isPending || !motivo.trim()} onClick={() => compensation.mutate()}>Compensar</Button>
+        </>}>
         {compensation.isError && <Alert severity="error" sx={{ mb: 2 }}>{describeError(compensation.error)}</Alert>}
         <TextField autoFocus fullWidth multiline minRows={2} label="Motivo" value={motivo} onChange={(event) => setMotivo(event.target.value)} required />
-      </DialogContent><DialogActions><Button onClick={() => setCompensating(null)}>Cancelar</Button><Button variant="contained" color="warning" disabled={compensation.isPending || !motivo.trim()} onClick={() => compensation.mutate()}>Compensar</Button></DialogActions></Dialog>
+      </AppDialog>
     </Stack>
   );
 }
@@ -324,7 +383,7 @@ function LocationsPanel({ organizationId, canManage }: { organizationId: number;
       {!locations.isLoading && !locations.isError && <Card><TableContainer><Table size="small" aria-label="Locais de estoque"><TableHead><TableRow><TableCell>ID</TableCell><TableCell>Nome</TableCell><TableCell>Situação</TableCell>{canManage && <TableCell>Ações</TableCell>}</TableRow></TableHead><TableBody>
         {rows<StockLocation>(locations.data).map((item) => <TableRow key={item.id}><TableCell>{item.id}</TableCell><TableCell>{item.nome}</TableCell><TableCell>{item.ativo ? 'Ativo' : 'Inativo'}</TableCell>{canManage && <TableCell><Button size="small" startIcon={<EditOutlinedIcon />} onClick={() => void loadEdit(item)}>Editar</Button><Button size="small" color="error" startIcon={<DeleteOutlineIcon />} onClick={() => void prepareDelete(item)}>Inativar</Button></TableCell>}</TableRow>)}
       </TableBody></Table></TableContainer></Card>}
-      <ResourceFormDialog open={formOpen} title={editing ? 'Editar local de estoque' : 'Novo local de estoque'} fields={[{ name: 'nome', label: 'Nome', type: 'text', required: true, cols: 8 }, { name: 'ativo', label: 'Ativo', type: 'switch', cols: 4 }]} initialValues={editing ? { ...editing } : null} submitting={save.isPending} conflictMessage={conflict} onReload={editing ? () => void reloadEdit() : undefined} resetKey={revision} onClose={() => { setFormOpen(false); setEditing(null); setVersion(null); setConflict(null); }} onSubmit={(values) => save.mutate(values)} />
+      <ResourceFormDialog open={formOpen} title={editing ? 'Editar local de estoque' : 'Novo local de estoque'} fields={stockLocationFields} initialValues={editing ? { ...editing } : null} submitting={save.isPending} conflictMessage={conflict} onReload={editing ? () => void reloadEdit() : undefined} resetKey={revision} onClose={() => { setFormOpen(false); setEditing(null); setVersion(null); setConflict(null); }} onSubmit={(values) => save.mutate(values)} />
       <ConfirmDialog open={deleting !== null} title="Inativar local de estoque" message={deleteConflict ? 'O local foi alterado. A versão atual foi recarregada; revise e confirme novamente.' : 'Confirma a inativação deste local?'} confirmLabel={deleteConflict ? 'Tentar novamente' : 'Inativar'} confirmColor="error" loading={remove.isPending} onConfirm={() => remove.mutate()} onClose={() => { setDeleting(null); setDeleteConflict(false); }} />
     </Stack>
   );
@@ -355,9 +414,15 @@ function AdjustmentDialog({ open, organizationId, locations, onClose }: { open: 
   });
   const close = () => { if (!mutation.isPending) onClose(); };
   const submit = (event: FormEvent) => { event.preventDefault(); mutation.mutate(); };
-  const ensureKey = () => { if (!key) setKey(intentKey()); };
+  useEffect(() => {
+    setKey(open ? intentKey() : '');
+  }, [open]);
 
-  return <Dialog open={open} onClose={close} maxWidth="sm" fullWidth TransitionProps={{ onEnter: ensureKey, onExited: () => setKey('') }}><Box component="form" onSubmit={submit}><DialogTitle>Ajustar estoque</DialogTitle><DialogContent dividers>
+  return <AppDialog open={open} onClose={close} title="Ajustar estoque" maxWidth="sm"
+    fullScreenOnMobile busy={mutation.isPending} actions={<>
+      <Button onClick={close}>Cancelar</Button>
+      <Button type="submit" form="stock-adjustment-form" variant="contained" disabled={mutation.isPending || !key}>Registrar ajuste</Button>
+    </>}><Box component="form" id="stock-adjustment-form" onSubmit={submit}>
     <Stack spacing={2}>
       {mutation.isError && <Alert severity="error">{describeError(mutation.error)}</Alert>}
       <TextField select label="Produto" value={values.produtoId} onChange={(event) => setValues({ ...values, produtoId: event.target.value })} required fullWidth>{rows<ProductOption>(products.data).map((item) => <MenuItem key={item.id} value={item.id}>{item.nome}</MenuItem>)}</TextField>
@@ -366,7 +431,7 @@ function AdjustmentDialog({ open, organizationId, locations, onClose }: { open: 
       <TextField label="Custo unitário" type="number" value={values.custoUnitario} onChange={(event) => setValues({ ...values, custoUnitario: event.target.value })} inputProps={{ min: 0, step: 0.01 }} />
       <TextField label="Motivo" multiline minRows={2} value={values.motivo} onChange={(event) => setValues({ ...values, motivo: event.target.value })} required />
     </Stack>
-  </DialogContent><DialogActions><Button onClick={close}>Cancelar</Button><Button type="submit" variant="contained" disabled={mutation.isPending || !key}>Registrar ajuste</Button></DialogActions></Box></Dialog>;
+  </Box></AppDialog>;
 }
 
 export function StockPage() {
@@ -402,7 +467,7 @@ export function StockPage() {
   if (!canRead || !organizationId) return <Alert severity="warning">Seu contexto não possui permissão de estoque.</Alert>;
 
   return <Box>
-    <PageHeader title="Estoque" subtitle="Posição por produto e local, razão append-only e locais da organização ativa." action={canAdjust ? <Button variant="contained" startIcon={<TuneOutlinedIcon />} onClick={() => setAdjustmentOpen(true)}>Ajustar estoque</Button> : undefined} />
+    <PageHeader title="Estoque" subtitle="Saldos por produto e local, entradas, saídas e responsáveis por cada movimentação." action={canAdjust ? <Button variant="contained" startIcon={<TuneOutlinedIcon />} onClick={() => setAdjustmentOpen(true)}>Ajustar estoque</Button> : undefined} />
     {canManage && !permissions.includes('catalog:read') && <Alert severity="info" sx={{ mb: 2 }}>Ajustes exigem também leitura do catálogo para selecionar o produto.</Alert>}
     {tabKey === 'ajustes' && !canAdjust && (
       <Alert severity="info" sx={{ mb: 2 }}>

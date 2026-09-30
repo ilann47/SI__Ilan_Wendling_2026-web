@@ -16,6 +16,7 @@ export const tarifasConfig: ResourceConfig = {
   },
   singular: 'Tarifa',
   plural: 'Tarifas',
+  grammaticalGender: 'feminine',
   subtitle: 'Valores de hora, diária e mensalidade do pátio.',
   searchFilter: 'descricao',
   defaultSort: 'descricao,asc',
@@ -155,7 +156,7 @@ export const mensalistasConfig: ResourceConfig = {
     { name: 'valorMensal', label: 'Mensalidade', type: 'money', required: true, cols: 4 },
     { name: 'dataInicio', label: 'Início', type: 'date', cols: 4 },
     { name: 'dataFim', label: 'Fim', type: 'date', cols: 4 },
-    { name: 'status', label: 'Status', type: 'select', cols: 4, options: statusMensalistaOptions, defaultValue: 'ATIVO' },
+    { name: 'status', label: 'Situação', type: 'select', cols: 4, options: statusMensalistaOptions, defaultValue: 'ATIVO' },
   ],
 };
 
@@ -166,6 +167,7 @@ export const movimentacoesConfig: ResourceConfig = {
   permissions: { read: ['operations:read'] },
   singular: 'Movimentação',
   plural: 'Movimentações',
+  grammaticalGender: 'feminine',
   subtitle: 'Entradas e saídas do pátio com cobrança disponível.',
   unavailableRelations: ['Documento de cobrança', 'Pátio de origem detalhado'],
   filters: [

@@ -22,9 +22,20 @@ import { notaEntradaConfig, notaSaidaConfig, notaServicoConfig } from '../../res
 import { cargosConfig, funcionariosConfig } from '../../resources/rhUsuario';
 import {
   hasResourceActionPermission,
+  newResourceLabel,
+  resourceNotFoundLabel,
   resourceQueryKey,
 } from './resourceConfig';
 import { buildResourcePayload } from '../form/ResourceFormDialog';
+
+describe('textos gerados pelo CRUD', () => {
+  it('respeita o gênero gramatical do recurso', () => {
+    expect(newResourceLabel(notaSaidaConfig)).toBe('Nova nota de saída');
+    expect(resourceNotFoundLabel(notaSaidaConfig)).toBe('Nenhuma nota de saída encontrada');
+    expect(newResourceLabel(clientesConfig)).toBe('Novo cliente');
+    expect(resourceNotFoundLabel(clientesConfig)).toBe('Nenhum cliente encontrado');
+  });
+});
 
 describe('ResourceConfig tenant-aware de pagamentos', () => {
   it.each([formasPagamentoConfig, condicoesPagamentoConfig])(
@@ -341,7 +352,9 @@ describe('ResourceConfig tenant-aware do catalogo de conveniencia', () => {
     const forbiddenTenantFields = ['organizationId', 'organizacaoId', 'organization_id', 'organizacao_id'];
 
     expect(productFields.get('ativo')?.type).toBe('switch');
-    expect(disabled).toEqual(['valorCompra', 'custo', 'percentualLucro', 'quantidade']);
+    expect(disabled).toEqual(['valorCompra', 'custo', 'percentualLucro']);
+    expect(produtosConfig.columns.some((column) => column.field === 'quantidade')).toBe(false);
+    expect(produtosConfig.columns.some((column) => column.field === 'quantidadeMinima')).toBe(true);
     expect(forbiddenTenantFields.some((field) => productFields.has(field))).toBe(false);
     expect(productFields.has('status')).toBe(false);
   });

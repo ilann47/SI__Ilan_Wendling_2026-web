@@ -9,15 +9,15 @@ import { Alert, Box, Button, ButtonBase, MenuItem, TextField, Typography } from 
 import { useMemo, useState } from 'react';
 import { Link as RouterLink, useOutletContext } from 'react-router-dom';
 import { api } from '../api/client';
-import { purchaseApi } from '../api/purchases';
+import { operationalPendencies, pendencyPermissions } from '../api/operationalPendencies';
 import { tenantQueryKey } from '../api/queryKeys';
 import { useAuth } from '../auth/AuthContext';
 import { HexMark } from '../components/brand/HexMark';
 import { getThemeTokens } from '../theme/hubTokens';
 import { useColorMode } from '../context/ColorModeContext';
 import { formatCurrency, formatDate } from '../utils/format';
-import { financialRange, financialTitlePath, type FinancialPeriod } from './dashboardContext';
-import type { ContasAVencerResponse, EstoqueMinimoResponse } from '../types';
+import { type FinancialPeriod } from './dashboardContext';
+import type { EstoqueMinimoResponse } from '../types';
 import { canOpenHubModule, hubModules } from '../layout/hubModules';
 import type { AppLayoutContext } from '../layout/AppLayout';
 import { DashboardPage } from './DashboardPage';
@@ -41,18 +41,14 @@ export function HubHomePage() {
   const colors = getThemeTokens(mode);
   const organizationId = activeOrganization?.organizationId;
   const firstName = (user?.login ?? 'Operador').split(/[.@]/)[0] ?? 'Operador';
-  const range = financialRange(financialPeriod);
-  const today = range.inicio;
-  const horizon = range.fim;
 
   const visibleModules = hubModules.filter((module) => canOpenHubModule(module, permissions));
 
-  const contas = useQuery({
-    queryKey: organizationId ? tenantQueryKey(organizationId, 'dashboard', 'contas', today, horizon) : ['hub', 'contas'],
-    enabled: !!organizationId && permissions.includes('finance:read'),
-    queryFn: () => api.get<ContasAVencerResponse>('/api/relatorios/contas-a-vencer', {
-      params: { inicio: today, fim: horizon },
-    }).then((response) => response.data),
+  const canReadOperational = Object.values(pendencyPermissions).some((permission) => permissions.includes(permission));
+  const operational = useQuery({
+    queryKey: tenantQueryKey(organizationId, 'dashboard', 'operational-pendencies', permissions),
+    enabled: !!organizationId && canReadOperational,
+    queryFn: operationalPendencies,
     staleTime: 30_000,
   });
   const estoque = useQuery({
@@ -61,31 +57,25 @@ export function HubHomePage() {
     queryFn: () => api.get<EstoqueMinimoResponse>('/api/relatorios/estoque-minimo').then((response) => response.data),
     staleTime: 60_000,
   });
-  const purchases = useQuery({
-    queryKey: organizationId ? tenantQueryKey(organizationId, 'dashboard', 'purchase-orders') : ['hub', 'oc'],
-    enabled: !!organizationId && permissions.includes('purchases:read'),
-    queryFn: () => purchaseApi.list({ size: 20, sort: 'dataEmissao,desc' }),
-    staleTime: 30_000,
-  });
-
   const pendencyQueries = [
-    permissions.includes('finance:read') ? contas : null,
+    canReadOperational ? operational : null,
     permissions.includes('stock:read') ? estoque : null,
-    permissions.includes('purchases:read') ? purchases : null,
   ].filter((query) => query !== null);
+
+  const operationalGroups = (operational.data?.grupos ?? [])
+    .filter((group) => permissions.includes(pendencyPermissions[group.tipo] ?? ''));
+  const operationalTotal = operationalGroups.reduce((total, group) => total + group.total, 0);
+  const operationalShown = operationalGroups.reduce((total, group) => total + group.itens.length, 0);
 
   const pendencies = useMemo<Pendency[]>(() => {
     const items: Pendency[] = [];
-    const titles = (permissions.includes('finance:read') ? [...(contas.data?.aPagar ?? []), ...(contas.data?.aReceber ?? [])] : [])
-      .sort((a, b) => Number(b.vencido) - Number(a.vencido) || a.vencimento.localeCompare(b.vencimento));
-    titles.forEach((title) => {
-      const path = financialTitlePath(title);
-      if (!path) return;
-      items.push({ id: `${title.origem}-${title.id}`,
-        title: `${title.origem === 'CONTA_RECEBER' ? 'Receber de' : 'Pagar'} ${title.contraparte}`,
-        message: `${formatCurrency(title.saldo)} · ${formatDate(title.vencimento)}${title.vencido ? ' · Vencido' : ''}`,
-        path, tone: title.vencido ? 'urgent' : 'warning' });
-    });
+    (operational.data?.grupos ?? []).filter((group) => permissions.includes(pendencyPermissions[group.tipo] ?? ''))
+      .forEach((group) => group.itens.forEach((item) => items.push({
+        id: `${group.tipo}-${item.id}`, title: item.titulo, path: item.caminho,
+        message: [item.contraparte, item.valor != null ? formatCurrency(item.valor) : null,
+          item.data ? formatDate(item.data) : null].filter(Boolean).join(' · '),
+        tone: group.tipo.endsWith('_VENCIDA') ? 'urgent' : 'info',
+      })));
     if (permissions.includes('stock:read') && (estoque.data?.total ?? 0) > 0) {
       items.push({
         id: 'estoque-minimo',
@@ -95,19 +85,8 @@ export function HubHomePage() {
         tone: 'warning',
       });
     }
-    const awaiting = (permissions.includes('purchases:read') ? purchases.data?.content ?? [] : [])
-      .filter((order) => order.status === 'APROVADA' || order.status === 'PARCIALMENTE_RECEBIDA');
-    awaiting.forEach((order) => {
-      items.push({
-        id: `oc-${order.id}`,
-        title: `Ordem ${order.numero} aguarda recebimento`,
-        message: order.fornecedorNome,
-        path: `/app/ordens-compra?detail=${order.id}`,
-        tone: 'info',
-      });
-    });
     return items;
-  }, [contas.data, estoque.data, purchases.data, permissions]);
+  }, [operational.data, estoque.data, permissions]);
 
   const toneStyles = {
     urgent: { bg: 'rgba(229,57,53,0.1)', color: colors.danger },
@@ -225,6 +204,16 @@ export function HubHomePage() {
                 <Typography sx={{ fontWeight: 800, fontSize: { xs: '0.78rem', md: '0.84rem' }, lineHeight: 1.2 }}>
                   {module.label}
                 </Typography>
+                {module.flowSummary && (
+                  <Typography sx={{
+                    color: colors.textMuted,
+                    fontSize: '0.68rem',
+                    lineHeight: 1.25,
+                    display: { xs: 'none', lg: 'block' },
+                  }}>
+                    {module.flowSummary}
+                  </Typography>
+                )}
               </Box>
             ))}
           </Box>
@@ -311,7 +300,7 @@ export function HubHomePage() {
                     Nenhuma pendência nas consultas disponíveis
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
-                    Nenhum item encontrado no recorte consultado. Isso não inclui todo o histórico.
+                    Nenhum item aguardando ação nos módulos disponíveis para seu acesso.
                   </Typography>
                 </Box>
               ) : (
@@ -367,9 +356,9 @@ export function HubHomePage() {
                 })
               )}
             </Box>
-            {permissions.includes('finance:read') && <Typography variant="caption" color="text.secondary">Contas: {range.label}. Vencidas anteriores não incluídas.</Typography>}
-            {permissions.includes('purchases:read') && purchases.data && purchases.data.totalElements > purchases.data.content.length && <Typography variant="caption" color="text.secondary">
-              Compras: {purchases.data.content.length} de {purchases.data.totalElements} ordens consultadas. Pode haver outras pendências.
+            {permissions.includes('finance:read') && <Typography variant="caption" color="text.secondary">Contas vencidas incluem todo o histórico; o período abaixo filtra somente o resumo financeiro.</Typography>}
+            {operational.isSuccess && operationalTotal > operationalShown && <Typography variant="caption" color="text.secondary">
+              Mostrando {operationalShown} de {operationalTotal} pendências operacionais, até {operational.data.limitePorGrupo} por categoria. Abra as listagens para consultar as demais.
             </Typography>}
           </Box>
         </Box>

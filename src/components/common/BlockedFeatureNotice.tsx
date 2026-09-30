@@ -3,8 +3,8 @@ import { Alert, AlertTitle, Chip, Stack, Typography } from '@mui/material';
 import type { ProductBlocker } from '../../features/blockers/blockers';
 
 const statusLabels: Record<ProductBlocker['status'], string> = {
-  BLOQUEADA_EXTERNAMENTE: 'Dependencia externa',
-  BLOQUEADA_POR_DECISAO_DE_NEGOCIO: 'Decisao de negocio',
+  BLOQUEADA_EXTERNAMENTE: 'Dependência externa',
+  BLOQUEADA_POR_DECISAO_DE_NEGOCIO: 'Decisão de negócio',
   BLOQUEADA_POR_INFRAESTRUTURA: 'Infraestrutura',
 };
 
@@ -19,7 +19,7 @@ export function BlockedFeatureNotice({ blocker }: { blocker: ProductBlocker }) {
       </AlertTitle>
       <Stack spacing={1}>
         <Typography variant="body2"><strong>Motivo:</strong> {blocker.blockerType}</Typography>
-        <Typography variant="body2"><strong>Dependencia:</strong> {blocker.dependency}</Typography>
+        <Typography variant="body2"><strong>Dependência:</strong> {blocker.dependency}</Typography>
         <Typography variant="body2"><strong>Impacto:</strong> {blocker.impact}</Typography>
         <Typography variant="body2"><strong>Retomada:</strong> {blocker.resumeCondition}</Typography>
       </Stack>

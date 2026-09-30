@@ -29,7 +29,7 @@ import { PageHeader } from '../components/common/PageHeader';
 import { OperationCard } from '../components/enterprise/OperationCard';
 import { ResourceIdField } from '../components/enterprise/ResourceIdField';
 import { ResourceSnapshot } from '../components/enterprise/ResourceSnapshot';
-import { facilityCategories } from '../features/facilities/spaceImport';
+import { facilityCategories, facilityCategoryLabel, type FacilityCategory } from '../features/facilities/spaceImport';
 import { fromApiDateTime, fromNowLocalInput, toApiDateTime } from '../utils/dateTime';
 import { useOperationalWorkspace } from '../workspace/OperationalWorkspaceContext';
 import type { WorkspaceResource } from '../workspace/workspaceStore';
@@ -37,6 +37,7 @@ import { useAuth } from '../auth/AuthContext';
 import { tenantQueryKey } from '../api/queryKeys';
 import { eventCatalogApi, type AllocationResponse, type EventResponse,
   type PriceTierResponse, type ProductResponse } from '../api/eventCatalog';
+import { formatCurrency, formatStatusLabel } from '../utils/format';
 
 interface AvailabilityResponse {
   eventId: number; asOf: string; totalAvailable: number; guaranteesHold: boolean;
@@ -62,12 +63,12 @@ function EventSetup({ catalog, loadingCatalog, catalogError, refreshCatalog }: {
   const canPublish = permissions.includes('events:publish');
   const canOperate = permissions.includes('access:operate');
   const allowedActions = [
-    canCreate && { value: 'update', label: 'Alterar politica de reentrada' },
+    canCreate && { value: 'update', label: 'Alterar política de reentrada' },
     canPublish && { value: 'publication', label: 'Publicar evento' },
     canPublish && { value: 'sales-opening', label: 'Abrir vendas' },
     canPublish && { value: 'sales-closing', label: 'Encerrar vendas' },
-    canOperate && { value: 'operation-start', label: 'Iniciar operacao' },
-    canOperate && { value: 'operation-closing', label: 'Encerrar operacao' },
+    canOperate && { value: 'operation-start', label: 'Iniciar operação' },
+    canOperate && { value: 'operation-closing', label: 'Encerrar operação' },
   ].filter(Boolean) as { value: string; label: string }[];
   const events = recent('event');
   const [form, setForm] = useState({
@@ -152,20 +153,20 @@ function EventSetup({ catalog, loadingCatalog, catalogError, refreshCatalog }: {
                 selected={eventRef.id === String(item.id)}>
                 <TableCell>{item.name}<Typography variant="caption" display="block" color="text.secondary">#{item.id}</Typography></TableCell>
                 <TableCell>{new Date(item.startsAt).toLocaleString('pt-BR')}</TableCell>
-                <TableCell><Chip size="small" label={item.status} /></TableCell><TableCell>{item.version}</TableCell>
+                <TableCell><Chip size="small" label={formatStatusLabel(item.status)} /></TableCell><TableCell>{item.version}</TableCell>
                 <TableCell><Button size="small" onClick={() => accept(item)}>Selecionar</Button></TableCell>
               </TableRow>)}</TableBody></Table></TableContainer>}
       </Card>
-      {canCreate && <OperationCard title="Criar evento" description="A chave idempotente e gerada por tentativa de criacao." error={error}>
+      {canCreate && <OperationCard title="Criar evento" description="Cada tentativa de criação é protegida contra duplicidade." error={error}>
         <Stack component="form" spacing={2} onSubmit={(event) => void create(event)}>
           <TextField label="Nome do evento" value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} required />
-          <ResourceIdField label="ID do local (Venue)" value={form.venueId} onChange={(venueId) => setForm((current) => ({ ...current, venueId }))} recent={recent('venue')} />
+          <ResourceIdField label="Local do evento" value={form.venueId} onChange={(venueId) => setForm((current) => ({ ...current, venueId }))} recent={recent('venue')} />
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-            <TextField label="Inicio" type="datetime-local" value={form.startsAt} onChange={(event) => setForm((current) => ({ ...current, startsAt: event.target.value }))} InputLabelProps={{ shrink: true }} required fullWidth />
+            <TextField label="Início" type="datetime-local" value={form.startsAt} onChange={(event) => setForm((current) => ({ ...current, startsAt: event.target.value }))} InputLabelProps={{ shrink: true }} required fullWidth />
             <TextField label="Fim" type="datetime-local" value={form.endsAt} onChange={(event) => setForm((current) => ({ ...current, endsAt: event.target.value }))} InputLabelProps={{ shrink: true }} required fullWidth />
           </Stack>
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-            <TextField label="Fuso horario IANA" value={form.timeZone} onChange={(event) => setForm((current) => ({ ...current, timeZone: event.target.value }))} required fullWidth />
+            <TextField label="Fuso horário IANA" value={form.timeZone} onChange={(event) => setForm((current) => ({ ...current, timeZone: event.target.value }))} required fullWidth />
             <TextField label="ID externo" value={form.externalId} onChange={(event) => setForm((current) => ({ ...current, externalId: event.target.value }))} fullWidth />
           </Stack>
           <Button type="submit" variant="contained" disabled={loading} startIcon={loading ? <CircularProgress size={18} color="inherit" /> : <EventAvailableOutlinedIcon />} sx={{ alignSelf: 'flex-start' }}>Criar evento</Button>
@@ -173,24 +174,24 @@ function EventSetup({ catalog, loadingCatalog, catalogError, refreshCatalog }: {
       </OperationCard>}
       {allowedActions.length > 0 && <OperationCard
         title="Ciclo de vida"
-        description="Selecione um evento da listagem para executar as transicoes permitidas."
+        description="Selecione um evento da listagem para executar as transições permitidas."
         error={error}
         result={result ? <ResourceSnapshot data={{ id: result.id, name: result.name, status: result.status, reentryPolicy: result.reentryPolicy, version: result.version, configurationChecklist: result.configurationChecklist }} /> : undefined}
       >
-        <ResourceIdField label="ID do evento" value={eventRef.id} onChange={chooseEvent} recent={events} />
+        <ResourceIdField label="Evento" value={eventRef.id} onChange={chooseEvent} recent={events} />
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-          <TextField label="Versao" type="number" value={eventRef.version} onChange={(event) => setEventRef((current) => ({ ...current, version: event.target.value }))} inputProps={{ min: 0 }} required fullWidth />
+          <TextField label="Versão" type="number" value={eventRef.version} onChange={(event) => setEventRef((current) => ({ ...current, version: event.target.value }))} inputProps={{ min: 0 }} required fullWidth />
           <TextField label="Estado conhecido" value={eventRef.status} onChange={(event) => setEventRef((current) => ({ ...current, status: event.target.value }))} fullWidth />
         </Stack>
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-          <TextField select label="Operacao" value={action} onChange={(event) => setAction(event.target.value)} fullWidth>
+          <TextField select label="Operação" value={action} onChange={(event) => setAction(event.target.value)} fullWidth>
             {allowedActions.map((item) => <MenuItem key={item.value} value={item.value}>{item.label}</MenuItem>)}
           </TextField>
-          {action === 'update' && <TextField select label="Politica de reentrada" value={reentryPolicy} onChange={(event) => setReentryPolicy(event.target.value)} fullWidth><MenuItem value="ENTRADA_UNICA">Entrada unica</MenuItem><MenuItem value="REENTRADA_PERMITIDA">Reentrada permitida</MenuItem></TextField>}
-          {action === 'sales-opening' && <TextField label="Inicio das vendas (opcional)" type="datetime-local" value={salesStartsAt} onChange={(event) => setSalesStartsAt(event.target.value)} InputLabelProps={{ shrink: true }} fullWidth />}
+          {action === 'update' && <TextField select label="Política de reentrada" value={reentryPolicy} onChange={(event) => setReentryPolicy(event.target.value)} fullWidth><MenuItem value="ENTRADA_UNICA">Entrada única</MenuItem><MenuItem value="REENTRADA_PERMITIDA">Reentrada permitida</MenuItem></TextField>}
+          {action === 'sales-opening' && <TextField label="Início das vendas (opcional)" type="datetime-local" value={salesStartsAt} onChange={(event) => setSalesStartsAt(event.target.value)} InputLabelProps={{ shrink: true }} fullWidth />}
         </Stack>
-        {action === 'operation-closing' && <Alert severity="warning">O backend exige confirmacao explicita de que a pendencia financeira externa foi reconhecida.</Alert>}
-        <Button variant="contained" disabled={loading || !eventRef.id} onClick={() => void execute()} startIcon={loading ? <CircularProgress size={18} color="inherit" /> : <PublishOutlinedIcon />} sx={{ alignSelf: 'flex-start' }}>Executar operacao</Button>
+        {action === 'operation-closing' && <Alert severity="warning">Confirme que eventuais pendências financeiras externas foram reconhecidas antes do encerramento.</Alert>}
+        <Button variant="contained" disabled={loading || !eventRef.id} onClick={() => void execute()} startIcon={loading ? <CircularProgress size={18} color="inherit" /> : <PublishOutlinedIcon />} sx={{ alignSelf: 'flex-start' }}>Executar operação</Button>
       </OperationCard>}
     </Stack>
   );
@@ -225,7 +226,7 @@ function AllocationSetup({ events }: { events: EventResponse[] }) {
   });
   const accept = (data: AllocationResponse) => {
     setResult(data); setAllocationRef({ id: String(data.id), version: String(data.version) });
-    remember('allocation', { id: data.id, label: `Evento ${data.eventId} / Patio ${data.parkingFacilityId}`, version: data.version, snapshot: { ...data } });
+    remember('allocation', { id: data.id, label: `Evento ${data.eventId} / Pátio ${data.parkingFacilityId}`, version: data.version, snapshot: { ...data } });
   };
   const create = async (event: FormEvent) => {
     event.preventDefault(); setLoading(true); setError(null);
@@ -255,14 +256,14 @@ function AllocationSetup({ events }: { events: EventResponse[] }) {
   };
   return (
     <Stack spacing={2}>
-    <Card><Stack spacing={1.5} sx={{ p: 2 }}><TextField select label="Evento para listar alocacoes"
+    <Card><Stack spacing={1.5} sx={{ p: 2 }}><TextField select label="Evento para listar alocações"
       value={eventId} onChange={(event) => setEventId(event.target.value)} fullWidth>
       {events.map((item) => <MenuItem key={item.id} value={String(item.id)}>{item.name} #{item.id}</MenuItem>)}
     </TextField>{catalog.isLoading ? <CircularProgress size={24} /> : catalog.isError
       ? <Alert severity="error">{describeError(catalog.error)}</Alert> : eventId && catalog.data?.length === 0
-        ? <Alert severity="info">Nenhuma alocacao neste evento.</Alert> : catalog.data && catalog.data.length > 0
-          ? <TableContainer><Table size="small"><TableHead><TableRow><TableCell>Patio</TableCell>
-            <TableCell>Operacional</TableCell><TableCell>Vendavel</TableCell><TableCell>Reservada</TableCell><TableCell /></TableRow></TableHead>
+        ? <Alert severity="info">Nenhuma alocação neste evento.</Alert> : catalog.data && catalog.data.length > 0
+          ? <TableContainer><Table size="small"><TableHead><TableRow><TableCell>Pátio</TableCell>
+            <TableCell>Operacional</TableCell><TableCell>Vendável</TableCell><TableCell>Reservada</TableCell><TableCell /></TableRow></TableHead>
             <TableBody>{catalog.data.map((item) => <TableRow key={item.id} hover selected={allocationRef.id === String(item.id)}>
               <TableCell>#{item.parkingFacilityId}</TableCell><TableCell>{item.operationalCapacity}</TableCell>
               <TableCell>{item.sellableCapacity}</TableCell><TableCell>{item.reservedCapacity}</TableCell>
@@ -270,24 +271,24 @@ function AllocationSetup({ events }: { events: EventResponse[] }) {
                 operationalCapacity: String(item.operationalCapacity), sellableCapacity: String(item.sellableCapacity),
                 reservedCapacity: String(item.reservedCapacity) })); }}>Selecionar</Button></TableCell>
             </TableRow>)}</TableBody></Table></TableContainer> : null}</Stack></Card>
-    {canManage && <OperationCard title="Alocacao evento-patio" description="Capacidade vendavel + reservada nao pode superar a operacional." error={error} result={result ? <ResourceSnapshot data={{ id: result.id, eventId: result.eventId, parkingFacilityId: result.parkingFacilityId, operationalCapacity: result.operationalCapacity, sellableCapacity: result.sellableCapacity, reservedCapacity: result.reservedCapacity, version: result.version }} /> : undefined}>
+    {canManage && <OperationCard title="Alocação evento–pátio" description="A soma das capacidades vendável e reservada não pode superar a operacional." error={error} result={result ? <ResourceSnapshot data={{ id: result.id, eventId: result.eventId, parkingFacilityId: result.parkingFacilityId, operationalCapacity: result.operationalCapacity, sellableCapacity: result.sellableCapacity, reservedCapacity: result.reservedCapacity, version: result.version }} /> : undefined}>
       <Stack component="form" spacing={2} onSubmit={(event) => void create(event)}>
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-          <ResourceIdField label="ID do evento" value={eventId} onChange={setEventId} recent={recent('event')} />
-          <ResourceIdField label="ID do patio" value={form.parkingFacilityId} onChange={(parkingFacilityId) => setForm((current) => ({ ...current, parkingFacilityId }))} recent={recent('facility')} />
+          <ResourceIdField label="Evento" value={eventId} onChange={setEventId} recent={recent('event')} />
+          <ResourceIdField label="Pátio" value={form.parkingFacilityId} onChange={(parkingFacilityId) => setForm((current) => ({ ...current, parkingFacilityId }))} recent={recent('facility')} />
         </Stack>
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-          <TextField label="Inicio da alocacao" type="datetime-local" value={form.startsAt} onChange={(event) => setForm((current) => ({ ...current, startsAt: event.target.value }))} InputLabelProps={{ shrink: true }} required fullWidth />
-          <TextField label="Fim da alocacao" type="datetime-local" value={form.endsAt} onChange={(event) => setForm((current) => ({ ...current, endsAt: event.target.value }))} InputLabelProps={{ shrink: true }} required fullWidth />
+          <TextField label="Início da alocação" type="datetime-local" value={form.startsAt} onChange={(event) => setForm((current) => ({ ...current, startsAt: event.target.value }))} InputLabelProps={{ shrink: true }} required fullWidth />
+          <TextField label="Fim da alocação" type="datetime-local" value={form.endsAt} onChange={(event) => setForm((current) => ({ ...current, endsAt: event.target.value }))} InputLabelProps={{ shrink: true }} required fullWidth />
         </Stack>
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-          {(['operationalCapacity', 'sellableCapacity', 'reservedCapacity'] as const).map((field) => <TextField key={field} label={{ operationalCapacity: 'Capacidade operacional', sellableCapacity: 'Capacidade vendavel', reservedCapacity: 'Capacidade reservada' }[field]} type="number" value={form[field]} onChange={(event) => setForm((current) => ({ ...current, [field]: event.target.value }))} inputProps={{ min: field === 'operationalCapacity' ? 1 : 0 }} required fullWidth />)}
+          {(['operationalCapacity', 'sellableCapacity', 'reservedCapacity'] as const).map((field) => <TextField key={field} label={{ operationalCapacity: 'Capacidade operacional', sellableCapacity: 'Capacidade vendável', reservedCapacity: 'Capacidade reservada' }[field]} type="number" value={form[field]} onChange={(event) => setForm((current) => ({ ...current, [field]: event.target.value }))} inputProps={{ min: field === 'operationalCapacity' ? 1 : 0 }} required fullWidth />)}
         </Stack>
-        <Button type="submit" variant="contained" disabled={loading} startIcon={loading ? <CircularProgress size={18} color="inherit" /> : <InventoryOutlinedIcon />} sx={{ alignSelf: 'flex-start' }}>Criar alocacao</Button>
+        <Button type="submit" variant="contained" disabled={loading} startIcon={loading ? <CircularProgress size={18} color="inherit" /> : <InventoryOutlinedIcon />} sx={{ alignSelf: 'flex-start' }}>Criar alocação</Button>
       </Stack>
-      <Alert severity="info">Selecione uma alocacao da listagem acima para alterar suas capacidades.</Alert>
-      <ResourceIdField label="ID da alocacao" value={allocationRef.id} onChange={choose} recent={allocations} />
-      <TextField label="Versao da alocacao" type="number" value={allocationRef.version} onChange={(event) => setAllocationRef((current) => ({ ...current, version: event.target.value }))} inputProps={{ min: 0 }} required />
+      <Alert severity="info">Selecione uma alocação da listagem acima para alterar suas capacidades.</Alert>
+      <ResourceIdField label="Alocação" value={allocationRef.id} onChange={choose} recent={allocations} />
+      <TextField label="Versão da alocação" type="number" value={allocationRef.version} onChange={(event) => setAllocationRef((current) => ({ ...current, version: event.target.value }))} inputProps={{ min: 0 }} required />
       <Button variant="outlined" disabled={loading || !allocationRef.id} onClick={() => void update()} sx={{ alignSelf: 'flex-start' }}>Atualizar capacidades</Button>
     </OperationCard>}
     </Stack>
@@ -367,34 +368,34 @@ function ProductSetup({ events }: { events: EventResponse[] }) {
       ? <Alert severity="error">{describeError(catalog.error)}</Alert> : eventId && catalog.data?.length === 0
         ? <Alert severity="info">Nenhum produto neste evento.</Alert> : catalog.data && catalog.data.length > 0
           ? <TableContainer><Table size="small"><TableHead><TableRow><TableCell>Produto</TableCell><TableCell>Categoria</TableCell>
-            <TableCell>Quota</TableCell><TableCell>Status</TableCell><TableCell /></TableRow></TableHead><TableBody>
+            <TableCell>Cota</TableCell><TableCell>Status</TableCell><TableCell /></TableRow></TableHead><TableBody>
             {catalog.data.map((item) => <TableRow key={item.id} hover selected={productRef.id === String(item.id)}>
               <TableCell>{item.name}<Typography variant="caption" display="block" color="text.secondary">#{item.id}</Typography></TableCell>
-              <TableCell>{item.category}</TableCell><TableCell>{item.quota}</TableCell><TableCell><Chip size="small" label={item.status} /></TableCell>
+              <TableCell>{facilityCategoryLabel(item.category as FacilityCategory)}</TableCell><TableCell>{item.quota}</TableCell><TableCell><Chip size="small" label={formatStatusLabel(item.status)} /></TableCell>
               <TableCell><Button size="small" onClick={() => accept(item)}>Selecionar</Button></TableCell>
             </TableRow>)}</TableBody></Table></TableContainer> : null}</Stack></Card>
-    {canManage && <OperationCard title="Produto de estacionamento" description="A quota pertence a uma unica alocacao de patio e o direito da Fase 1 e estacionamento de evento." error={error} result={result ? <ResourceSnapshot data={{ id: result.id, eventId: result.eventId, name: result.name, category: result.category, quota: result.quota, status: result.status, version: result.version }} /> : undefined}>
+    {canManage && <OperationCard title="Produto de estacionamento" description="A cota pertence a uma única alocação de pátio e representa o direito de estacionamento no evento." error={error} result={result ? <ResourceSnapshot data={{ id: result.id, eventId: result.eventId, name: result.name, category: result.category, quota: result.quota, status: result.status, version: result.version }} /> : undefined}>
       <Stack component="form" spacing={2} onSubmit={(event) => void create(event)}>
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-          <ResourceIdField label="ID do evento" value={eventId} onChange={setEventId} recent={recent('event')} />
-          <ResourceIdField label="ID da alocacao" value={form.allocationId}
+          <ResourceIdField label="Evento" value={eventId} onChange={setEventId} recent={recent('event')} />
+          <ResourceIdField label="Alocação" value={form.allocationId}
             onChange={chooseAllocation} recent={allocations} />
         </Stack>
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
           <TextField label="Nome" value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} required fullWidth />
-          <TextField select label="Categoria" value={form.category} onChange={(event) => setForm((current) => ({ ...current, category: event.target.value }))} fullWidth>{facilityCategories.map((category) => <MenuItem key={category} value={category}>{category}</MenuItem>)}</TextField>
-          <TextField label="Quota" type="number" value={form.quota} onChange={(event) => setForm((current) => ({ ...current, quota: event.target.value }))} inputProps={{ min: 1 }} required fullWidth />
+          <TextField select label="Categoria" value={form.category} onChange={(event) => setForm((current) => ({ ...current, category: event.target.value }))} fullWidth>{facilityCategories.map((category) => <MenuItem key={category} value={category}>{facilityCategoryLabel(category)}</MenuItem>)}</TextField>
+          <TextField label="Cota" type="number" value={form.quota} onChange={(event) => setForm((current) => ({ ...current, quota: event.target.value }))} inputProps={{ min: 1 }} required fullWidth />
         </Stack>
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-          <TextField label="Inicio do acesso" type="datetime-local" value={form.accessStartsAt} onChange={(event) => setForm((current) => ({ ...current, accessStartsAt: event.target.value }))} InputLabelProps={{ shrink: true }} required fullWidth />
+          <TextField label="Início do acesso" type="datetime-local" value={form.accessStartsAt} onChange={(event) => setForm((current) => ({ ...current, accessStartsAt: event.target.value }))} InputLabelProps={{ shrink: true }} required fullWidth />
           <TextField label="Fim do acesso" type="datetime-local" value={form.accessEndsAt} onChange={(event) => setForm((current) => ({ ...current, accessEndsAt: event.target.value }))} InputLabelProps={{ shrink: true }} required fullWidth />
         </Stack>
-        <TextField label="Beneficios (separados por virgula)" value={form.benefits} onChange={(event) => setForm((current) => ({ ...current, benefits: event.target.value }))} />
-        <TextField label="Restricoes (separadas por virgula)" value={form.restrictions} onChange={(event) => setForm((current) => ({ ...current, restrictions: event.target.value }))} />
+        <TextField label="Benefícios (separados por vírgula)" value={form.benefits} onChange={(event) => setForm((current) => ({ ...current, benefits: event.target.value }))} />
+        <TextField label="Restrições (separadas por vírgula)" value={form.restrictions} onChange={(event) => setForm((current) => ({ ...current, restrictions: event.target.value }))} />
         <Button type="submit" variant="contained" disabled={loading} startIcon={loading ? <CircularProgress size={18} color="inherit" /> : <PriceChangeOutlinedIcon />} sx={{ alignSelf: 'flex-start' }}>Criar produto</Button>
       </Stack>
-      <ResourceIdField label="ID do produto para publicacao" value={productRef.id} onChange={choose} recent={products} />
-      <TextField label="Versao do produto" type="number" value={productRef.version} onChange={(event) => setProductRef((current) => ({ ...current, version: event.target.value }))} inputProps={{ min: 0 }} required />
+      <ResourceIdField label="Produto para publicação" value={productRef.id} onChange={choose} recent={products} />
+      <TextField label="Versão do produto" type="number" value={productRef.version} onChange={(event) => setProductRef((current) => ({ ...current, version: event.target.value }))} inputProps={{ min: 0 }} required />
       <Button variant="outlined" disabled={loading || !productRef.id} onClick={() => void publish()} startIcon={<PublishOutlinedIcon />} sx={{ alignSelf: 'flex-start' }}>Publicar produto</Button>
     </OperationCard>}
     </Stack>
@@ -443,22 +444,22 @@ function PriceTierSetup({ events }: { events: EventResponse[] }) {
         {(productsCatalog.data ?? []).map((item) => <MenuItem key={item.id} value={String(item.id)}>{item.name} #{item.id}</MenuItem>)}</TextField>
     </Stack>{tiersCatalog.isLoading ? <CircularProgress size={24} /> : tiersCatalog.isError
       ? <Alert severity="error">{describeError(tiersCatalog.error)}</Alert> : productId && tiersCatalog.data?.length === 0
-        ? <Alert severity="info">Nenhum lote de preco neste produto.</Alert> : tiersCatalog.data && tiersCatalog.data.length > 0
-          ? <TableContainer><Table size="small"><TableHead><TableRow><TableCell>Lote</TableCell><TableCell>Preco</TableCell>
+        ? <Alert severity="info">Nenhum lote de preço neste produto.</Alert> : tiersCatalog.data && tiersCatalog.data.length > 0
+          ? <TableContainer><Table size="small"><TableHead><TableRow><TableCell>Lote</TableCell><TableCell>Preço</TableCell>
             <TableCell>Quantidade</TableCell><TableCell>Prioridade</TableCell></TableRow></TableHead><TableBody>
             {tiersCatalog.data.map((item) => <TableRow key={item.id} hover><TableCell>{item.name} #{item.id}</TableCell>
-              <TableCell>{item.currency} {Number(item.price).toFixed(2)}</TableCell><TableCell>{item.quantity}</TableCell>
+              <TableCell>{formatCurrency(Number(item.price), item.currency)}</TableCell><TableCell>{item.quantity}</TableCell>
               <TableCell>{item.priority}</TableCell></TableRow>)}</TableBody></Table></TableContainer> : null}</Stack></Card>
-    {canManage && <OperationCard title="Lote de preco" description="Janelas de venda, quantidade e prioridade determinam o lote vigente." error={error} result={result ? <ResourceSnapshot data={{ id: result.id, parkingProductId: result.parkingProductId, name: result.name, price: result.price, currency: result.currency, quantity: result.quantity, priority: result.priority, version: result.version }} /> : undefined}>
+    {canManage && <OperationCard title="Lote de preço" description="Janelas de venda, quantidade e prioridade determinam o lote vigente." error={error} result={result ? <ResourceSnapshot data={{ id: result.id, parkingProductId: result.parkingProductId, name: result.name, price: result.price, currency: result.currency, quantity: result.quantity, priority: result.priority, version: result.version }} /> : undefined}>
       <Stack component="form" spacing={2} onSubmit={(event) => void submit(event)}>
-        <ResourceIdField label="ID do produto" value={productId} onChange={setProductId} recent={recent('product')} />
+        <ResourceIdField label="Produto" value={productId} onChange={setProductId} recent={recent('product')} />
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
           <TextField label="Nome" value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} required fullWidth />
-          <TextField label="Preco" type="number" value={form.price} onChange={(event) => setForm((current) => ({ ...current, price: event.target.value }))} inputProps={{ min: 0, step: '0.01' }} required fullWidth />
+          <TextField label="Preço" type="number" value={form.price} onChange={(event) => setForm((current) => ({ ...current, price: event.target.value }))} inputProps={{ min: 0, step: '0.01' }} required fullWidth />
           <TextField label="Moeda" value={form.currency} onChange={(event) => setForm((current) => ({ ...current, currency: event.target.value }))} inputProps={{ maxLength: 3 }} required fullWidth />
         </Stack>
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-          <TextField label="Inicio das vendas" type="datetime-local" value={form.salesStartsAt} onChange={(event) => setForm((current) => ({ ...current, salesStartsAt: event.target.value }))} InputLabelProps={{ shrink: true }} required fullWidth />
+          <TextField label="Início das vendas" type="datetime-local" value={form.salesStartsAt} onChange={(event) => setForm((current) => ({ ...current, salesStartsAt: event.target.value }))} InputLabelProps={{ shrink: true }} required fullWidth />
           <TextField label="Fim das vendas" type="datetime-local" value={form.salesEndsAt} onChange={(event) => setForm((current) => ({ ...current, salesEndsAt: event.target.value }))} InputLabelProps={{ shrink: true }} required fullWidth />
         </Stack>
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
@@ -487,23 +488,23 @@ function AvailabilityPanel({ events }: { events: EventResponse[] }) {
     } catch (cause) { setError(describeError(cause)); } finally { setLoading(false); }
   };
   return (
-    <OperationCard title="Disponibilidade publicada" description="Consulta forte de leitura. A disponibilidade somente e garantida depois da criacao de um hold." error={error}>
+    <OperationCard title="Disponibilidade publicada" description="A disponibilidade só é garantida depois da reserva temporária da vaga." error={error}>
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
         <TextField select label="Evento" value={eventId} onChange={(event) => setEventId(event.target.value)} fullWidth>
           {events.map((item) => <MenuItem key={item.id} value={String(item.id)}>{item.name} #{item.id}</MenuItem>)}
           {events.length === 0 && recent('event').map((item) => <MenuItem key={item.id} value={String(item.id)}>{item.label} #{item.id}</MenuItem>)}
         </TextField>
-        <TextField select label="Categoria" value={category} onChange={(event) => setCategory(event.target.value)} fullWidth><MenuItem value="">Todas</MenuItem>{facilityCategories.map((item) => <MenuItem key={item} value={item}>{item}</MenuItem>)}</TextField>
+        <TextField select label="Categoria" value={category} onChange={(event) => setCategory(event.target.value)} fullWidth><MenuItem value="">Todas</MenuItem>{facilityCategories.map((item) => <MenuItem key={item} value={item}>{facilityCategoryLabel(item)}</MenuItem>)}</TextField>
         <Button variant="contained" disabled={loading || !eventId} onClick={() => void load()} startIcon={loading ? <CircularProgress size={18} color="inherit" /> : <InventoryOutlinedIcon />}>Consultar</Button>
       </Stack>
       {result && (
         <Stack spacing={1.5}>
           <ResourceSnapshot data={{ eventId: result.eventId, asOf: result.asOf, totalAvailable: result.totalAvailable, guaranteesHold: result.guaranteesHold }} />
-          {result.items.length === 0 ? <Alert severity="info">Nenhum produto disponivel para o filtro.</Alert> : result.items.map((item) => (
+          {result.items.length === 0 ? <Alert severity="info">Nenhum produto disponível para o filtro.</Alert> : result.items.map((item) => (
             <Box key={item.productId} sx={{ border: 1, borderColor: 'divider', borderRadius: 2, p: 1.5 }}>
               <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" gap={1}>
-                <div><Typography variant="subtitle2">{item.name}</Typography><Typography variant="caption" color="text.secondary">{item.category} · Produto #{item.productId}</Typography></div>
-                <div><Typography variant="h6">{item.availableQuantity} vagas</Typography><Typography variant="caption" color="text.secondary">{item.price != null ? `${item.currency} ${Number(item.price).toFixed(2)}` : 'Sem lote vigente'}</Typography></div>
+                <div><Typography variant="subtitle2">{item.name}</Typography><Typography variant="caption" color="text.secondary">{facilityCategoryLabel(item.category as FacilityCategory)} · Produto #{item.productId}</Typography></div>
+                <div><Typography variant="h6">{item.availableQuantity} vagas</Typography><Typography variant="caption" color="text.secondary">{item.price != null ? formatCurrency(Number(item.price), item.currency) : 'Sem lote vigente'}</Typography></div>
               </Stack>
             </Box>
           ))}
@@ -526,11 +527,11 @@ export function EventsPage() {
       && { label: 'Evento', content: <EventSetup catalog={events} loadingCatalog={eventsQuery.isLoading}
         catalogError={eventsQuery.error} refreshCatalog={() => { void eventsQuery.refetch(); }} /> },
     (permissions.includes('inventory:read') || permissions.includes('inventory:manage'))
-      && { label: 'Alocacao', content: <AllocationSetup events={events} /> },
+      && { label: 'Alocação', content: <AllocationSetup events={events} /> },
     (permissions.includes('pricing:read') || permissions.includes('pricing:manage'))
       && { label: 'Produto', content: <ProductSetup events={events} /> },
     (permissions.includes('pricing:read') || permissions.includes('pricing:manage'))
-      && { label: 'Lote de preco', content: <PriceTierSetup events={events} /> },
+      && { label: 'Lote de preço', content: <PriceTierSetup events={events} /> },
     { label: 'Disponibilidade', content: <AvailabilityPanel events={events} /> },
   ].filter(Boolean) as { label: string; content: ReactNode }[];
   useEffect(() => {

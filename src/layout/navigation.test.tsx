@@ -35,14 +35,14 @@ describe('navigation - areas por processo', () => {
       Serviços: '/app/servicos',
       'Contas a Pagar': '/app/contas-pagar',
       'Ordens de Compra': '/app/ordens-compra',
-      'Vendas Administrativas': '/app/vendas-administrativas',
+      'Pedidos de venda': '/app/vendas-administrativas',
       'Ordens de Serviço': '/app/ordens-servico',
     });
   });
 
-  it('exige leitura contextual para Vendas Administrativas', () => {
+  it('exige leitura contextual para Pedidos de venda', () => {
     const item = navGroups.flatMap((group) => group.items)
-      .find((candidate) => candidate.label === 'Vendas Administrativas');
+      .find((candidate) => candidate.label === 'Pedidos de venda');
     expect(item?.permissions).toEqual(['sales:read']);
   });
 

@@ -6,6 +6,9 @@ import { FacilitiesPage } from './FacilitiesPage';
 
 vi.mock('../auth/AuthContext', () => ({ useAuth: vi.fn() }));
 vi.mock('../workspace/OperationalWorkspaceContext', () => ({ useOperationalWorkspace: vi.fn() }));
+vi.mock('../components/form/ReferenceSelect', () => ({
+  ReferenceSelect: ({ label }: { label: string }) => <label>{label}<input /></label>,
+}));
 
 describe('FacilitiesPage', () => {
   it('reserva cadastro de local para administracao organizacional', () => {
@@ -15,7 +18,7 @@ describe('FacilitiesPage', () => {
     render(<FacilitiesPage />);
 
     expect(screen.queryByRole('tab', { name: 'Locais' })).not.toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: 'Patios' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Pátios' })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: 'Setores' })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: 'Vagas' })).toBeInTheDocument();
   });

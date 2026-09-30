@@ -15,6 +15,7 @@ import { api, describeError } from '../api/client';
 import { tenantQueryKey } from '../api/queryKeys';
 import { useAuth } from '../auth/AuthContext';
 import { PageHeader } from '../components/common/PageHeader';
+import { ConfirmDialog } from '../components/common/ConfirmDialog';
 import { EmptyState } from '../components/listing/EmptyState';
 import { ErrorState } from '../components/listing/ErrorState';
 import { ListingSkeleton } from '../components/listing/ListingSkeleton';
@@ -29,6 +30,7 @@ export function PatioPage() {
   const { notify } = useSnackbar();
   const { activeOrganization } = useAuth();
   const [veiculoId, setVeiculoId] = useState<number | null>(null);
+  const [saidaPendente, setSaidaPendente] = useState<{ id: number; placa: string } | null>(null);
   const organizationId = activeOrganization?.organizationId;
   const patioKey = organizationId ? tenantQueryKey(organizationId, 'rel', 'patio') : ['rel', 'patio'];
 
@@ -56,6 +58,7 @@ export function PatioPage() {
       api.post<MovimentacaoResponse>(`/api/movimentacoes/${id}/saida`).then((r) => r.data),
     onSuccess: (mov) => {
       notify(`Saída registrada. Cobrança: ${formatCurrency(mov.valorCobrado)}`, 'success');
+      setSaidaPendente(null);
       refresh();
     },
     onError: (e) => notify(describeError(e), 'error'),
@@ -151,7 +154,7 @@ export function PatioPage() {
                   color="warning"
                   startIcon={<LogoutIcon />}
                   disabled={saida.isPending}
-                  onClick={() => saida.mutate(it.movimentacaoId)}
+                  onClick={() => setSaidaPendente({ id: it.movimentacaoId, placa: it.placa })}
                 >
                   Registrar saída
                 </Button>
@@ -160,6 +163,16 @@ export function PatioPage() {
           ))}
         </Box>
       )}
+      <ConfirmDialog
+        open={saidaPendente !== null}
+        title="Confirmar saída"
+        message={`Confirma a saída do veículo ${saidaPendente?.placa ?? ''}? A permanência será encerrada e a cobrança será calculada agora.`}
+        confirmLabel="Confirmar saída"
+        confirmColor="warning"
+        loading={saida.isPending}
+        onClose={() => { if (!saida.isPending) setSaidaPendente(null); }}
+        onConfirm={() => { if (saidaPendente) saida.mutate(saidaPendente.id); }}
+      />
     </Box>
   );
 }

@@ -10,9 +10,10 @@ contratos `/api/v1` existentes.
 ## Contexto
 
 O perfil empresarial e carregado pelo ID do tenant presente no JWT. Usuario sem
-Membership pode provisionar a primeira organizacao somente quando possui perfil
-global `ADMIN`. A API nao lista Memberships, papeis ou atribuicoes; por isso a UI
-aceita identificadores conhecidos e deixa essa limitacao explicita.
+Membership pode criar sua organização pelo fluxo self-service quando possui
+perfil global `USUARIO` ou `ADMIN`. A API nao lista Memberships, papeis ou
+atribuicoes; por isso a UI mantém referências recentes para essas relações e
+deixa a limitação explícita.
 
 ## Fluxo (camadas da arquitetura)
 
@@ -33,6 +34,8 @@ AdministrationPage -> cliente HTTP -> controllers organization/membership/rbac
 Os formularios espelham `OrganizacaoResponse`, `MembershipResponse` e
 `AtribuicaoAcessoResponse`. Documento, estado e versao da organizacao sao
 somente leitura. Alteracoes concorrentes enviam `If-Match` estrito.
+Ao criar Membership, o usuário é escolhido por autocomplete pesquisável sobre
+`/api/usuarios`; o operador não precisa descobrir ou digitar o ID global.
 
 ## Integracoes externas (se houver)
 
@@ -68,3 +71,5 @@ com a versao carregada.
 |---|---|
 | 2026-08-03 | Implementa provisionamento, perfil empresarial, Memberships e RBAC contextual. |
 | 2026-08-03 | Alinha cada comando administrativo à permissão do controller. |
+| 2026-09-28 | Substitui o ID manual de usuário por seleção pesquisável na criação de Membership. |
+| 2026-09-28 | Revisa no navegador organização, vínculos e permissões; apresenta negação de acesso contextual com mensagem operacional. |
