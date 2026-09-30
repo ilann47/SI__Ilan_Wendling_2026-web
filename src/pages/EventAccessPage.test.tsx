@@ -1,6 +1,6 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { api } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
 import { useOperationalWorkspace } from '../workspace/OperationalWorkspaceContext';
@@ -8,6 +8,11 @@ import { EventAccessPage } from './EventAccessPage';
 
 vi.mock('../auth/AuthContext', () => ({ useAuth: vi.fn() }));
 vi.mock('../workspace/OperationalWorkspaceContext', () => ({ useOperationalWorkspace: vi.fn() }));
+
+beforeEach(() => {
+  vi.mocked(useAuth).mockReset();
+  vi.mocked(useOperationalWorkspace).mockReset();
+});
 
 afterEach(() => vi.restoreAllMocks());
 
@@ -65,5 +70,23 @@ describe('EventAccessPage', () => {
     expect(firstKey).toBeTruthy();
     expect(secondKey).toBeTruthy();
     expect(secondKey).not.toBe(firstKey);
+  });
+
+  it('confirma o bloqueio sem expor versão técnica ao operador', async () => {
+    vi.mocked(useAuth).mockReturnValue({ permissions: ['credentials:block'] } as unknown as ReturnType<typeof useAuth>);
+    vi.mocked(useOperationalWorkspace).mockReturnValue({ recent: () => [], remember: vi.fn() } as unknown as ReturnType<typeof useOperationalWorkspace>);
+    vi.spyOn(api, 'post').mockResolvedValueOnce({ data: {
+      id: 20, status: 'BLOQUEADA', version: 4,
+    } });
+
+    render(<EventAccessPage />);
+    const user = userEvent.setup();
+    await user.type(screen.getByLabelText(/Credencial/), '20');
+    await user.type(screen.getByLabelText(/Motivo do bloqueio/), 'Perda informada');
+    await user.click(screen.getByRole('button', { name: 'Bloquear credencial' }));
+    await user.click(screen.getAllByRole('button', { name: 'Bloquear credencial' }).at(-1)!);
+
+    expect(await screen.findByText('Credencial bloqueada com sucesso.')).toBeInTheDocument();
+    expect(screen.queryByText(/ETag|versão 4/i)).not.toBeInTheDocument();
   });
 });

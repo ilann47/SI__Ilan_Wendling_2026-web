@@ -24,7 +24,7 @@ Operador le QR pela camera (quando suportado) ou informa token + evento + patio 
 
 Supervisor informa credencial + motivo
   -> POST /api/v1/credentials/{id}/blocking
-  -> estado e ETag resultantes
+  -> confirmacao operacional do bloqueio
 
 Administrador/Gestor filtra o feed por evento, decisão e motivo
   -> GET /api/v1/access-attempts com cursor keyset
@@ -73,6 +73,8 @@ motivo sao traduzidos sem perder o valor tecnico no contrato.
 - A validação usa o mesmo formulário e deixa explícito que não consome o
   direito nem solicita abertura de barreira.
 - Bloqueio exige motivo localmente e continua protegido pelo RBAC do backend.
+- O sucesso do bloqueio usa linguagem operacional e nao exibe versao/ETag;
+  concorrencia continua tratada internamente pelo contrato.
 - A navegação por permissão é somente UX; o backend permanece a barreira de
   segurança.
 - O feed aparece somente com `audit:read`, usa filtros aplicados explicitamente
@@ -98,3 +100,4 @@ motivo sao traduzidos sem perder o valor tecnico no contrato.
 | 2026-08-03 | Adiciona leitura nativa por camera, referencias recentes, confirmacao e historico da sessao. |
 | 2026-09-28 | Renova a idempotência após sucesso e preserva a chave somente para retry de falha de transporte. |
 | 2026-09-28 | Revisa tentativas, operação de pátio e restrições RBAC no navegador desktop/mobile, mantendo decisões reais da API. |
+| 2026-09-29 | Remove jargão de ETag do bloqueio de credencial e simplifica o rótulo do seletor. |

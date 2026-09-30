@@ -285,10 +285,10 @@ export function EventAccessPage() {
                 {blockingError && <Alert severity="error" aria-live="assertive">{blockingError}</Alert>}
                 {blockingResult && (
                   <Alert severity="success">
-                    Credencial {blockingResult.id} em {blockingResult.status}. ETag {blockingResult.version}.
+                    Credencial bloqueada com sucesso.
                   </Alert>
                 )}
-                <ResourceIdField label="ID da credencial" value={credentialId} onChange={setCredentialId} recent={recent('credential')} />
+                <ResourceIdField label="Credencial" value={credentialId} onChange={setCredentialId} recent={recent('credential')} />
                 <TextField
                   label="Motivo do bloqueio"
                   value={blockingReason}
