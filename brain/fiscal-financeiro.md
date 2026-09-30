@@ -86,6 +86,8 @@ O teste de recuperação da confirmação simula timeout no transporte real da a
   A tentativa é persistida em `sessionStorage` por organização/login/tipo/título
   antes da requisição; timeout/reload conservam chave e corpo para reexecução segura.
   O histórico legado sinaliza saldo acumulado sem inventar pagamentos individuais.
+- O valor da baixa usa o campo monetario padronizado, bloqueia zero/negativo,
+  remove zeros a esquerda e continua validando teto pelo saldo antes do envio.
 - Criação reutiliza `ResourceFormDialog` e seus seletores; falhas preservam valores.
   Baixa/cancelamento exigem `finance:manage`. Cancelamento é ocultado após baixa parcial.
 
@@ -111,3 +113,4 @@ O teste de recuperação da confirmação simula timeout no transporte real da a
 | 2026-09-28 | Reforça as validações do wizard de entrada para datas, itens, despesas e descontos, inclusive na confirmação final. |
 | 2026-09-28 | Verifica no navegador notas e contas relacionadas, padroniza situações financeiras e mantém links de origem sem expor jargão técnico. |
 | 2026-09-29 | Migra preparação de notas, baixas e cancelamentos para o shell modal compartilhado, preservando idempotência e regras existentes. |
+| 2026-09-29 | Padroniza a entrada monetária da baixa sem alterar idempotência ou limite pelo saldo. |

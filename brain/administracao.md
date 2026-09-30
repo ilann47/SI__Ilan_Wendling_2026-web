@@ -63,6 +63,8 @@ com a versao carregada.
   exigem `organizations:admin`. Concessão e revogação respeitam permissões distintas.
 - As areas administrativas permanecem em abas rolaveis no mobile, com botoes
   de navegacao visiveis e rotulo acessivel do conjunto.
+- Identificadores e versoes informados nos comandos legados usam limites
+  numericos consistentes e removem zeros a esquerda.
 
 ## Modulos relacionados
 
@@ -80,3 +82,4 @@ com a versao carregada.
 | 2026-09-28 | Substitui o ID manual de usuário por seleção pesquisável na criação de Membership. |
 | 2026-09-28 | Revisa no navegador organização, vínculos e permissões; apresenta negação de acesso contextual com mensagem operacional. |
 | 2026-09-29 | Corrige a navegacao das abas administrativas em telas estreitas. |
+| 2026-09-29 | Padroniza identificadores e versoes numericas dos comandos administrativos. |

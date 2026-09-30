@@ -1,5 +1,6 @@
-import { Chip, Stack, TextField, Typography } from '@mui/material';
+import { Chip, Stack, Typography } from '@mui/material';
 import type { WorkspaceResource } from '../../workspace/workspaceStore';
+import { NumberField } from '../form/NumberField';
 
 interface ResourceIdFieldProps {
   label: string;
@@ -12,12 +13,11 @@ interface ResourceIdFieldProps {
 export function ResourceIdField({ label, value, onChange, recent = [], required = true }: ResourceIdFieldProps) {
   return (
     <Stack spacing={0.75}>
-      <TextField
+      <NumberField
         label={label}
-        type="number"
         value={value}
-        onChange={(event) => onChange(event.target.value)}
-        inputProps={{ min: 1 }}
+        onValueChange={onChange}
+        min={1}
         required={required}
         fullWidth
       />

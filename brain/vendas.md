@@ -148,6 +148,8 @@ falha de consulta, dados adicionais da nota, timeout e conciliação de conflito
 - Confirmar pedido ou emitir a nota de serviço invalida também lista e resumo
   financeiro. Preparar nota invalida a listagem fiscal com sua chave real;
   nenhuma dessas atualizações cria lançamentos ou notas adicionais.
+- Quantidade da reserva, filtros e versoes operacionais usam validacao numerica
+  comum, com limites visiveis e normalizacao de zeros a esquerda.
 
 ## Modulos relacionados
 
@@ -170,3 +172,4 @@ falha de consulta, dados adicionais da nota, timeout e conciliação de conflito
 | 2026-09-12 | Conecta OS concluída à preparação e emissão interna da nota de serviço, com parcelas, navegação por contexto e conciliação de timeout sem reenvio automático. |
 | 2026-09-12 | Adiciona retorno exato nota→pedido/OS com RBAC, seletores pesquisáveis de origem e cadastros contextuais preservados; cobre invalidação fiscal/financeira e filtros reais de número/situação. |
 | 2026-09-28 | Traduz estados e termos comerciais, confirma navegação pedido → nota → recebível → estoque e preserva a reserva temporária sem jargão de hold. |
+| 2026-09-29 | Padroniza quantidade, filtro de evento e versões numéricas nos fluxos de venda. |

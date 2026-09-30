@@ -22,6 +22,7 @@ import { OperationCard } from '../components/enterprise/OperationCard';
 import { ResourceIdField } from '../components/enterprise/ResourceIdField';
 import { ResourceSnapshot } from '../components/enterprise/ResourceSnapshot';
 import { ReferenceSelect } from '../components/form/ReferenceSelect';
+import { NumberField } from '../components/form/NumberField';
 import { PageHeader } from '../components/common/PageHeader';
 import { useSnackbar } from '../components/SnackbarProvider';
 import { useOperationalWorkspace } from '../workspace/OperationalWorkspaceContext';
@@ -323,8 +324,8 @@ function RoleOperations({ canGrant, canRevoke }: { canGrant: boolean; canRevoke:
       </OperationCard>}
       {canRevoke && <OperationCard title="Revogar atribuição" description="Informe a atribuição atual e registre o motivo da revogação." error={error}>
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-          <TextField label="Atribuição" type="number" value={assignmentId} onChange={(event) => setAssignmentId(event.target.value)} inputProps={{ min: 1 }} required fullWidth />
-          <TextField label="Versão" type="number" value={assignmentVersion} onChange={(event) => setAssignmentVersion(event.target.value)} inputProps={{ min: 0 }} required fullWidth />
+          <NumberField label="Atribuição" value={assignmentId} min={1} onValueChange={setAssignmentId} required fullWidth />
+          <NumberField label="Versão" value={assignmentVersion} min={0} onValueChange={setAssignmentVersion} required fullWidth />
         </Stack>
         <TextField label="Motivo da revogação" value={reason} onChange={(event) => setReason(event.target.value)} inputProps={{ maxLength: 300 }} required multiline minRows={2} />
         <Button variant="outlined" color="error" disabled={loading || !membershipId || !assignmentId || !reason.trim()} onClick={() => void revoke()}>

@@ -1,6 +1,6 @@
 import AddIcon from '@mui/icons-material/Add';
 import { Alert, Box, Button, Card, Chip,
-  MenuItem, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TablePagination, TableRow,
+  InputAdornment, MenuItem, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TablePagination, TableRow,
   TextField, Typography, useMediaQuery, useTheme } from '@mui/material';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
@@ -16,6 +16,7 @@ import { AppDialog } from '../components/common/AppDialog';
 import { FilterBar } from '../components/crud/FilterBar';
 import { hasResourceActionPermission, type FilterConfig } from '../components/crud/resourceConfig';
 import { ResourceFormDialog } from '../components/form/ResourceFormDialog';
+import { NumberField } from '../components/form/NumberField';
 import { AppliedFilterChips } from '../components/listing/AppliedFilterChips';
 import { DetailDrawer } from '../components/listing/DetailDrawer';
 import { EmptyState } from '../components/listing/EmptyState';
@@ -207,7 +208,9 @@ export function FinancialAccountsPage({ tipo }: { tipo: FinancialAccountType }) 
         <Alert severity="info" sx={{ mb: 2 }}>Esta ação registra uma baixa no sistema; não executa uma transferência bancária.</Alert>
         {attempt && !settle.isError && <Alert severity="info" sx={{ mb: 2 }}>Esta tentativa está preservada. A confirmação utiliza os mesmos dados para evitar duplicidade.</Alert>}
         {settling && <Typography sx={{ mb: 2 }}>Saldo atual: {formatCurrency(settling.saldo)}</Typography>}
-        <Stack gap={2}><TextField label="Valor da baixa" value={valor} type="number" disabled={!!attempt} onChange={(e) => setValor(e.target.value)} inputProps={{ min: 0.01, step: 0.01 }} />
+        <Stack gap={2}><NumberField label="Valor da baixa" value={valor} disabled={!!attempt}
+          min={0.01} step={0.01} onValueChange={setValor}
+          InputProps={{ startAdornment: <InputAdornment position="start">R$</InputAdornment> }} />
           <TextField label="Data da baixa" value={data} type="date" disabled={!!attempt} onChange={(e) => setData(e.target.value)} InputLabelProps={{ shrink: true }} /></Stack>
         {(localError || settle.isError) && <Alert severity="error" sx={{ mt: 2 }}>{localError ?? describeError(settle.error)}</Alert>}
         {settle.isError && attempt && <Alert severity="warning" sx={{ mt: 1 }}>O resultado pode ter sido registrado. Tente novamente com os mesmos dados para consultar ou concluir esta baixa sem duplicá-la.</Alert>}

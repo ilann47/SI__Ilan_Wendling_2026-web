@@ -28,6 +28,7 @@ import { StatusChip } from '../components/common/StatusChip';
 import { OperationCard } from '../components/enterprise/OperationCard';
 import { ResourceIdField } from '../components/enterprise/ResourceIdField';
 import { ResourceSnapshot } from '../components/enterprise/ResourceSnapshot';
+import { NumberField } from '../components/form/NumberField';
 import { useSnackbar } from '../components/SnackbarProvider';
 import { useOperationalWorkspace } from '../workspace/OperationalWorkspaceContext';
 import type { WorkspaceResource } from '../workspace/workspaceStore';
@@ -105,7 +106,8 @@ function HoldPanel() {
         <Stack component="form" spacing={2} onSubmit={(event) => void create(event)}>
           <ResourceIdField label="Produto" value={form.productId} onChange={(productId) => setForm((current) => ({ ...current, productId }))} recent={recent('product')} />
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-            <TextField label="Quantidade" type="number" value={form.quantity} onChange={(event) => setForm((current) => ({ ...current, quantity: event.target.value }))} inputProps={{ min: 1 }} required fullWidth />
+            <NumberField label="Quantidade" value={form.quantity} min={1} required fullWidth
+              onValueChange={(quantity) => setForm((current) => ({ ...current, quantity }))} />
             <TextField label="Canal" value={form.channel} onChange={(event) => setForm((current) => ({ ...current, channel: event.target.value }))} required fullWidth />
             <TextField label="Referência do comprador" value={form.buyerReference} onChange={(event) => setForm((current) => ({ ...current, buyerReference: event.target.value }))} fullWidth />
           </Stack>
@@ -213,7 +215,9 @@ function OrderPanel() {
       {canRead && (
         <OperationCard title="Meus pedidos" description="Pedidos disponíveis para o usuário autenticado." error={orders.isError ? describeError(orders.error) : null}>
           <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
-            <TextField label="Evento" type="number" value={filters.eventId} onChange={(event) => { setFilters((current) => ({ ...current, eventId: event.target.value })); setCursorHistory([null]); }} fullWidth />
+            <NumberField label="Evento" value={filters.eventId} min={1} fullWidth onValueChange={(eventId) => {
+              setFilters((current) => ({ ...current, eventId })); setCursorHistory([null]);
+            }} />
             <TextField select label="Estado" value={filters.status} onChange={(event) => { setFilters((current) => ({ ...current, status: event.target.value })); setCursorHistory([null]); }} fullWidth><MenuItem value="">Todos</MenuItem>{['CRIADO','AGUARDANDO_PAGAMENTO','CONFIRMADO','ATENDIDO','CONCLUIDO','EXPIRADO','CANCELADO','EM_REEMBOLSO','REEMBOLSADO','CANCELADO_COM_PENDENCIA'].map((status) => <MenuItem key={status} value={status}>{formatStatusLabel(status)}</MenuItem>)}</TextField>
             <TextField label="Canal" value={filters.channel} onChange={(event) => { setFilters((current) => ({ ...current, channel: event.target.value.toUpperCase() })); setCursorHistory([null]); }} fullWidth />
           </Stack>
@@ -225,7 +229,7 @@ function OrderPanel() {
       )}
       {(canRead || canManual || canCancel) && <OperationCard title="Operar pedido" description={canRead ? 'Consulte o pedido antes de confirmar ou cancelar.' : 'Informe o pedido e a versão conhecida para executar somente a operação autorizada.'} error={error} result={order ? <ResourceSnapshot data={{ id: order.id, number: order.number, eventId: order.eventId, buyer: order.buyer.name, status: order.status, total: formatCurrency(Number(order.total), order.currency), vehiclePlate: order.vehiclePlate, version: order.version }} /> : undefined}>
         <ResourceIdField label="Pedido" value={orderId} onChange={choose} recent={recent('order')} />
-        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}><TextField label="Versão" type="number" value={version} onChange={(event) => setVersion(event.target.value)} inputProps={{ min: 0 }} required fullWidth />{canRead && <Button variant="outlined" disabled={!orderId || loading !== null} onClick={() => void load()} startIcon={<SearchOutlinedIcon />}>Consultar</Button>}</Stack>
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}><NumberField label="Versão" value={version} min={0} onValueChange={setVersion} required fullWidth />{canRead && <Button variant="outlined" disabled={!orderId || loading !== null} onClick={() => void load()} startIcon={<SearchOutlinedIcon />}>Consultar</Button>}</Stack>
         {canManual && <Stack spacing={2}><Typography variant="subtitle2">Confirmação manual</Typography><Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}><TextField label="Método" value={manual.paymentMethod} onChange={(event) => setManual((current) => ({ ...current, paymentMethod: event.target.value.toUpperCase() }))} fullWidth /><TextField label="Referência da evidência" value={manual.evidenceReference} onChange={(event) => setManual((current) => ({ ...current, evidenceReference: event.target.value }))} fullWidth /></Stack><TextField label="Motivo" value={manual.reason} onChange={(event) => setManual((current) => ({ ...current, reason: event.target.value }))} /><Button variant="contained" disabled={loading !== null || !orderId || !manual.evidenceReference || !manual.reason} onClick={() => void confirmManual()} startIcon={<CreditScoreOutlinedIcon />}>Confirmar manualmente</Button></Stack>}
         {canCancel && <Stack spacing={1}><TextField label="Motivo do cancelamento" value={cancelReason} onChange={(event) => setCancelReason(event.target.value)} multiline minRows={2} /><Button color="error" variant="outlined" disabled={loading !== null || !orderId || !cancelReason} onClick={() => setConfirmCancel(true)}>Cancelar pedido</Button></Stack>}
       </OperationCard>}
@@ -280,7 +284,7 @@ function CredentialPanel() {
       </OperationCard>
       <OperationCard title="Consultar e gerar QR" description="O token é um segredo operacional e não fica armazenado nem aparece em listagens." error={error} result={credential ? <ResourceSnapshot data={{ id: credential.id, publicCode: credential.publicCode, eventId: credential.eventId, parkingFacilityId: credential.parkingFacilityId, status: credential.status, preferredMedium: credential.preferredMedium, vehiclePlate: credential.vehiclePlate, validFrom: credential.validFrom, validUntil: credential.validUntil, qrVersion: credential.qrVersion, version: credential.version }} /> : undefined}>
         <ResourceIdField label="Credencial" value={credentialId} onChange={choose} recent={credentials} />
-        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}><TextField label="Versão" type="number" value={version} onChange={(event) => setVersion(event.target.value)} inputProps={{ min: 0 }} required fullWidth /><Button variant="outlined" disabled={!credentialId || loading !== null} onClick={() => void load()}>Consultar</Button><Button variant="contained" disabled={!credentialId || loading !== null || credential?.status === 'BLOQUEADA'} onClick={() => void generateQr()} startIcon={<QrCode2OutlinedIcon />}>Gerar QR</Button></Stack>
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}><NumberField label="Versão" value={version} min={0} onValueChange={setVersion} required fullWidth /><Button variant="outlined" disabled={!credentialId || loading !== null} onClick={() => void load()}>Consultar</Button><Button variant="contained" disabled={!credentialId || loading !== null || credential?.status === 'BLOQUEADA'} onClick={() => void generateQr()} startIcon={<QrCode2OutlinedIcon />}>Gerar QR</Button></Stack>
         {qr && <Alert severity="success" icon={<QrCode2OutlinedIcon />}><Stack spacing={1}><Typography variant="subtitle2">Representação {qr.representationVersion} válida até {new Date(qr.expiresAt).toLocaleString('pt-BR')}</Typography><TextField label="Token QR" type="password" value={qr.token} InputProps={{ readOnly: true }} fullWidth /><Button size="small" startIcon={<ContentCopyOutlinedIcon />} onClick={() => void copyToken()} sx={{ alignSelf: 'flex-start' }}>Copiar token</Button></Stack></Alert>}
       </OperationCard>
     </Stack>

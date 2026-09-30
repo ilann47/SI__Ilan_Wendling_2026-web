@@ -48,6 +48,7 @@ import { ConfirmDialog } from '../components/common/ConfirmDialog';
 import { AppDialog } from '../components/common/AppDialog';
 import { PageHeader } from '../components/common/PageHeader';
 import { ResourceFormDialog } from '../components/form/ResourceFormDialog';
+import { NumberField } from '../components/form/NumberField';
 import { stockLocationFields } from '../resources/estoque';
 import { ReferenceSelect } from '../components/form/ReferenceSelect';
 import { ListingCards } from '../components/listing/ListingCards';
@@ -465,8 +466,11 @@ function AdjustmentDialog({ open, organizationId, locations, onClose }: { open: 
       {mutation.isError && <Alert severity="error">{describeError(mutation.error)}</Alert>}
       <TextField select label="Produto" value={values.produtoId} onChange={(event) => setValues({ ...values, produtoId: event.target.value })} required fullWidth>{rows<ProductOption>(products.data).map((item) => <MenuItem key={item.id} value={item.id}>{item.nome}</MenuItem>)}</TextField>
       <TextField select label="Local" value={values.localEstoqueId} onChange={(event) => setValues({ ...values, localEstoqueId: event.target.value })} required fullWidth>{locations.filter((item) => item.ativo).map((item) => <MenuItem key={item.id} value={item.id}>{item.nome}</MenuItem>)}</TextField>
-      <TextField label="Delta" type="number" value={values.delta} onChange={(event) => setValues({ ...values, delta: event.target.value })} inputProps={{ step: 0.001 }} helperText="Use valor positivo para entrada e negativo para saída." required />
-      <TextField label="Custo unitário" type="number" value={values.custoUnitario} onChange={(event) => setValues({ ...values, custoUnitario: event.target.value })} inputProps={{ min: 0, step: 0.01 }} />
+      <NumberField label="Delta" value={values.delta} step={0.001}
+        onValueChange={(delta) => setValues({ ...values, delta })}
+        helperText="Use valor positivo para entrada e negativo para saída." required />
+      <NumberField label="Custo unitário" value={values.custoUnitario} min={0} step={0.01}
+        onValueChange={(custoUnitario) => setValues({ ...values, custoUnitario })} />
       <TextField label="Motivo" multiline minRows={2} value={values.motivo} onChange={(event) => setValues({ ...values, motivo: event.target.value })} required />
     </Stack>
   </Box></AppDialog>;

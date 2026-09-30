@@ -74,6 +74,8 @@ durante o Vitest. Esta manutenção de testes não altera o comportamento da tel
 - Eventos, alocacoes, produtos e lotes usam cards operacionais no mobile e
   preservam tabelas no desktop; as abas permitem rolagem e botoes de navegacao
   em telas estreitas sem esconder etapas.
+- Capacidade, cota, preco, quantidade, prioridade e versao usam a validacao
+  numerica compartilhada, sem negativos indevidos ou zeros a esquerda.
 
 ## Modulos relacionados
 
@@ -94,3 +96,4 @@ durante o Vitest. Esta manutenção de testes não altera o comportamento da tel
 | 2026-09-12 | Completa mocks e assertivas da atualização do catálogo após criar/alterar evento, evitando rede real durante os testes. |
 | 2026-09-28 | Valida evento, alocação, produto, lote e disponibilidade no navegador e apresenta categoria, preço e estados em linguagem operacional. |
 | 2026-09-29 | Adapta catalogos e etapas de eventos ao mobile com cards, rotulos acessiveis e abas rolaveis. |
+| 2026-09-29 | Unifica a validacao dos campos numericos do ciclo de eventos. |

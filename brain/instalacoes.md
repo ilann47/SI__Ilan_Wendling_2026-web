@@ -56,6 +56,8 @@ Vitest cobre conversao do lote e rejeicao de categorias fora do catalogo.
   contrato do backend; administracao organizacional nao concede acesso implicito.
 - Dentro da rota, o cadastro de Venue exige adicionalmente `organizations:admin`,
   enquanto patios, setores e vagas usam `facilities:manage`.
+- Capacidades fisica, operacional e de setor usam o campo numerico compartilhado,
+  respeitando os minimos do dominio e removendo zeros a esquerda.
 
 ## Modulos relacionados
 
@@ -73,3 +75,4 @@ Vitest cobre conversao do lote e rejeicao de categorias fora do catalogo.
 | 2026-08-03 | Separa a permissao de Venue das demais instalacoes. |
 | 2026-09-28 | Substitui IDs manuais de cidade por seleção pesquisável em Venue e Pátio. |
 | 2026-09-28 | Expõe honestamente a ausência das listagens de Venue/instalações no contrato atual, sem criar dados ou endpoints fictícios. |
+| 2026-09-29 | Padroniza validação e digitação das capacidades de pátios e setores. |

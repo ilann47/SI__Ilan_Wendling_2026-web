@@ -15,6 +15,7 @@ import type { FieldConfig } from './fieldConfig';
 import { ReferenceSelect } from './ReferenceSelect';
 import { PurchaseCostsSummary, SubItemsEditor } from './SubItemsEditor';
 import { DocumentField } from './DocumentField';
+import { normalizeNumericInput } from './NumberField';
 
 interface Props {
   field: FieldConfig;
@@ -24,9 +25,7 @@ interface Props {
 
 const NUMERIC: FieldConfig['type'][] = ['number', 'integer', 'money', 'percent'];
 
-export function normalizeNumericInput(value: string): string {
-  return value.replace(/^(-?)0+(?=\d)/, '$1');
-}
+export { normalizeNumericInput } from './NumberField';
 
 export function FieldRenderer({ field, namePrefix = '', dense }: Props) {
   const { clearErrors, control, setError, setValue } = useFormContext();

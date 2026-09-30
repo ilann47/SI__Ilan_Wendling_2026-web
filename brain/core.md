@@ -55,6 +55,9 @@ O formulário compartilhado valida números no próprio campo. Valores monetári
 quantidades e inteiros são não negativos por padrão; percentuais aceitam de 0 a
 100; limites específicos usam `min`/`max`. Campos inválidos mantêm a ação Salvar
 desabilitada e expoentes ou sinal positivo não são aceitos pelo input numérico.
+Campos numericos especializados fora do CRUD reutilizam `NumberField`: removem
+zeros a esquerda, bloqueiam limites invalidos e mantem sinal negativo somente em
+dominios que o exigem, como ajuste de saida do estoque.
 Todo diálogo compartilhado confirma o descarte quando há alteração não salva;
 formulário intacto continua fechando diretamente.
 
@@ -208,6 +211,7 @@ jsdom e o aviso do chunk MUI de 603,25 kB, sem reprovação dos gates.
 
 | Data | Ação |
 |---|---|
+| 2026-09-29 | Padroniza entradas numéricas especializadas em estoque, financeiro, eventos, vendas, instalações, filtros e referências. |
 | 2026-09-29 | Adiciona edição contextual aos itens dos seletores, com RBAC, formulário compartilhado, preservação do documento e suporte a ETag. |
 | 2026-09-29 | Estende o cadastro rápido a recursos especializados sem criar rotas CRUD duplicadas. |
 | 2026-09-29 | Amplia a Ordem de Compra com dados comerciais e logísticos sem misturar a identidade fiscal da Nota de Entrada. |

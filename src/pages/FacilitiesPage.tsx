@@ -26,6 +26,7 @@ import { OperationCard } from '../components/enterprise/OperationCard';
 import { ResourceIdField } from '../components/enterprise/ResourceIdField';
 import { ResourceSnapshot } from '../components/enterprise/ResourceSnapshot';
 import { ReferenceSelect } from '../components/form/ReferenceSelect';
+import { NumberField } from '../components/form/NumberField';
 import { facilityCategories, facilityCategoryLabel, parseSpacesText, type FacilityCategory } from '../features/facilities/spaceImport';
 import { useOperationalWorkspace } from '../workspace/OperationalWorkspaceContext';
 
@@ -136,8 +137,10 @@ function FacilityForm() {
       <Stack component="form" spacing={2} onSubmit={(event) => void submit(event)}>
         <AddressFields form={form} setForm={setForm} />
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-          <TextField label="Capacidade física" type="number" value={form.physicalCapacity} onChange={(event) => setForm((current) => ({ ...current, physicalCapacity: event.target.value }))} inputProps={{ min: 1 }} required fullWidth />
-          <TextField label="Capacidade operacional" type="number" value={form.operationalCapacity} onChange={(event) => setForm((current) => ({ ...current, operationalCapacity: event.target.value }))} inputProps={{ min: 0 }} required fullWidth />
+          <NumberField label="Capacidade física" value={form.physicalCapacity} min={1} required fullWidth
+            onValueChange={(physicalCapacity) => setForm((current) => ({ ...current, physicalCapacity }))} />
+          <NumberField label="Capacidade operacional" value={form.operationalCapacity} min={0} required fullWidth
+            onValueChange={(operationalCapacity) => setForm((current) => ({ ...current, operationalCapacity }))} />
         </Stack>
         <TextField label="Observacoes" value={form.notes} onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))} multiline minRows={2} inputProps={{ maxLength: 255 }} />
         <Button type="submit" variant="contained" disabled={loading} startIcon={loading ? <CircularProgress size={18} color="inherit" /> : <LocalParkingOutlinedIcon />} sx={{ alignSelf: 'flex-start' }}>Criar pátio</Button>
@@ -170,7 +173,8 @@ function SectorForm() {
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
           <TextField label="Codigo" value={form.code} onChange={(event) => setForm((current) => ({ ...current, code: event.target.value }))} required fullWidth />
           <TextField label="Nome" value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} required fullWidth />
-          <TextField label="Capacidade" type="number" value={form.capacity} onChange={(event) => setForm((current) => ({ ...current, capacity: event.target.value }))} inputProps={{ min: 1 }} required fullWidth />
+          <NumberField label="Capacidade" value={form.capacity} min={1} required fullWidth
+            onValueChange={(capacity) => setForm((current) => ({ ...current, capacity }))} />
         </Stack>
         <FormControl>
           <InputLabel id="sector-categories-label">Categorias</InputLabel>

@@ -26,6 +26,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import { api, describeError, ifMatchHeaders } from '../api/client';
 import { PageHeader } from '../components/common/PageHeader';
+import { NumberField } from '../components/form/NumberField';
 import { ListingCards } from '../components/listing/ListingCards';
 import { OperationCard } from '../components/enterprise/OperationCard';
 import { ResourceIdField } from '../components/enterprise/ResourceIdField';
@@ -190,7 +191,8 @@ function EventSetup({ catalog, loadingCatalog, catalogError, refreshCatalog }: {
       >
         <ResourceIdField label="Evento" value={eventRef.id} onChange={chooseEvent} recent={events} />
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-          <TextField label="Versão" type="number" value={eventRef.version} onChange={(event) => setEventRef((current) => ({ ...current, version: event.target.value }))} inputProps={{ min: 0 }} required fullWidth />
+          <NumberField label="Versão" value={eventRef.version} min={0} required fullWidth
+            onValueChange={(version) => setEventRef((current) => ({ ...current, version }))} />
           <TextField label="Estado conhecido" value={eventRef.status} onChange={(event) => setEventRef((current) => ({ ...current, status: event.target.value }))} fullWidth />
         </Stack>
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
@@ -305,13 +307,14 @@ function AllocationSetup({ events }: { events: EventResponse[] }) {
           <TextField label="Fim da alocação" type="datetime-local" value={form.endsAt} onChange={(event) => setForm((current) => ({ ...current, endsAt: event.target.value }))} InputLabelProps={{ shrink: true }} required fullWidth />
         </Stack>
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-          {(['operationalCapacity', 'sellableCapacity', 'reservedCapacity'] as const).map((field) => <TextField key={field} label={{ operationalCapacity: 'Capacidade operacional', sellableCapacity: 'Capacidade vendável', reservedCapacity: 'Capacidade reservada' }[field]} type="number" value={form[field]} onChange={(event) => setForm((current) => ({ ...current, [field]: event.target.value }))} inputProps={{ min: field === 'operationalCapacity' ? 1 : 0 }} required fullWidth />)}
+          {(['operationalCapacity', 'sellableCapacity', 'reservedCapacity'] as const).map((field) => <NumberField key={field} label={{ operationalCapacity: 'Capacidade operacional', sellableCapacity: 'Capacidade vendável', reservedCapacity: 'Capacidade reservada' }[field]} value={form[field]} min={field === 'operationalCapacity' ? 1 : 0} onValueChange={(value) => setForm((current) => ({ ...current, [field]: value }))} required fullWidth />)}
         </Stack>
         <Button type="submit" variant="contained" disabled={loading} startIcon={loading ? <CircularProgress size={18} color="inherit" /> : <InventoryOutlinedIcon />} sx={{ alignSelf: 'flex-start' }}>Criar alocação</Button>
       </Stack>
       <Alert severity="info">Selecione uma alocação da listagem acima para alterar suas capacidades.</Alert>
       <ResourceIdField label="Alocação" value={allocationRef.id} onChange={choose} recent={allocations} />
-      <TextField label="Versão da alocação" type="number" value={allocationRef.version} onChange={(event) => setAllocationRef((current) => ({ ...current, version: event.target.value }))} inputProps={{ min: 0 }} required />
+      <NumberField label="Versão da alocação" value={allocationRef.version} min={0} required
+        onValueChange={(version) => setAllocationRef((current) => ({ ...current, version }))} />
       <Button variant="outlined" disabled={loading || !allocationRef.id} onClick={() => void update()} sx={{ alignSelf: 'flex-start' }}>Atualizar capacidades</Button>
     </OperationCard>}
     </Stack>
@@ -417,7 +420,8 @@ function ProductSetup({ events }: { events: EventResponse[] }) {
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
           <TextField label="Nome" value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} required fullWidth />
           <TextField select label="Categoria" value={form.category} onChange={(event) => setForm((current) => ({ ...current, category: event.target.value }))} fullWidth>{facilityCategories.map((category) => <MenuItem key={category} value={category}>{facilityCategoryLabel(category)}</MenuItem>)}</TextField>
-          <TextField label="Cota" type="number" value={form.quota} onChange={(event) => setForm((current) => ({ ...current, quota: event.target.value }))} inputProps={{ min: 1 }} required fullWidth />
+          <NumberField label="Cota" value={form.quota} min={1} required fullWidth
+            onValueChange={(quota) => setForm((current) => ({ ...current, quota }))} />
         </Stack>
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
           <TextField label="Início do acesso" type="datetime-local" value={form.accessStartsAt} onChange={(event) => setForm((current) => ({ ...current, accessStartsAt: event.target.value }))} InputLabelProps={{ shrink: true }} required fullWidth />
@@ -428,7 +432,8 @@ function ProductSetup({ events }: { events: EventResponse[] }) {
         <Button type="submit" variant="contained" disabled={loading} startIcon={loading ? <CircularProgress size={18} color="inherit" /> : <PriceChangeOutlinedIcon />} sx={{ alignSelf: 'flex-start' }}>Criar produto</Button>
       </Stack>
       <ResourceIdField label="Produto para publicação" value={productRef.id} onChange={choose} recent={products} />
-      <TextField label="Versão do produto" type="number" value={productRef.version} onChange={(event) => setProductRef((current) => ({ ...current, version: event.target.value }))} inputProps={{ min: 0 }} required />
+      <NumberField label="Versão do produto" value={productRef.version} min={0} required
+        onValueChange={(version) => setProductRef((current) => ({ ...current, version }))} />
       <Button variant="outlined" disabled={loading || !productRef.id} onClick={() => void publish()} startIcon={<PublishOutlinedIcon />} sx={{ alignSelf: 'flex-start' }}>Publicar produto</Button>
     </OperationCard>}
     </Stack>
@@ -496,7 +501,8 @@ function PriceTierSetup({ events }: { events: EventResponse[] }) {
         <ResourceIdField label="Produto" value={productId} onChange={setProductId} recent={recent('product')} />
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
           <TextField label="Nome" value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} required fullWidth />
-          <TextField label="Preço" type="number" value={form.price} onChange={(event) => setForm((current) => ({ ...current, price: event.target.value }))} inputProps={{ min: 0, step: '0.01' }} required fullWidth />
+          <NumberField label="Preço" value={form.price} min={0} step={0.01} required fullWidth
+            onValueChange={(price) => setForm((current) => ({ ...current, price }))} />
           <TextField label="Moeda" value={form.currency} onChange={(event) => setForm((current) => ({ ...current, currency: event.target.value }))} inputProps={{ maxLength: 3 }} required fullWidth />
         </Stack>
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
@@ -504,8 +510,10 @@ function PriceTierSetup({ events }: { events: EventResponse[] }) {
           <TextField label="Fim das vendas" type="datetime-local" value={form.salesEndsAt} onChange={(event) => setForm((current) => ({ ...current, salesEndsAt: event.target.value }))} InputLabelProps={{ shrink: true }} required fullWidth />
         </Stack>
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-          <TextField label="Quantidade" type="number" value={form.quantity} onChange={(event) => setForm((current) => ({ ...current, quantity: event.target.value }))} inputProps={{ min: 1 }} required fullWidth />
-          <TextField label="Prioridade" type="number" value={form.priority} onChange={(event) => setForm((current) => ({ ...current, priority: event.target.value }))} inputProps={{ min: 0 }} required fullWidth />
+          <NumberField label="Quantidade" value={form.quantity} min={1} required fullWidth
+            onValueChange={(quantity) => setForm((current) => ({ ...current, quantity }))} />
+          <NumberField label="Prioridade" value={form.priority} min={0} required fullWidth
+            onValueChange={(priority) => setForm((current) => ({ ...current, priority }))} />
         </Stack>
         <Button type="submit" variant="contained" disabled={loading} startIcon={loading ? <CircularProgress size={18} color="inherit" /> : <PriceChangeOutlinedIcon />} sx={{ alignSelf: 'flex-start' }}>Criar lote</Button>
       </Stack>

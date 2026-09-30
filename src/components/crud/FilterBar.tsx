@@ -1,5 +1,6 @@
 import { Box, MenuItem, TextField } from '@mui/material';
 import { ReferenceSelect } from '../form/ReferenceSelect';
+import { NumberField } from '../form/NumberField';
 import { type FilterConfig } from './resourceConfig';
 
 interface Props {
@@ -54,15 +55,14 @@ export function FilterBar({ filters, values, onChange }: Props) {
         }
         if (f.type === 'number') {
           return (
-            <TextField
+            <NumberField
               key={f.name}
               size="small"
-              type="number"
               label={f.label}
               sx={{ width: 120 }}
               value={(values[f.name] as string) ?? ''}
-              onChange={(e) => set(f.name, e.target.value)}
-              inputProps={{ min: 1, inputMode: 'numeric' }}
+              onValueChange={(value) => set(f.name, value)}
+              min={1}
             />
           );
         }
