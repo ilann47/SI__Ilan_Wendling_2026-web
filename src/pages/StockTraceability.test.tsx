@@ -27,6 +27,15 @@ function setup() {
   return userEvent.setup();
 }
 
+function setupStockView(path: string, response: Record<string, unknown>) {
+  vi.spyOn(api, 'get').mockResolvedValue({ data: response });
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  render(<MemoryRouter initialEntries={[path]}>
+    <QueryClientProvider client={client}><SnackbarProvider><StockPage /></SnackbarProvider></QueryClientProvider>
+  </MemoryRouter>);
+  return userEvent.setup();
+}
+
 describe('rastreabilidade de estoque', () => {
   beforeEach(() => { state.permissions = ['stock:read', 'purchases:read']; });
   afterEach(() => vi.restoreAllMocks());
@@ -49,5 +58,20 @@ describe('rastreabilidade de estoque', () => {
     expect(await within(dialog).findByText('Seu acesso não permite consultar o documento de origem.')).toBeInTheDocument();
     expect(within(dialog).queryByRole('link', { name: /Recebimento/ })).not.toBeInTheDocument();
     expect(within(dialog).queryByText(/OC-99/)).not.toBeInTheDocument();
+  });
+
+  it('oferece ações de local em card no mobile sem expor botões lado a lado', async () => {
+    state.permissions = ['stock:read', 'stock:manage'];
+    const user = setupStockView('/app/estoque?tab=locais', {
+      content: [{ id: 9, nome: 'Depósito central', ativo: true }],
+      totalElements: 1,
+      totalPages: 1,
+    });
+
+    const actions = await screen.findByRole('button', { name: 'Ações' });
+    await user.click(actions);
+
+    expect(screen.getByRole('menuitem', { name: 'Editar' })).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: 'Inativar' })).toBeInTheDocument();
   });
 });

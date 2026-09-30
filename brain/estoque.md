@@ -83,6 +83,9 @@ arquivos, além de typecheck, lint e build.
 - Razão é append-only e não reutiliza `/api/movimentacoes`.
 - Posição e saldos por local têm paginação real de 20 registros e ação Ver movimentos. Filtros usam seletores pesquisáveis, sem pedir IDs; sem `catalog:read`, o produto pode ser filtrado pelo contexto da linha de estoque sem consultar catálogo indevidamente.
 - Razão aceita `produtoId`/`localEstoqueId` e `detail` na URL, abre o GET exato mesmo fora da página e apresenta ator, data, motivo, saldo anterior/posterior e origem. A chave técnica não é exibida. Mobile usa ListingCards; compensação fica no detalhe.
+- Posicao consolidada, saldos por local e locais cadastrados tambem usam
+  `ListingCards` no mobile. Historico abre pelo card e editar/inativar local fica
+  no menu de acoes, sem tabela espremida nem botoes concorrentes na horizontal.
 - Consulta de origem tem cache separado por tenant e permissões; recebimento abre `/app/ordens-compra?detail=OC&recebimentoId=ID` com destaque implementado pelo módulo de compras. Sem vínculo/permissão, há texto honesto sem link.
 - Notas e relatório de estoque mínimo continuam em compatibilidade global.
 - Nenhum tenant, nome derivado, ID do recurso ou versão integra payload mutável.
@@ -139,6 +142,7 @@ arquivos, além de typecheck, lint e build.
 
 | Data | Ação |
 |---|---|
+| 2026-09-29 | Adapta posição, saldos e locais ao mobile com cards, ações contextuais e abas roláveis. |
 | 2026-09-29 | Move frete, seguro e outras despesas para antes do resumo de totais da Ordem de Compra, mantendo as observações por último. |
 | 2026-09-29 | Move o andamento da compra da listagem para o detalhe contextual e resume o fluxo no módulo Estoque da home. |
 | 2026-09-29 | Permite editar locais e demais referências diretamente no seletor, preservando ETag e o documento em andamento. |

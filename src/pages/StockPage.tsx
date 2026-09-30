@@ -167,7 +167,18 @@ function PositionPanel({ organizationId }: { organizationId: number }) {
       <Typography variant="h6">Posição consolidada</Typography>
       <QueryFeedback loading={positions.isLoading} error={positions.error} />
       {!positions.isLoading && !positions.isError && (
-        <Card><TableContainer><Table size="small" aria-label="Posição de estoque"><TableHead><TableRow>
+        <Box>
+          <ListingCards rows={rows<StockPosition>(positions.data)} getKey={(item) => item.produtoId}
+            getTitle={(item) => item.produto}
+            getFields={(item) => [
+              { label: 'Saldo', value: formatNumber(item.quantidade, 3) },
+              { label: 'Mínimo', value: formatNumber(item.quantidadeMinima, 3) },
+              { label: 'Situação', value: <Chip size="small" color={item.abaixoMinimo ? 'warning' : 'success'} label={item.abaixoMinimo ? 'Abaixo do mínimo' : 'Regular'} /> },
+            ]}
+            onOpen={(item) => openMovements(item.produtoId)}
+            getOpenLabel={(item) => `Ver movimentos de ${item.produto}`}
+          />
+          <Card sx={{ display: { xs: 'none', md: 'block' } }}><TableContainer><Table size="small" aria-label="Posição de estoque"><TableHead><TableRow>
           <TableCell>Produto</TableCell><TableCell align="right">Saldo</TableCell><TableCell align="right">Mínimo</TableCell><TableCell>Situação</TableCell><TableCell>Histórico</TableCell>
         </TableRow></TableHead><TableBody>
           {rows<StockPosition>(positions.data).map((item) => <TableRow key={item.produtoId}>
@@ -176,20 +187,36 @@ function PositionPanel({ organizationId }: { organizationId: number }) {
             <TableCell><Button size="small" onClick={() => openMovements(item.produtoId)}>Ver movimentos</Button></TableCell>
           </TableRow>)}
           {!positions.data?.content.length && <TableRow><TableCell colSpan={5}>Nenhum produto encontrado.</TableCell></TableRow>}
-        </TableBody></Table></TableContainer><StockPagination total={positions.data?.totalElements ?? 0} page={positionPage} change={setPositionPage} /></Card>
+          </TableBody></Table></TableContainer></Card>
+          {!positions.data?.content.length && <Alert severity="info">Nenhum produto encontrado.</Alert>}
+          <StockPagination total={positions.data?.totalElements ?? 0} page={positionPage} change={setPositionPage} />
+        </Box>
       )}
 
       <Typography variant="h6">Saldos por local</Typography>
       <QueryFeedback loading={balances.isLoading} error={balances.error} />
       {!balances.isLoading && !balances.isError && (
-        <Card><TableContainer><Table size="small" aria-label="Saldos por local"><TableHead><TableRow>
+        <Box>
+          <ListingCards rows={rows<StockBalance>(balances.data)} getKey={(item) => item.id}
+            getTitle={(item) => item.produto}
+            getFields={(item) => [
+              { label: 'Local', value: item.localEstoque },
+              { label: 'Saldo', value: formatNumber(item.quantidade, 3) },
+            ]}
+            onOpen={(item) => openMovements(item.produtoId, item.localEstoqueId)}
+            getOpenLabel={(item) => `Ver movimentos de ${item.produto} em ${item.localEstoque}`}
+          />
+          <Card sx={{ display: { xs: 'none', md: 'block' } }}><TableContainer><Table size="small" aria-label="Saldos por local"><TableHead><TableRow>
           <TableCell>Produto</TableCell><TableCell>Local</TableCell><TableCell align="right">Saldo</TableCell><TableCell>Histórico</TableCell>
         </TableRow></TableHead><TableBody>
           {rows<StockBalance>(balances.data).map((item) => <TableRow key={item.id}>
             <TableCell>{item.produto}</TableCell><TableCell>{item.localEstoque}</TableCell><TableCell align="right">{formatNumber(item.quantidade, 3)}</TableCell><TableCell><Button size="small" onClick={() => openMovements(item.produtoId, item.localEstoqueId)}>Ver movimentos</Button></TableCell>
           </TableRow>)}
           {!balances.data?.content.length && <TableRow><TableCell colSpan={4}>Nenhum saldo encontrado.</TableCell></TableRow>}
-        </TableBody></Table></TableContainer><StockPagination total={balances.data?.totalElements ?? 0} page={balancePage} change={setBalancePage} /></Card>
+          </TableBody></Table></TableContainer></Card>
+          {!balances.data?.content.length && <Alert severity="info">Nenhum saldo encontrado.</Alert>}
+          <StockPagination total={balances.data?.totalElements ?? 0} page={balancePage} change={setBalancePage} />
+        </Box>
       )}
     </Stack>
   );
@@ -380,9 +407,20 @@ function LocationsPanel({ organizationId, canManage }: { organizationId: number;
     <Stack spacing={2}>
       {canManage && <Button variant="contained" startIcon={<AddOutlinedIcon />} sx={{ alignSelf: 'flex-start' }} onClick={() => { setEditing(null); setVersion(null); setConflict(null); setFormOpen(true); }}>Novo local</Button>}
       <QueryFeedback loading={locations.isLoading} error={locations.error} />
-      {!locations.isLoading && !locations.isError && <Card><TableContainer><Table size="small" aria-label="Locais de estoque"><TableHead><TableRow><TableCell>ID</TableCell><TableCell>Nome</TableCell><TableCell>Situação</TableCell>{canManage && <TableCell>Ações</TableCell>}</TableRow></TableHead><TableBody>
-        {rows<StockLocation>(locations.data).map((item) => <TableRow key={item.id}><TableCell>{item.id}</TableCell><TableCell>{item.nome}</TableCell><TableCell>{item.ativo ? 'Ativo' : 'Inativo'}</TableCell>{canManage && <TableCell><Button size="small" startIcon={<EditOutlinedIcon />} onClick={() => void loadEdit(item)}>Editar</Button><Button size="small" color="error" startIcon={<DeleteOutlineIcon />} onClick={() => void prepareDelete(item)}>Inativar</Button></TableCell>}</TableRow>)}
-      </TableBody></Table></TableContainer></Card>}
+      {!locations.isLoading && !locations.isError && <Box>
+        <ListingCards rows={rows<StockLocation>(locations.data)} getKey={(item) => item.id}
+          getTitle={(item) => item.nome}
+          getFields={(item) => [{ label: 'Situação', value: <Chip size="small" color={item.ativo ? 'success' : 'default'} label={item.ativo ? 'Ativo' : 'Inativo'} /> }]}
+          getActions={canManage ? (item) => [
+            { key: 'edit', label: 'Editar', icon: <EditOutlinedIcon fontSize="small" />, onClick: () => void loadEdit(item) },
+            { key: 'disable', label: 'Inativar', icon: <DeleteOutlineIcon fontSize="small" />, danger: true, disabled: !item.ativo, disabledReason: 'Este local já está inativo.', onClick: () => void prepareDelete(item) },
+          ] : undefined}
+        />
+        <Card sx={{ display: { xs: 'none', md: 'block' } }}><TableContainer><Table size="small" aria-label="Locais de estoque"><TableHead><TableRow><TableCell>Nome</TableCell><TableCell>Situação</TableCell>{canManage && <TableCell>Ações</TableCell>}</TableRow></TableHead><TableBody>
+          {rows<StockLocation>(locations.data).map((item) => <TableRow key={item.id}><TableCell>{item.nome}</TableCell><TableCell>{item.ativo ? 'Ativo' : 'Inativo'}</TableCell>{canManage && <TableCell><Button size="small" startIcon={<EditOutlinedIcon />} onClick={() => void loadEdit(item)}>Editar</Button><Button size="small" color="error" startIcon={<DeleteOutlineIcon />} disabled={!item.ativo} onClick={() => void prepareDelete(item)}>Inativar</Button></TableCell>}</TableRow>)}
+        </TableBody></Table></TableContainer></Card>
+        {!locations.data?.content.length && <Alert severity="info">Nenhum local de estoque cadastrado.</Alert>}
+      </Box>}
       <ResourceFormDialog open={formOpen} title={editing ? 'Editar local de estoque' : 'Novo local de estoque'} fields={stockLocationFields} initialValues={editing ? { ...editing } : null} submitting={save.isPending} conflictMessage={conflict} onReload={editing ? () => void reloadEdit() : undefined} resetKey={revision} onClose={() => { setFormOpen(false); setEditing(null); setVersion(null); setConflict(null); }} onSubmit={(values) => save.mutate(values)} />
       <ConfirmDialog open={deleting !== null} title="Inativar local de estoque" message={deleteConflict ? 'O local foi alterado. A versão atual foi recarregada; revise e confirme novamente.' : 'Confirma a inativação deste local?'} confirmLabel={deleteConflict ? 'Tentar novamente' : 'Inativar'} confirmColor="error" loading={remove.isPending} onConfirm={() => remove.mutate()} onClose={() => { setDeleting(null); setDeleteConflict(false); }} />
     </Stack>
@@ -474,7 +512,8 @@ export function StockPage() {
         Conferência e ajustes exigem permissão de gestão de estoque e leitura do catálogo.
       </Alert>
     )}
-    <Card><Tabs value={tabIndex} onChange={(_, value: number) => setTab(value)} variant="scrollable"><Tab label="Posição" /><Tab label="Razão" /><Tab label="Locais" /></Tabs></Card>
+    <Card><Tabs value={tabIndex} onChange={(_, value: number) => setTab(value)} variant="scrollable"
+      scrollButtons="auto" allowScrollButtonsMobile aria-label="Áreas do estoque"><Tab label="Posição" /><Tab label="Razão" /><Tab label="Locais" /></Tabs></Card>
     <TabPanel current={tabIndex} index={0}><PositionPanel organizationId={organizationId} /></TabPanel>
     <TabPanel current={tabIndex} index={1}><MovementPanel organizationId={organizationId} canManage={canManage} /></TabPanel>
     <TabPanel current={tabIndex} index={2}><LocationsPanel organizationId={organizationId} canManage={canManage} /></TabPanel>
