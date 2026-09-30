@@ -145,8 +145,11 @@ describe('EventsPage', () => {
 
     renderPage();
 
-    expect(await screen.findByText('Festival Persistido')).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', { name: 'Selecionar' }));
+    const eventCard = await screen.findByRole('button', {
+      name: 'Selecionar evento Festival Persistido',
+    });
+    expect(eventCard).toBeInTheDocument();
+    await userEvent.click(eventCard);
     expect(remember).toHaveBeenCalledWith('event', expect.objectContaining({ id: 42, version: 0 }));
   });
 });

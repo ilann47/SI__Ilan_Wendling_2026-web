@@ -81,6 +81,8 @@ confirma o andamento contextual com recebimento, nota e conta vinculados.
   empilhada, retorna à lista e não descarta o formulário principal.
 - O valor dos campos em `ListingCards` usa `Typography component="div"` para
   aceitar chips de situação sem inserir elementos de bloco dentro de parágrafos.
+- Cards clicaveis aceitam rotulo de abertura contextual, evitando a repeticao
+  generica de "Abrir detalhes" para varios registros em leitores de tela.
 - A listagem de compras mantém somente ação primária, busca, filtros e registros.
   O fluxo genérico e os atalhos duplicados foram removidos; o progresso aparece
   apenas no detalhe da compra e é calculado com os documentos reais vinculados.
@@ -110,3 +112,4 @@ confirma o andamento contextual com recebimento, nota e conta vinculados.
 | 2026-09-12 | Adiciona detalhes por URL tenant-aware, ações contextuais de OS e RBAC dos comandos financeiros; mantém compatibilidade das listagens. |
 | 2026-09-28 | Padroniza rótulos de estados, campos e detalhes nas listagens verificadas no navegador, ocultando IDs técnicos quando existe informação operacional. |
 | 2026-09-29 | Unifica os modais de listagens e fluxos operacionais em AppDialog, com tamanhos previsíveis, scroll interno e ações persistentes. |
+| 2026-09-29 | Adiciona rotulos acessiveis contextuais aos cards operacionais do mobile. |

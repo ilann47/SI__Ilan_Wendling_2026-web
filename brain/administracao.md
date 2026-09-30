@@ -61,6 +61,8 @@ com a versao carregada.
 - Encerramento de Membership permanece terminal.
 - `users:invite` monta somente a criação; consulta e transição de Membership
   exigem `organizations:admin`. Concessão e revogação respeitam permissões distintas.
+- As areas administrativas permanecem em abas rolaveis no mobile, com botoes
+  de navegacao visiveis e rotulo acessivel do conjunto.
 
 ## Modulos relacionados
 
@@ -77,3 +79,4 @@ com a versao carregada.
 | 2026-08-03 | Alinha cada comando administrativo à permissão do controller. |
 | 2026-09-28 | Substitui o ID manual de usuário por seleção pesquisável na criação de Membership. |
 | 2026-09-28 | Revisa no navegador organização, vínculos e permissões; apresenta negação de acesso contextual com mensagem operacional. |
+| 2026-09-29 | Corrige a navegacao das abas administrativas em telas estreitas. |

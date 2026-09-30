@@ -359,7 +359,8 @@ export function AdministrationPage() {
   return (
     <Box>
       <PageHeader title="Administração" subtitle="Organização, usuários, vínculos e permissões do contexto atual." />
-      <Tabs value={tab} onChange={(_, value) => setTab(value)} variant="scrollable" sx={{ mb: 2 }}>
+      <Tabs value={tab} onChange={(_, value) => setTab(value)} variant="scrollable"
+        scrollButtons="auto" allowScrollButtonsMobile aria-label="Áreas administrativas" sx={{ mb: 2 }}>
         {available.map((item) => <Tab key={item.label} label={item.label} />)}
       </Tabs>
       {available[tab]?.content ?? <Alert severity="warning">Nenhuma operação administrativa disponível.</Alert>}

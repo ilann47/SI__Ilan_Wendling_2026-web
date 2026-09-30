@@ -71,6 +71,9 @@ durante o Vitest. Esta manutenção de testes não altera o comportamento da tel
   do produto a partir da resposta da API, evitando divergencia temporal local.
 - Evento legado sem politica explicita e carregado com `ENTRADA_UNICA` como
   proposta visivel; o valor somente passa a valer depois do PATCH confirmado.
+- Eventos, alocacoes, produtos e lotes usam cards operacionais no mobile e
+  preservam tabelas no desktop; as abas permitem rolagem e botoes de navegacao
+  em telas estreitas sem esconder etapas.
 
 ## Modulos relacionados
 
@@ -90,3 +93,4 @@ durante o Vitest. Esta manutenção de testes não altera o comportamento da tel
 | 2026-08-03 | Impede envio nulo ao definir politica em evento legado. |
 | 2026-09-12 | Completa mocks e assertivas da atualização do catálogo após criar/alterar evento, evitando rede real durante os testes. |
 | 2026-09-28 | Valida evento, alocação, produto, lote e disponibilidade no navegador e apresenta categoria, preço e estados em linguagem operacional. |
+| 2026-09-29 | Adapta catalogos e etapas de eventos ao mobile com cards, rotulos acessiveis e abas rolaveis. |

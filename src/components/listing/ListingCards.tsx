@@ -14,10 +14,13 @@ interface Props<T> {
   getFields: (row: T) => ListingCardField[];
   getActions?: (row: T) => SecondaryAction[];
   onOpen?: (row: T) => void;
+  getOpenLabel?: (row: T) => string;
 }
 
 /** Lista em cards para mobile — alvos de toque grandes. */
-export function ListingCards<T>({ rows, getKey, getTitle, getFields, getActions, onOpen }: Props<T>) {
+export function ListingCards<T>({
+  rows, getKey, getTitle, getFields, getActions, onOpen, getOpenLabel,
+}: Props<T>) {
   return (
     <Stack spacing={1.25} sx={{ display: { xs: 'flex', md: 'none' } }}>
       {rows.map((row) => {
@@ -43,7 +46,7 @@ export function ListingCards<T>({ rows, getKey, getTitle, getFields, getActions,
                 {onOpen ? (
                   <CardActionArea
                     onClick={() => onOpen(row)}
-                    aria-label="Abrir detalhes"
+                    aria-label={getOpenLabel?.(row) ?? 'Abrir detalhes'}
                     sx={{ minHeight: 72, alignItems: 'stretch' }}
                   >
                     <CardContent sx={{ py: 1.75 }}>

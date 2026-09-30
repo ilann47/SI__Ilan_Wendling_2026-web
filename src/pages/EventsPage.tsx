@@ -26,6 +26,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import { api, describeError, ifMatchHeaders } from '../api/client';
 import { PageHeader } from '../components/common/PageHeader';
+import { ListingCards } from '../components/listing/ListingCards';
 import { OperationCard } from '../components/enterprise/OperationCard';
 import { ResourceIdField } from '../components/enterprise/ResourceIdField';
 import { ResourceSnapshot } from '../components/enterprise/ResourceSnapshot';
@@ -146,7 +147,16 @@ function EventSetup({ catalog, loadingCatalog, catalogError, refreshCatalog }: {
         {loadingCatalog ? <Box sx={{ display: 'grid', placeItems: 'center', py: 5 }}><CircularProgress /></Box>
           : catalogError ? <Alert severity="error">{describeError(catalogError)}</Alert>
             : catalog.length === 0 ? <Alert severity="info">Nenhum evento cadastrado.</Alert>
-              : <TableContainer><Table size="small"><TableHead><TableRow>
+              : <>
+                <ListingCards rows={catalog} getKey={(item) => item.id} getTitle={(item) => item.name}
+                  getFields={(item) => [
+                    { label: 'Início', value: new Date(item.startsAt).toLocaleString('pt-BR') },
+                    { label: 'Situação', value: <Chip size="small" label={formatStatusLabel(item.status)} /> },
+                  ]}
+                  onOpen={accept}
+                  getOpenLabel={(item) => `Selecionar evento ${item.name}`}
+                />
+                <TableContainer sx={{ display: { xs: 'none', md: 'block' } }}><Table size="small"><TableHead><TableRow>
                 <TableCell>Evento</TableCell><TableCell>Início</TableCell><TableCell>Situação</TableCell>
                 <TableCell>Versão</TableCell><TableCell>Ações</TableCell>
               </TableRow></TableHead><TableBody>{catalog.map((item) => <TableRow key={item.id} hover
@@ -155,7 +165,7 @@ function EventSetup({ catalog, loadingCatalog, catalogError, refreshCatalog }: {
                 <TableCell>{new Date(item.startsAt).toLocaleString('pt-BR')}</TableCell>
                 <TableCell><Chip size="small" label={formatStatusLabel(item.status)} /></TableCell><TableCell>{item.version}</TableCell>
                 <TableCell><Button size="small" onClick={() => accept(item)}>Selecionar</Button></TableCell>
-              </TableRow>)}</TableBody></Table></TableContainer>}
+              </TableRow>)}</TableBody></Table></TableContainer></>}
       </Card>
       {canCreate && <OperationCard title="Criar evento" description="Cada tentativa de criação é protegida contra duplicidade." error={error}>
         <Stack component="form" spacing={2} onSubmit={(event) => void create(event)}>
@@ -262,7 +272,20 @@ function AllocationSetup({ events }: { events: EventResponse[] }) {
     </TextField>{catalog.isLoading ? <CircularProgress size={24} /> : catalog.isError
       ? <Alert severity="error">{describeError(catalog.error)}</Alert> : eventId && catalog.data?.length === 0
         ? <Alert severity="info">Nenhuma alocação neste evento.</Alert> : catalog.data && catalog.data.length > 0
-          ? <TableContainer><Table size="small"><TableHead><TableRow><TableCell>Pátio</TableCell>
+          ? <>
+            <ListingCards rows={catalog.data} getKey={(item) => item.id}
+              getTitle={(item) => `Pátio #${item.parkingFacilityId}`}
+              getFields={(item) => [
+                { label: 'Operacional', value: item.operationalCapacity },
+                { label: 'Vendável', value: item.sellableCapacity },
+                { label: 'Reservada', value: item.reservedCapacity },
+              ]}
+              onOpen={(item) => { accept(item); setForm((current) => ({ ...current,
+                operationalCapacity: String(item.operationalCapacity), sellableCapacity: String(item.sellableCapacity),
+                reservedCapacity: String(item.reservedCapacity) })); }}
+              getOpenLabel={(item) => `Selecionar alocação do pátio ${item.parkingFacilityId}`}
+            />
+            <TableContainer sx={{ display: { xs: 'none', md: 'block' } }}><Table size="small"><TableHead><TableRow><TableCell>Pátio</TableCell>
             <TableCell>Operacional</TableCell><TableCell>Vendável</TableCell><TableCell>Reservada</TableCell><TableCell /></TableRow></TableHead>
             <TableBody>{catalog.data.map((item) => <TableRow key={item.id} hover selected={allocationRef.id === String(item.id)}>
               <TableCell>#{item.parkingFacilityId}</TableCell><TableCell>{item.operationalCapacity}</TableCell>
@@ -270,7 +293,7 @@ function AllocationSetup({ events }: { events: EventResponse[] }) {
               <TableCell><Button size="small" onClick={() => { accept(item); setForm((current) => ({ ...current,
                 operationalCapacity: String(item.operationalCapacity), sellableCapacity: String(item.sellableCapacity),
                 reservedCapacity: String(item.reservedCapacity) })); }}>Selecionar</Button></TableCell>
-            </TableRow>)}</TableBody></Table></TableContainer> : null}</Stack></Card>
+            </TableRow>)}</TableBody></Table></TableContainer></> : null}</Stack></Card>
     {canManage && <OperationCard title="Alocação evento–pátio" description="A soma das capacidades vendável e reservada não pode superar a operacional." error={error} result={result ? <ResourceSnapshot data={{ id: result.id, eventId: result.eventId, parkingFacilityId: result.parkingFacilityId, operationalCapacity: result.operationalCapacity, sellableCapacity: result.sellableCapacity, reservedCapacity: result.reservedCapacity, version: result.version }} /> : undefined}>
       <Stack component="form" spacing={2} onSubmit={(event) => void create(event)}>
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
@@ -367,13 +390,23 @@ function ProductSetup({ events }: { events: EventResponse[] }) {
     </TextField>{catalog.isLoading ? <CircularProgress size={24} /> : catalog.isError
       ? <Alert severity="error">{describeError(catalog.error)}</Alert> : eventId && catalog.data?.length === 0
         ? <Alert severity="info">Nenhum produto neste evento.</Alert> : catalog.data && catalog.data.length > 0
-          ? <TableContainer><Table size="small"><TableHead><TableRow><TableCell>Produto</TableCell><TableCell>Categoria</TableCell>
+          ? <>
+            <ListingCards rows={catalog.data} getKey={(item) => item.id} getTitle={(item) => item.name}
+              getFields={(item) => [
+                { label: 'Categoria', value: facilityCategoryLabel(item.category as FacilityCategory) },
+                { label: 'Cota', value: item.quota },
+                { label: 'Situação', value: <Chip size="small" label={formatStatusLabel(item.status)} /> },
+              ]}
+              onOpen={accept}
+              getOpenLabel={(item) => `Selecionar produto ${item.name}`}
+            />
+            <TableContainer sx={{ display: { xs: 'none', md: 'block' } }}><Table size="small"><TableHead><TableRow><TableCell>Produto</TableCell><TableCell>Categoria</TableCell>
             <TableCell>Cota</TableCell><TableCell>Status</TableCell><TableCell /></TableRow></TableHead><TableBody>
             {catalog.data.map((item) => <TableRow key={item.id} hover selected={productRef.id === String(item.id)}>
               <TableCell>{item.name}<Typography variant="caption" display="block" color="text.secondary">#{item.id}</Typography></TableCell>
               <TableCell>{facilityCategoryLabel(item.category as FacilityCategory)}</TableCell><TableCell>{item.quota}</TableCell><TableCell><Chip size="small" label={formatStatusLabel(item.status)} /></TableCell>
               <TableCell><Button size="small" onClick={() => accept(item)}>Selecionar</Button></TableCell>
-            </TableRow>)}</TableBody></Table></TableContainer> : null}</Stack></Card>
+            </TableRow>)}</TableBody></Table></TableContainer></> : null}</Stack></Card>
     {canManage && <OperationCard title="Produto de estacionamento" description="A cota pertence a uma única alocação de pátio e representa o direito de estacionamento no evento." error={error} result={result ? <ResourceSnapshot data={{ id: result.id, eventId: result.eventId, name: result.name, category: result.category, quota: result.quota, status: result.status, version: result.version }} /> : undefined}>
       <Stack component="form" spacing={2} onSubmit={(event) => void create(event)}>
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
@@ -445,11 +478,19 @@ function PriceTierSetup({ events }: { events: EventResponse[] }) {
     </Stack>{tiersCatalog.isLoading ? <CircularProgress size={24} /> : tiersCatalog.isError
       ? <Alert severity="error">{describeError(tiersCatalog.error)}</Alert> : productId && tiersCatalog.data?.length === 0
         ? <Alert severity="info">Nenhum lote de preço neste produto.</Alert> : tiersCatalog.data && tiersCatalog.data.length > 0
-          ? <TableContainer><Table size="small"><TableHead><TableRow><TableCell>Lote</TableCell><TableCell>Preço</TableCell>
+          ? <>
+            <ListingCards rows={tiersCatalog.data} getKey={(item) => item.id} getTitle={(item) => item.name}
+              getFields={(item) => [
+                { label: 'Preço', value: formatCurrency(Number(item.price), item.currency) },
+                { label: 'Quantidade', value: item.quantity },
+                { label: 'Prioridade', value: item.priority },
+              ]}
+            />
+            <TableContainer sx={{ display: { xs: 'none', md: 'block' } }}><Table size="small"><TableHead><TableRow><TableCell>Lote</TableCell><TableCell>Preço</TableCell>
             <TableCell>Quantidade</TableCell><TableCell>Prioridade</TableCell></TableRow></TableHead><TableBody>
             {tiersCatalog.data.map((item) => <TableRow key={item.id} hover><TableCell>{item.name} #{item.id}</TableCell>
               <TableCell>{formatCurrency(Number(item.price), item.currency)}</TableCell><TableCell>{item.quantity}</TableCell>
-              <TableCell>{item.priority}</TableCell></TableRow>)}</TableBody></Table></TableContainer> : null}</Stack></Card>
+              <TableCell>{item.priority}</TableCell></TableRow>)}</TableBody></Table></TableContainer></> : null}</Stack></Card>
     {canManage && <OperationCard title="Lote de preço" description="Janelas de venda, quantidade e prioridade determinam o lote vigente." error={error} result={result ? <ResourceSnapshot data={{ id: result.id, parkingProductId: result.parkingProductId, name: result.name, price: result.price, currency: result.currency, quantity: result.quantity, priority: result.priority, version: result.version }} /> : undefined}>
       <Stack component="form" spacing={2} onSubmit={(event) => void submit(event)}>
         <ResourceIdField label="Produto" value={productId} onChange={setProductId} recent={recent('product')} />
@@ -542,7 +583,8 @@ export function EventsPage() {
       <PageHeader title="Eventos e ofertas"
         subtitle="Configure o evento, inventário vendável, produto e preço antes de abrir vendas."
         count={eventsQuery.data?.totalElements} />
-      <Tabs value={tab} onChange={(_, value) => setTab(value)} variant="scrollable" sx={{ mb: 2 }}>
+      <Tabs value={tab} onChange={(_, value) => setTab(value)} variant="scrollable"
+        scrollButtons="auto" allowScrollButtonsMobile aria-label="Etapas da configuração do evento" sx={{ mb: 2 }}>
         {panels.map((panel) => <Tab key={panel.label} label={panel.label} />)}
       </Tabs>
       {panels[tab]?.content}
