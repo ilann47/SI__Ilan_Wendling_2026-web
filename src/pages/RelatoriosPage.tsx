@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import dayjs, { type Dayjs } from 'dayjs';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -22,7 +23,11 @@ import PaidIcon from '@mui/icons-material/Paid';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import StorefrontIcon from '@mui/icons-material/Storefront';
 import DesignServicesIcon from '@mui/icons-material/DesignServices';
-import { api } from '../api/client';
+import { api, describeError } from '../api/client';
+import { ErrorState } from '../components/listing/ErrorState';
+import { ListingSkeleton } from '../components/listing/ListingSkeleton';
+import { tenantQueryKey } from '../api/queryKeys';
+import { useAuth } from '../auth/AuthContext';
 import { PageHeader } from '../components/common/PageHeader';
 import { KpiCard } from '../components/common/KpiCard';
 import { StatusChip } from '../components/common/StatusChip';
@@ -45,11 +50,20 @@ const kpiGrid = {
   gap: 2,
 } as const;
 
-function FaturamentoTab() {
+export function tituloOrigemLabel(origem: string): string {
+  return ({
+    DESPESA_AVULSA: 'Despesa avulsa',
+    CONTA_PAGAR: 'Conta a pagar',
+    CONTA_RECEBER: 'Conta a receber',
+  } as Record<string, string>)[origem] ?? origem.replace(/_/g, ' ').toLocaleLowerCase('pt-BR');
+}
+
+function FaturamentoTab({ organizationId, enabled }: { organizationId: number; enabled: boolean }) {
   const [inicio, setInicio] = useState<Dayjs>(dayjs());
   const [fim, setFim] = useState<Dayjs>(dayjs());
   const { data } = useQuery({
-    queryKey: ['rel', 'faturamento', inicio.format('YYYY-MM-DD'), fim.format('YYYY-MM-DD')],
+    queryKey: tenantQueryKey(organizationId, 'rel', 'faturamento', inicio.format('YYYY-MM-DD'), fim.format('YYYY-MM-DD')),
+    enabled,
     queryFn: () =>
       api
         .get<FaturamentoDiaResponse>('/api/relatorios/faturamento', {
@@ -97,7 +111,7 @@ function TitulosTable({ titulos }: { titulos: Titulo[] }) {
         <TableBody>
           {titulos.map((t) => (
             <TableRow key={`${t.origem}-${t.id}`}>
-              <TableCell>{t.origem}</TableCell>
+              <TableCell>{tituloOrigemLabel(t.origem)}</TableCell>
               <TableCell>{t.contraparte}</TableCell>
               <TableCell>
                 {formatDate(t.vencimento)} {t.vencido && <Chip size="small" color="error" label="vencido" sx={{ ml: 1 }} />}
@@ -114,11 +128,12 @@ function TitulosTable({ titulos }: { titulos: Titulo[] }) {
   );
 }
 
-function ContasAVencerTab() {
+function ContasAVencerTab({ organizationId, enabled }: { organizationId: number; enabled: boolean }) {
   const [inicio, setInicio] = useState<Dayjs>(dayjs());
   const [fim, setFim] = useState<Dayjs>(dayjs().add(30, 'day'));
   const { data } = useQuery({
-    queryKey: ['rel', 'contas-a-vencer', inicio.format('YYYY-MM-DD'), fim.format('YYYY-MM-DD')],
+    queryKey: tenantQueryKey(organizationId, 'rel', 'contas-a-vencer', inicio.format('YYYY-MM-DD'), fim.format('YYYY-MM-DD')),
+    enabled,
     queryFn: () =>
       api
         .get<ContasAVencerResponse>('/api/relatorios/contas-a-vencer', {
@@ -157,11 +172,16 @@ function ContasAVencerTab() {
   );
 }
 
-function EstoqueTab() {
-  const { data } = useQuery({
-    queryKey: ['rel', 'estoque'],
+function EstoqueTab({ organizationId, enabled }: { organizationId: number; enabled: boolean }) {
+  const query = useQuery({
+    queryKey: tenantQueryKey(organizationId, 'rel', 'estoque'),
+    enabled,
     queryFn: () => api.get<EstoqueMinimoResponse>('/api/relatorios/estoque-minimo').then((r) => r.data),
   });
+  const { data } = query;
+  if (!enabled) return <Typography>Seu acesso não permite consultar estoque.</Typography>;
+  if (query.isLoading) return <ListingSkeleton />;
+  if (query.isError) return <ErrorState message={describeError(query.error)} onRetry={() => void query.refetch()} />;
   const itens = data?.itens ?? [];
   return (
     <Card>
@@ -204,9 +224,10 @@ function EstoqueTab() {
   );
 }
 
-function MensalistasTab() {
+function MensalistasTab({ organizationId, enabled }: { organizationId: number; enabled: boolean }) {
   const { data } = useQuery({
-    queryKey: ['rel', 'mensalistas'],
+    queryKey: tenantQueryKey(organizationId, 'rel', 'mensalistas'),
+    enabled,
     queryFn: () => api.get<MensalistasAtivosResponse>('/api/relatorios/mensalistas-ativos').then((r) => r.data),
   });
   const itens = data?.itens ?? [];
@@ -255,27 +276,37 @@ function MensalistasTab() {
 }
 
 export function RelatoriosPage() {
-  const [tab, setTab] = useState(0);
+  const [params, setParams] = useSearchParams();
+  const tabs = ['faturamento', 'contas', 'estoque', 'mensalistas'];
+  const tab = Math.max(0, tabs.indexOf(params.get('tab') ?? 'faturamento'));
+  const { activeOrganization, permissions } = useAuth();
+  const organizationId = activeOrganization!.organizationId;
+  const canOperations = permissions.includes('operations:read');
+  const canFinance = permissions.includes('finance:read');
+  const canFiscal = permissions.includes('fiscal:read');
+  const canStock = permissions.includes('stock:read');
   return (
     <Box>
       <PageHeader title="Relatórios" subtitle="Consultas gerenciais consolidadas." />
-      <Tabs value={tab} onChange={(_, v) => setTab(v)} variant="scrollable" scrollButtons="auto">
+      <Tabs value={tab} onChange={(_, v) => setParams((current) => {
+        const next = new URLSearchParams(current); next.set('tab', tabs[v]); return next;
+      })} variant="scrollable" scrollButtons="auto">
         <Tab label="Faturamento" />
         <Tab label="Contas a vencer" />
         <Tab label="Estoque mínimo" />
         <Tab label="Mensalistas ativos" />
       </Tabs>
       <TabPanel value={tab} index={0}>
-        <FaturamentoTab />
+        <FaturamentoTab organizationId={organizationId} enabled={canOperations && canFinance && canFiscal} />
       </TabPanel>
       <TabPanel value={tab} index={1}>
-        <ContasAVencerTab />
+        <ContasAVencerTab organizationId={organizationId} enabled={canFinance} />
       </TabPanel>
       <TabPanel value={tab} index={2}>
-        <EstoqueTab />
+        <EstoqueTab organizationId={organizationId} enabled={canStock} />
       </TabPanel>
       <TabPanel value={tab} index={3}>
-        <MensalistasTab />
+        <MensalistasTab organizationId={organizationId} enabled={canOperations} />
       </TabPanel>
     </Box>
   );

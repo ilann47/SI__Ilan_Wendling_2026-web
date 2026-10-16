@@ -1,6 +1,11 @@
 import { type ReactElement } from 'react';
 import { type GridColDef } from '@mui/x-data-grid';
 import { type FieldConfig, type ReferenceConfig } from '../form/fieldConfig';
+import { tenantQueryKey } from '../../api/queryKeys';
+
+export type ResourceAction = 'read' | 'create' | 'update' | 'delete';
+
+export type ResourcePermissions = Partial<Record<ResourceAction, string[]>>;
 
 export interface FilterConfig {
   name: string;
@@ -33,15 +38,71 @@ export interface ResourceConfig {
   basePath: string;
   singular: string;
   plural: string;
+  /** Gênero gramatical usado nas mensagens e ações geradas pela tela genérica. */
+  grammaticalGender?: 'masculine' | 'feminine';
   subtitle?: string;
   columns: GridColDef[];
   fields: FieldConfig[];
   filters?: FilterConfig[];
   rowActions?: RowAction[];
+  /** Permissões cumulativas para comandos da linha, independentes de editar formulário. */
+  rowActionPermissions?: string[];
+  /** O backend resolve o proprietario exclusivamente pelo JWT contextual. */
+  tenantAware?: boolean;
+  /** PUT/DELETE exigem a versao forte obtida por ETag no detalhe. */
+  optimisticLocking?: boolean;
+  /** Permissoes efetivas exigidas por acao; ausencia preserva o contrato legado. */
+  permissions?: ResourcePermissions;
+  /** Permissoes adicionais cumulativas; todas devem existir para liberar a acao. */
+  requiredAllPermissions?: ResourcePermissions;
   canCreate?: boolean;
   canEdit?: boolean;
   canDelete?: boolean;
   defaultSort?: string;
+  /** Filtro textual usado na busca principal da listagem. */
+  searchFilter?: string;
+  /** Relacoes conhecidas que a API atual nao entrega neste detalhe. */
+  unavailableRelations?: string[];
+  /** Navegação para documentos já vinculados pela resposta, respeitando o módulo de destino. */
+  detailLinks?: DocumentOriginLink[];
   /** Converte a linha (Response) em valores iniciais do formulario de edicao. */
-  toFormValues?: (row: Record<string, any>) => Record<string, unknown>;
+  toFormValues?: (row: Record<string, unknown>) => Record<string, unknown>;
+}
+
+export function newResourceLabel(config: ResourceConfig): string {
+  return `${config.grammaticalGender === 'feminine' ? 'Nova' : 'Novo'} ${config.singular.toLowerCase()}`;
+}
+
+export function resourceNotFoundLabel(config: ResourceConfig): string {
+  const feminine = config.grammaticalGender === 'feminine';
+  return `${feminine ? 'Nenhuma' : 'Nenhum'} ${config.singular.toLowerCase()} ${feminine ? 'encontrada' : 'encontrado'}`;
+}
+
+export interface DocumentOriginLink {
+  field: string;
+  label: string;
+  path: string;
+  permissions: string[];
+}
+
+export function hasResourceActionPermission(
+  config: ResourceConfig,
+  action: ResourceAction,
+  grantedPermissions: readonly string[],
+): boolean {
+  const required = config.permissions?.[action];
+  const requiredAll = config.requiredAllPermissions?.[action];
+  const hasPrimaryPermission = !required?.length
+    || required.some((permission) => grantedPermissions.includes(permission));
+  const hasEveryAdditionalPermission = !requiredAll?.length
+    || requiredAll.every((permission) => grantedPermissions.includes(permission));
+  return hasPrimaryPermission && hasEveryAdditionalPermission;
+}
+
+export function resourceQueryKey(
+  config: ResourceConfig,
+  organizationId: number | null | undefined,
+  ...parts: readonly unknown[]
+): readonly unknown[] {
+  return config.tenantAware ? tenantQueryKey(organizationId, ...parts) : parts;
 }

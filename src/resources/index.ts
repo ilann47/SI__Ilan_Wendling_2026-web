@@ -7,6 +7,7 @@ import { logisticaConfigs } from './logistica';
 import { patioConfigs } from './patio';
 import { fiscalConfigs } from './fiscal';
 import { financeiroConfigs } from './financeiro';
+import { stockQuickCreateConfigs } from './estoque';
 
 export const allConfigs: ResourceConfig[] = [
   ...geografiaConfigs,
@@ -22,3 +23,8 @@ export const allConfigs: ResourceConfig[] = [
 export const configByKey: Record<string, ResourceConfig> = Object.fromEntries(
   allConfigs.map((c) => [c.key, c]),
 );
+
+/** Cadastros contextuais de módulos com tela própria, sem gerar rotas CRUD. */
+export const quickCreateOnlyConfigs: ResourceConfig[] = [
+  ...stockQuickCreateConfigs,
+];
