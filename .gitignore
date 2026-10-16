@@ -8,3 +8,13 @@ dist-ssr
 .tmp-check/
 
 .claude/
+
+# Logs locais de execucao e validacao
+/frontend-e2e.log
+/frontend-e2e.err
+/frontend-full-test-single.log
+/frontend-full-test.log
+/frontend-validation.log
+/service-orders-full.log
+/vite-local.log
+/vite-local.err
