@@ -33,12 +33,12 @@ export function DetailDrawer({
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const header = (
-    <Stack direction="row" alignItems="flex-start" justifyContent="space-between" spacing={2} sx={{ pr: 1 }}>
-      <Box>
-        <Typography variant="h6" component="h2">{title}</Typography>
+    <Stack direction="row" alignItems="flex-start" justifyContent="space-between" spacing={2}>
+      <Box sx={{ minWidth: 0 }}>
+        <Typography id="detalhe-titulo" variant="h6" component="h2" sx={{ wordBreak: 'break-word' }}>{title}</Typography>
         {subtitle && <Typography variant="body2" color="text.secondary">{subtitle}</Typography>}
       </Box>
-      <IconButton aria-label="Fechar detalhes" onClick={onClose}>
+      <IconButton aria-label="Fechar detalhes" onClick={onClose} size="small" sx={{ mt: -0.75, mr: -0.75, flexShrink: 0 }}>
         <CloseOutlinedIcon />
       </IconButton>
     </Stack>
@@ -65,16 +65,19 @@ export function DetailDrawer({
         sx: {
           width: width === 'wide' ? { md: 720, lg: 800 } : { md: 480, lg: 560 },
           maxWidth: '100vw',
-          p: 3,
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden',
+          backgroundColor: 'background.paper',
         },
       }}
     >
-      <Box id="detalhe-titulo">{header}</Box>
-      <Box sx={{ mt: 3, display: 'flex', flexDirection: 'column', gap: 2, pb: 8 }}>
+      <Box sx={{ p: 3, pb: 2, borderBottom: '1px solid', borderColor: 'divider' }}>{header}</Box>
+      <Box sx={{ p: 3, display: 'flex', flexDirection: 'column', gap: 2.5, overflowY: 'auto', minHeight: 0, flex: 1, '& > *': { minWidth: 0 } }}>
         {children}
       </Box>
       {actions && (
-        <Box sx={{ position: 'sticky', bottom: 0, bgcolor: 'background.paper', pt: 2 }}>
+        <Box sx={{ bgcolor: 'background.paper', p: 2, borderTop: '1px solid', borderColor: 'divider', '& .MuiButton-root': { minHeight: 44 } }}>
           {actions}
         </Box>
       )}

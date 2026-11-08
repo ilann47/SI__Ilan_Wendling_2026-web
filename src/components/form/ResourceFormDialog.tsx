@@ -110,13 +110,25 @@ export function ResourceFormDialog({
               Cancelar
             </Button>
             <Button form={formId} type="submit" variant="contained"
-              disabled={submitting || !isValid || Object.keys(errors).length > 0}>
-              {submitLabel}
+              disabled={submitting || !isValid || Object.keys(errors).length > 0}
+              aria-busy={!!submitting}
+              aria-label={submitting ? 'Salvando…' : undefined}
+              startIcon={submitting ? (
+                <CircularProgress size={16} thickness={5} color="inherit" aria-label="Salvando cadastro" />
+              ) : undefined}>
+              {submitting ? 'Salvando…' : submitLabel}
             </Button>
           </>
         )}
       >
-          <Box component="form" id={formId} onSubmit={submit} noValidate>
+          <Box
+            component="form"
+            id={formId}
+            aria-label={typeof title === 'string' ? title : 'Formulário'}
+            aria-busy={!!submitting}
+            onSubmit={submit}
+            noValidate
+          >
             {conflictMessage && (
               <Alert
                 severity="warning"

@@ -12,7 +12,7 @@ describe('ResourceFormDialog', () => {
       { name: 'quantidadeMinima', label: 'Minimo', type: 'number' },
       { name: 'categoriaId', label: 'Categoria', type: 'reference' },
       { name: 'custo', label: 'Custo', type: 'money', disabled: true },
-      { name: '_totais', label: 'Totais', type: 'subitems-summary', subItemsSummary: 'purchase-costs' },
+      { name: '_totais', label: 'Totais', type: 'subitems-summary', subItemsSummary: 'inbound-note-costs' },
       { name: 'observacao', label: 'Observacao', type: 'text' },
     ];
 
@@ -126,6 +126,25 @@ describe('ResourceFormDialog', () => {
     expect(screen.queryByRole('heading', { name: 'Descartar alterações?' })).not.toBeInTheDocument();
   });
 
+  it('comunica o salvamento e bloqueia novas acoes enquanto envia', () => {
+    render(
+      <ResourceFormDialog
+        open
+        title="Novo cadastro"
+        fields={[{ name: 'nome', label: 'Nome', type: 'text' }]}
+        submitting
+        onClose={() => undefined}
+        onSubmit={() => undefined}
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: 'Salvando…' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Salvando…' })).toHaveAttribute('aria-busy', 'true');
+    expect(screen.getByRole('progressbar', { name: 'Salvando cadastro' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Cancelar' })).toBeDisabled();
+    expect(screen.getByRole('form')).toHaveAttribute('aria-busy', 'true');
+  });
+
   it('substitui o zero inicial ao preencher um valor monetário', async () => {
     const user = userEvent.setup();
     render(
@@ -203,5 +222,40 @@ describe('ResourceFormDialog', () => {
     expect(screen.getByRole('button', { name: 'Salvar' })).toBeDisabled();
     expect(input).toHaveAttribute('min', '0');
     expect(input).toHaveAttribute('max', '100');
+  });
+
+  it('bloqueia a sétima casa de valores e preserva a sexta no envio', async () => {
+    const submit = vi.fn();
+    render(<ResourceFormDialog open title="Novo serviço"
+      fields={[{ name: 'valorPadrao', label: 'Valor padrão', type: 'money', required: true }]}
+      onClose={() => undefined} onSubmit={submit} />);
+    const input = screen.getByRole('spinbutton', { name: 'Valor padrão' });
+    const salvar = screen.getByRole('button', { name: 'Salvar' });
+    expect(input).toHaveAttribute('step', '0.000001');
+    fireEvent.change(input, { target: { value: '0.0000001' } });
+    expect(await screen.findByText(/até seis casas decimais/)).toBeInTheDocument();
+    expect(salvar).toBeDisabled();
+    fireEvent.click(salvar);
+    expect(submit).not.toHaveBeenCalled();
+    fireEvent.change(input, { target: { value: '0.000001' } });
+    await userEvent.click(salvar);
+    expect(submit).toHaveBeenCalledWith({ valorPadrao: '0.000001' });
+  });
+
+  it('preserva margem calculada negativa na leitura sem bloquear a edição nem enviar a margem', async () => {
+    const submit = vi.fn();
+    render(<ResourceFormDialog open title="Editar produto"
+      fields={[
+        { name: 'nome', label: 'Nome', type: 'text', required: true },
+        { name: 'percentualLucro', label: '% Lucro', type: 'percent', disabled: true },
+      ]}
+      initialValues={{ nome: 'PRODUTO', percentualLucro: -0.000001 }}
+      onClose={() => undefined} onSubmit={submit} />);
+    const margin = screen.getByRole('spinbutton', { name: '% Lucro' });
+    expect(margin).toBeDisabled();
+    expect(margin).toHaveValue(-0.000001);
+    fireEvent.change(screen.getByRole('textbox', { name: 'Nome' }), { target: { value: 'PRODUTO NOVO' } });
+    await userEvent.click(screen.getByRole('button', { name: 'Salvar' }));
+    expect(submit).toHaveBeenCalledWith({ nome: 'PRODUTO NOVO' });
   });
 });

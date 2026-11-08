@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -17,32 +17,34 @@ const base: InboundImport = { id: 4, version: 0, status: 'IMPORTADA', documento:
 function setup(permissions: string[], value = base) {
   vi.mocked(useAuth).mockReturnValue({ activeOrganization: { organizationId: 7 }, permissions } as unknown as ReturnType<typeof useAuth>);
   vi.spyOn(api, 'get').mockImplementation(async (url) => ({ data: String(url).endsWith('/importacoes/4') ? value
+    : String(url).endsWith('/4/previa') ? { nota: { ...value.documento, fornecedorNome: 'Distribuidora', localEstoqueNome: 'Loja', valorProdutos: 20, valorFrete: 0, valorSeguro: 0, outrasDespesas: 0, valorDesconto: 0, itens: [] }, parcelas: [], valorCustoTotal: 20, valorObrigacao: 20, diferencaDescontoGeral: 0, custosMedios: [] }
     : String(url).endsWith('/produtos/13') ? { id: 13, nome: 'Água', unidadeMedidaSigla: 'UN' }
-      : String(url).endsWith('/purchase-orders/88') ? { id: 88, itens: [{ id: 321, produtoNome: 'Água', quantidadePendente: 2 }] }
-        : String(url).endsWith('/receipts') ? []
       : { content: [], totalElements: 0, totalPages: 0 } }));
   render(<MemoryRouter initialEntries={['/app/notas-entrada/importar?importacao=4']}><QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}><XmlInboundImportPage /></QueryClientProvider></MemoryRouter>);
 }
 describe('XML de entrada', () => {
-  it('exige confirmação explícita para registrar novo recebimento pela compra', async () => {
-    const put = vi.spyOn(api, 'put').mockRejectedValue(new Error('Falha temporária'));
-    setup(['fiscal:read', 'fiscal:manage', 'suppliers:read', 'catalog:read', 'stock:read', 'purchases:read'], {
-      ...base, fornecedorId: 11, localEstoqueId: 12, ordemCompraId: 88,
+  it('bloqueia a sétima casa na contagem antes de enviar ao servidor', async () => {
+    const post = vi.spyOn(api, 'post').mockRejectedValue(new Error('Gravação indevida'));
+    setup(['fiscal:read', 'fiscal:manage'], { ...base, status: 'CONCILIADA', fornecedorId: 11, localEstoqueId: 12,
       itens: [{ sequencia: 1, produtoId: 13, produtoNome: 'Água', unidadeDestino: 'UN', fatorConversao: 1,
-        quantidade: 2, valorUnitario: 10, itemOrdemCompraId: 321 }],
+        quantidade: 2, valorUnitario: 10 }],
     });
-    const user = userEvent.setup();
-    await user.click(await screen.findByRole('button', { name: 'Salvar conciliação' }));
-    expect(await screen.findByText(/Selecione o recebimento já registrado ou confirme explicitamente/)).toBeInTheDocument();
-    expect(put).not.toHaveBeenCalled();
-    await user.click(screen.getByRole('checkbox', { name: 'Esta mercadoria ainda não foi recebida; registrar novo recebimento ao confirmar' }));
-    await user.click(screen.getByRole('button', { name: 'Salvar conciliação' }));
-    expect(put).toHaveBeenCalledWith('/api/notas-entrada/importacoes/4/conciliacao', expect.objectContaining({ registrarNovoRecebimento: true, ordemCompraId: 88 }), { headers: { 'If-Match': '"0"' } });
+    const input = await screen.findByLabelText('Quantidade conferida — Água');
+    fireEvent.change(input, { target: { value: '1.0000001' } });
+    await userEvent.click(screen.getByRole('button', { name: 'Salvar conferência física' }));
+    expect(await screen.findByText(/até seis casas decimais/)).toBeInTheDocument();
+    expect(post).not.toHaveBeenCalled();
+  });
+  it('não oferece vínculo com ordem ou recebimento anterior', async () => {
+    setup(['fiscal:read', 'fiscal:manage', 'suppliers:read', 'catalog:read', 'stock:read']);
+    expect(await screen.findByRole('heading', { name: /Nota 123/ })).toBeInTheDocument();
+    expect(screen.queryByLabelText(/Entrada anterior|Ordem de compra|Recebimento/)).not.toBeInTheDocument();
   });
   it('exige salvar uma contagem alterada antes da confirmação final', async () => {
     setup(['fiscal:read', 'fiscal:manage'], { ...base, status: 'CONFERIDA', fornecedorId: 11, localEstoqueId: 12,
       itens: [{ sequencia: 1, produtoId: 13, produtoNome: 'Água', unidadeDestino: 'UN', fatorConversao: 1, quantidade: 2, valorUnitario: 10, quantidadeConferida: 2 }],
     });
+    await userEvent.click(await screen.findByRole('button', { name: 'Conferir custos e parcelas' }));
     expect(await screen.findByRole('button', { name: 'Confirmar lançamentos' })).toBeInTheDocument();
     const input = screen.getByLabelText('Quantidade conferida — Água');
     await userEvent.clear(input);
@@ -71,6 +73,7 @@ describe('XML de entrada', () => {
     await user.type(input, '2');
     expect(screen.queryByRole('button', { name: 'Confirmar lançamentos' })).not.toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Salvar conferência física' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Conferir custos e parcelas' }));
     expect(await screen.findByRole('button', { name: 'Confirmar lançamentos' })).toBeInTheDocument();
     expect(post).toHaveBeenCalledWith('/api/notas-entrada/importacoes/4/conferencia',
       { itens: [{ sequencia: 1, quantidadeConferida: 2 }] }, { headers: { 'If-Match': '"0"' } });

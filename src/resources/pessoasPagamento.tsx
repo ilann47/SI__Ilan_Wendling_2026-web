@@ -1,5 +1,6 @@
 import { type ResourceConfig } from '../components/crud/resourceConfig';
 import { type FieldConfig } from '../components/form/fieldConfig';
+import { formatPercent } from '../utils/format';
 import { cols } from './columns';
 import { estadoCivilOptions, sexoOptions, tipoPessoaOptions } from './options';
 
@@ -20,7 +21,6 @@ export const clientesConfig: ResourceConfig = {
   unavailableRelations: [
     'Mensalidades',
     'Movimentações',
-    'Vendas administrativas',
     'Ordens de serviço',
     'Notas',
     'Contas a receber',
@@ -110,7 +110,7 @@ export const formasPagamentoConfig: ResourceConfig = {
 const parcelaSubFields: FieldConfig[] = [
   { name: 'numero', label: 'Nº', type: 'integer', cols: 2, required: true },
   { name: 'dias', label: 'Dias', type: 'integer', cols: 3, required: true },
-  { name: 'percentual', label: 'Percentual', type: 'percent', cols: 3, required: true },
+  { name: 'percentual', label: 'Percentual', type: 'percent', cols: 3, required: true, step: 0.000001 },
   {
     name: 'formaPagamentoId',
     label: 'Forma',
@@ -139,8 +139,8 @@ export const condicoesPagamentoConfig: ResourceConfig = {
     cols.id(),
     cols.text('nome', 'Nome'),
     cols.number('numeroParcelas', 'Parcelas'),
-    cols.percent('percentualJuros', 'Juros'),
-    cols.percent('percentualDesconto', 'Desconto'),
+    cols.percent('percentualJuros', 'Juros', { valueFormatter: (value: number) => formatPercent(value, 6) }),
+    cols.percent('percentualDesconto', 'Desconto', { valueFormatter: (value: number) => formatPercent(value, 6) }),
     cols.bool('ativo', 'Ativo'),
   ],
   filters: [
@@ -160,9 +160,9 @@ export const condicoesPagamentoConfig: ResourceConfig = {
     { name: 'nome', label: 'Nome', type: 'text', required: true, cols: 6 },
     { name: 'numeroParcelas', label: 'Nº de parcelas', type: 'integer', required: true, cols: 3, defaultValue: 1 },
     { name: 'ativo', label: 'Ativo', type: 'switch', cols: 3 },
-    { name: 'percentualJuros', label: 'Juros', type: 'percent', cols: 4 },
-    { name: 'percentualMulta', label: 'Multa', type: 'percent', cols: 4 },
-    { name: 'percentualDesconto', label: 'Desconto', type: 'percent', cols: 4 },
+    { name: 'percentualJuros', label: 'Juros', type: 'percent', cols: 4, step: 0.000001 },
+    { name: 'percentualMulta', label: 'Multa', type: 'percent', cols: 4, step: 0.000001 },
+    { name: 'percentualDesconto', label: 'Desconto', type: 'percent', cols: 4, step: 0.000001 },
     { name: 'parcelas', label: 'Parcelas', type: 'subitems', subFields: parcelaSubFields },
   ],
 };

@@ -7,12 +7,9 @@ encontram endpoint estável. Não inventar mocks para esconder estas lacunas.
 
 | Necessidade UX | Situação atual | Dependência sugerida |
 |---|---|---|
-| Vínculo OC + recebimento no detalhe da nota | Resolvido por `GET /api/notas-entrada/{id}/detalhes` | Integrado no detalhe dedicado |
 | Contas a pagar geradas pela confirmação | Resolvido pelo array `contasPagar` do detalhe integrado | Integrado; deep-link usa `notaEntradaId` |
 | Movimentos de estoque da confirmação | Resolvido pelo array `movimentosEstoque` do detalhe integrado | Integrado no detalhe dedicado |
 | Histórico de ações (criar/confirmar/cancelar) | Sem auditoria por recurso na API atual | Eventos/auditoria por `notaEntradaId` |
-| Lista global de recebimentos | Só `GET /api/v1/purchase-orders/{id}/receipts` | Opcional: listagem paginada de recebimentos; UI atual compõe via OC |
-| Notas e contas no contexto da compra | Resolvido por `GET /api/v1/purchase-orders/{id}/documents` | Integrado no detalhe da OC; seções respeitam RBAC e links abrem registros exatos |
 | Reenvio de criação após timeout | Resolvido por `Idempotency-Key` opcional em `POST /api/notas-entrada` | Wizard mantém a chave; confirmação recupera situação via GET sem novo POST automático |
 
 ## Navegação / Estoque
@@ -39,3 +36,12 @@ o relatório de estoque mínimo continua abrindo a relação completa em sua aba
 - O recorte aceita NF-e modelo 55, versão 4.00, saída normal do fornecedor. Devoluções, complementos, ajustes e valores que o domínio atual não consegue representar não são confirmados silenciosamente.
 - Validação estrutural do XML não equivale a validação completa de XSD, assinatura ou autorização fiscal. A interface não deve apresentar a importação ou a emissão interna como autorização externa.
 - Emissão externa permanece bloqueada: não foi encontrado adaptador/contrato configurado de homologação para NF-e/NFS-e. Antes de expor envio/autorização reais, são necessários provedor com cobertura confirmada para cada documento, acesso de homologação, certificado quando exigido e configuração fiscal por empresa/município.
+
+## PARK-0003 — Nota como fluxo único (2026-10-16)
+
+A Nota usa PUT/If-Match, prévia canônica com parcelas, filtros paginados e retomada
+idempotente. XML conferido usa GET /importacoes/{id}/previa.
+Histórico completo de ações por recurso continua fora do contrato. Reversão interna
+de confirmada elegível foi integrada em Entrada e Saída em 2026-11-05 e exibe data,
+motivo e efeitos; não equivale a cancelamento externo. Resultados de testes
+históricos acima não são gates atuais.

@@ -80,6 +80,8 @@ motivo sao traduzidos sem perder o valor tecnico no contrato.
 - O feed aparece somente com `audit:read`, usa filtros aplicados explicitamente
   e mantém o histórico local de cursores para navegação anterior/próxima.
 - O console mantem as ultimas dez decisoes somente em memoria durante a sessao.
+- Evento, pátio e credencial priorizam referências recentes por nome. Digitação
+  de código fica como contingência explícita quando não há catálogo disponível.
 
 ## Módulos relacionados
 
@@ -93,6 +95,7 @@ motivo sao traduzidos sem perder o valor tecnico no contrato.
 
 | Data | Ação |
 |---|---|
+| 2026-10-24 | QA do console substitui rótulos de ID por seleção operacional e fallback de referência com copy neutra. |
 | 2026-08-01 | Implementa operação QR online responsiva para entrada e saída. |
 | 2026-08-01 | Adiciona bloqueio operacional de credencial por Supervisor. |
 | 2026-08-01 | Adiciona validação QR auditável sem consumo ao console operacional. |

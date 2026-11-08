@@ -29,16 +29,16 @@ describe('hub areas navigation', () => {
     }
   });
 
-  it('agrupa Estoque por Compras, Estoque e Cadastro de produtos', () => {
+  it('agrupa Estoque por Entradas, Estoque e Cadastro de produtos', () => {
     const menu = areaMenuFor('estoque');
     expect(menu?.processGroups.map((group) => group.label)).toEqual([
-      'Compras', 'Estoque', 'Cadastro de produtos',
+      'Entradas', 'Estoque', 'Cadastro de produtos',
     ]);
     const visible = visibleProcessGroups(menu!, [
-      'purchases:read', 'fiscal:read', 'suppliers:read', 'stock:read', 'catalog:read',
+      'fiscal:read', 'suppliers:read', 'stock:read', 'catalog:read',
     ]);
     expect(visible[0]?.items.map((item) => item.label)).toContain('Notas de Entrada');
-    expect(visible[0]?.items.map((item) => item.label)).toContain('Recebimentos');
+    expect(visible[0]?.items.map((item) => item.label)).not.toContain('Recebimentos');
     expect(visible[1]?.items.map((item) => item.label)).toContain('Posição de Estoque');
     expect(visible[1]?.items.map((item) => item.label)).toContain('Razão de estoque');
   });
@@ -52,8 +52,8 @@ describe('hub areas navigation', () => {
   });
 
   it('prioriza o trabalho do dia na área de estoque respeitando permissões', () => {
-    expect(quickActionsFor('estoque', ['purchases:read', 'stock:read']).map((action) => action.label))
-      .toEqual(['Fazer um pedido', 'Receber mercadoria', 'Consultar estoque']);
+    expect(quickActionsFor('estoque', ['stock:read']).map((action) => action.label))
+      .toEqual(['Consultar estoque']);
     expect(quickActionsFor('estoque', ['fiscal:manage']).map((action) => action.label))
       .toEqual(['Lançar nota de entrada']);
   });

@@ -58,6 +58,7 @@ export function HeaderAreaNavigation({ activeModuleId, requestedArea, onAreaOpen
   const [anchor, setAnchor] = useState<HTMLButtonElement | null>(null);
   const [openArea, setOpenArea] = useState<string | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [mobileExpanded, setMobileExpanded] = useState<string | null>(activeModuleId ?? null);
   const panelRef = useRef<HTMLDivElement | null>(null);
   const triggerRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   const focusFirstLink = useRef(false);
@@ -76,11 +77,16 @@ export function HeaderAreaNavigation({ activeModuleId, requestedArea, onAreaOpen
   }, [location.key, mobile, permissions]);
 
   useEffect(() => {
+    if (mobile) setMobileExpanded(activeModuleId ?? null);
+  }, [activeModuleId, mobile]);
+
+  useEffect(() => {
     if (!requestedArea) return;
     const menu = areaMenus.find((candidate) => candidate.areaId === requestedArea);
     if (menu && visibleProcessGroups(menu, permissions).length > 0) {
       if (mobile) {
         setDrawerOpen(true);
+        setMobileExpanded(requestedArea);
       } else {
         setAnchor(triggerRefs.current[requestedArea]);
         focusFirstLink.current = true;
@@ -100,7 +106,10 @@ export function HeaderAreaNavigation({ activeModuleId, requestedArea, onAreaOpen
 
   if (mobile) return <>
     <IconButton aria-label="Abrir áreas e processos" aria-haspopup="dialog" aria-expanded={drawerOpen}
-      onClick={() => setDrawerOpen(true)} sx={{ width: 44, height: 44, color: colors.purple }}><MenuRoundedIcon /></IconButton>
+      onClick={() => {
+        setMobileExpanded(openArea ?? activeModuleId ?? null);
+        setDrawerOpen(true);
+      }} sx={{ width: 44, height: 44, color: colors.purple }}><MenuRoundedIcon /></IconButton>
     <Drawer open={drawerOpen} onClose={close}
       PaperProps={{ role: 'dialog', 'aria-label': 'Áreas e processos', sx: { width: 'min(360px, 100vw)', bgcolor: colors.appBar, p: 2, pb: 'max(16px, env(safe-area-inset-bottom))' } }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
@@ -108,7 +117,8 @@ export function HeaderAreaNavigation({ activeModuleId, requestedArea, onAreaOpen
         <IconButton aria-label="Fechar áreas e processos" onClick={close}><CloseRoundedIcon /></IconButton>
       </Box>
       <Button component={RouterLink} to="/app" onClick={close} sx={{ justifyContent: 'flex-start', minHeight: 44 }}>Início</Button>
-      {menus.map((menu) => <Accordion key={menu.areaId} defaultExpanded={menu.areaId === (openArea ?? activeModuleId)} disableGutters elevation={0}
+      {menus.map((menu) => <Accordion key={menu.areaId} expanded={mobileExpanded === menu.areaId}
+        onChange={(_, expanded) => setMobileExpanded(expanded ? menu.areaId : null)} disableGutters elevation={0}
         sx={{ bgcolor: 'transparent', '&::before': { display: 'none' }, borderBottom: `1px solid ${colors.border}` }}>
         <AccordionSummary expandIcon={<ExpandMoreRoundedIcon />} aria-controls={`mobile-area-${menu.areaId}`} id={`mobile-trigger-${menu.areaId}`}
           sx={{ px: 0.5, minHeight: 48, color: menu.areaId === activeModuleId ? colors.purple : colors.text, fontWeight: 700 }}>

@@ -224,15 +224,15 @@ export function OrganizationForm({
         />
       </Stack>
       <TextField
-        label="Fuso horário IANA"
+        label="Fuso horário"
         value={values.timeZone}
         onChange={(event) => setField('timeZone', event.target.value)}
         inputRef={(el) => { refs.current.timeZone = el; }}
         error={Boolean(fieldErrors.timeZone)}
-        helperText={fieldErrors.timeZone}
+        helperText={fieldErrors.timeZone ?? 'Ex.: America/Sao_Paulo'}
         required
         fullWidth
-        inputProps={{ maxLength: 60, 'aria-label': 'Fuso horário IANA' }}
+        inputProps={{ maxLength: 60, 'aria-label': 'Fuso horário' }}
       />
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.25}>
         <Button type="submit" variant="contained" disabled={loading} sx={{ minHeight: 44 }}>

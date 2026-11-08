@@ -91,7 +91,7 @@ export function RelatedItemsTable({
                   const numeric = typeof value === 'number';
                   const content = key.startsWith('valor') && numeric
                     ? formatCurrency(value)
-                    : numeric ? formatNumber(value, Number.isInteger(value) ? 0 : 3) : String(value ?? '—');
+                    : numeric ? formatNumber(value, Number.isInteger(value) ? 0 : 3, 6) : String(value ?? '—');
                   return (
                     <TableCell key={key} align={key.startsWith('valor') || key.startsWith('quantidade') ? 'right' : 'left'}>
                       {content}

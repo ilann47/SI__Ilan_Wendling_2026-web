@@ -32,8 +32,8 @@ describe('EventAccessPage', () => {
     render(<EventAccessPage />);
     const user = userEvent.setup();
     await user.type(screen.getByLabelText(/QR da credencial/), 'token-seguro');
-    await user.type(screen.getByLabelText(/ID do evento/), '5');
-    await user.type(screen.getByLabelText(/ID do patio/), '7');
+    await user.type(screen.getByLabelText(/Código de referência — Evento/), '5');
+    await user.type(screen.getByLabelText(/Código de referência — Pátio/), '7');
     await user.click(screen.getByRole('button', { name: 'Registrar entrada' }));
 
     expect(await screen.findAllByText('Acesso autorizado')).toHaveLength(2);
@@ -56,8 +56,8 @@ describe('EventAccessPage', () => {
     render(<EventAccessPage />);
     const user = userEvent.setup();
     await user.type(screen.getByLabelText(/QR da credencial/), 'token-seguro');
-    await user.type(screen.getByLabelText(/ID do evento/), '5');
-    await user.type(screen.getByLabelText(/ID do patio/), '7');
+    await user.type(screen.getByLabelText(/Código de referência — Evento/), '5');
+    await user.type(screen.getByLabelText(/Código de referência — Pátio/), '7');
     const submit = screen.getByRole('button', { name: 'Registrar entrada' });
 
     await user.click(submit);
@@ -81,7 +81,7 @@ describe('EventAccessPage', () => {
 
     render(<EventAccessPage />);
     const user = userEvent.setup();
-    await user.type(screen.getByLabelText(/Credencial/), '20');
+    await user.type(screen.getByLabelText(/Código de referência — Credencial/), '20');
     await user.type(screen.getByLabelText(/Motivo do bloqueio/), 'Perda informada');
     await user.click(screen.getByRole('button', { name: 'Bloquear credencial' }));
     await user.click(screen.getAllByRole('button', { name: 'Bloquear credencial' }).at(-1)!);

@@ -58,6 +58,10 @@ Vitest cobre conversao do lote e rejeicao de categorias fora do catalogo.
   enquanto patios, setores e vagas usam `facilities:manage`.
 - Capacidades fisica, operacional e de setor usam o campo numerico compartilhado,
   respeitando os minimos do dominio e removendo zeros a esquerda.
+- Locais, patios, setores e importacao de vagas usam a mesma acao primaria no
+  cabecalho e abrem em `OperationalFormDialog`; a pagina nao mistura mais
+  formularios soltos com cadastros modais. Fechamento com alteracoes confirma
+  descarte e, no mobile, o dialogo ocupa a tela inteira.
 
 ## Modulos relacionados
 
@@ -76,3 +80,4 @@ Vitest cobre conversao do lote e rejeicao de categorias fora do catalogo.
 | 2026-09-28 | Substitui IDs manuais de cidade por seleção pesquisável em Venue e Pátio. |
 | 2026-09-28 | Expõe honestamente a ausência das listagens de Venue/instalações no contrato atual, sem criar dados ou endpoints fictícios. |
 | 2026-09-29 | Padroniza validação e digitação das capacidades de pátios e setores. |
+| 2026-10-30 | Move os quatro cadastros de instalações para o diálogo operacional compartilhado e preserva permissões, contratos e referências recentes. |

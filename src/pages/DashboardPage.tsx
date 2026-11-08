@@ -4,7 +4,7 @@ import FactCheckOutlinedIcon from '@mui/icons-material/FactCheckOutlined';
 import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined';
 import LocalParkingOutlinedIcon from '@mui/icons-material/LocalParkingOutlined';
 import ReportProblemOutlinedIcon from '@mui/icons-material/ReportProblemOutlined';
-import ShoppingCartCheckoutOutlinedIcon from '@mui/icons-material/ShoppingCartCheckoutOutlined';
+import ReceiptLongOutlinedIcon from '@mui/icons-material/ReceiptLongOutlined';
 import TrendingDownOutlinedIcon from '@mui/icons-material/TrendingDownOutlined';
 import { useQuery } from '@tanstack/react-query';
 import { Alert, Box, Card, CardContent, List, ListItemButton, ListItemText, Stack, Typography } from '@mui/material';
@@ -14,15 +14,14 @@ import { DetailDrawer } from '../components/listing/DetailDrawer';
 import { financialRange, financialTitlePath, type FinancialPeriod } from './dashboardContext';
 import { api, describeError } from '../api/client';
 import { eventCatalogApi } from '../api/eventCatalog';
-import { purchaseApi } from '../api/purchases';
+import { inboundNotesApi } from '../api/inboundNotes';
 import { tenantQueryKey } from '../api/queryKeys';
 import { serviceOrdersApi } from '../api/serviceOrders';
-import { administrativeSalesApi } from '../api/administrativeSales';
 import { useAuth } from '../auth/AuthContext';
 import { KpiCard } from '../components/common/KpiCard';
 import { PageHeader } from '../components/common/PageHeader';
 import { ErrorState } from '../components/listing/ErrorState';
-import { formatCurrency, formatDate, formatStatusLabel } from '../utils/format';
+import { formatCurrency, formatDate } from '../utils/format';
 import type {
   ContasAVencerResponse,
   EstoqueMinimoResponse,
@@ -45,8 +44,7 @@ export function DashboardPage({ embedded = false, financialPeriod = 'week', head
   const canOperations = permissions.includes('operations:read');
   const canFinance = permissions.includes('finance:read');
   const canStock = permissions.includes('stock:read');
-  const canPurchases = permissions.includes('purchases:read');
-  const canSales = permissions.includes('sales:read');
+  const canReadInboundNotes = permissions.includes('fiscal:read');
   const canService = permissions.includes('service_orders:read');
   const canEvents = permissions.includes('events:read');
   const range = financialRange(financialPeriod);
@@ -86,16 +84,10 @@ export function DashboardPage({ embedded = false, financialPeriod = 'week', head
       .then((response) => response.data),
     refetchInterval: 20_000,
   });
-  const purchases = useQuery({
-    queryKey: tenantQueryKey(organizationId, 'dashboard', 'purchase-orders'),
-    enabled: canPurchases,
-    queryFn: () => purchaseApi.list({ size: 20, sort: 'dataEmissao,desc' }),
-    staleTime: 30_000,
-  });
-  const sales = useQuery({
-    queryKey: tenantQueryKey(organizationId, 'dashboard', 'sales'),
-    enabled: canSales && !embedded,
-    queryFn: () => administrativeSalesApi.list({ size: 10, sort: 'dataEmissao,desc' }),
+  const inboundNotes = useQuery({
+    queryKey: tenantQueryKey(organizationId, 'notas-entrada', 'pendentes'),
+    enabled: canReadInboundNotes,
+    queryFn: () => inboundNotesApi.list({ size: 5, situacao: 'PENDENTE', sort: 'dataEmissao,desc' }),
     staleTime: 30_000,
   });
   const services = useQuery({
@@ -107,25 +99,23 @@ export function DashboardPage({ embedded = false, financialPeriod = 'week', head
 
   const refused = attempts.data?.items.filter((item) => item.decision === 'RECUSADA').length;
   const authorized = attempts.data?.items.filter((item) => item.decision === 'AUTORIZADA').length;
-  const awaitingReceipt = (purchases.data?.content ?? [])
-    .filter((order) => order.status === 'APROVADA' || order.status === 'PARCIALMENTE_RECEBIDA');
+  const draftInboundNotes = (inboundNotes.data?.content ?? [])
+    .filter((note) => note.situacao === 'PENDENTE');
   const openServices = (services.data?.content ?? [])
     .filter((order) => order.status === 'RASCUNHO' || order.status === 'EM_EXECUCAO');
   const incompleteEvents = (events.data?.content ?? []).filter((event) => {
     const checklist = event.configurationChecklist;
     return checklist ? Object.values(checklist).some((item) => item === false) : false;
   });
-  const purchaseComplete = purchases.data
-    ? purchases.data.totalElements <= purchases.data.content.length : false;
   const serviceComplete = services.data
     ? services.data.totalElements <= services.data.content.length : false;
 
-  const errors = [patio, contas, estoque, events, attempts, purchases, sales, services]
+  const errors = [patio, contas, estoque, events, attempts, inboundNotes, services]
     .filter((query) => query.isError);
-  const hasIndicators = canOperations || canFinance || canStock || canPurchases || canService || canEvents || canReadAudit;
-  const activityQueries = [canSales ? sales : null, canPurchases ? purchases : null, canOperations ? patio : null]
+  const hasIndicators = canOperations || canFinance || canStock || canReadInboundNotes || canService || canEvents || canReadAudit;
+  const activityQueries = [canReadInboundNotes ? inboundNotes : null, canOperations ? patio : null]
     .filter((query) => query !== null);
-  const hasActivity = Boolean(sales.data?.content.length || awaitingReceipt.length
+  const hasActivity = Boolean(draftInboundNotes.length
     || (patio.data && patio.data.itens.length === 0));
 
   return (
@@ -140,7 +130,7 @@ export function DashboardPage({ embedded = false, financialPeriod = 'week', head
       />}
 
       <Stack spacing={3}>
-        {!hasIndicators && (embedded || !canSales) && (
+        {!hasIndicators && (
           <Alert severity="info">O resumo não possui indicadores disponíveis para o seu acesso. Suas rotinas continuam no menu superior.</Alert>
         )}
         {errors.length > 0 && (
@@ -175,12 +165,12 @@ export function DashboardPage({ embedded = false, financialPeriod = 'week', head
                 icon={<Inventory2OutlinedIcon />} color="warning.main" />
             </Box>
           )}
-          {canPurchases && (
+          {canReadInboundNotes && (
             <Box>
-              <KpiCard title="Ordens aguardando recebimento"
-                value={purchaseComplete ? awaitingReceipt.length : awaitingReceipt.length === 0 ? '—' : `${awaitingReceipt.length}+`}
-                subtitle={purchaseComplete ? 'Todas as ordens carregadas' : 'Total de pendências indisponível · amostra das últimas 20 ordens'}
-                icon={<ShoppingCartCheckoutOutlinedIcon />} color="warning.main" />
+              <KpiCard title="Notas de entrada em rascunho"
+                value={inboundNotes.data?.totalElements ?? '—'}
+                subtitle="Total de rascunhos na organização"
+                icon={<ReceiptLongOutlinedIcon />} color="warning.main" />
             </Box>
           )}
           {canService && (
@@ -216,19 +206,13 @@ export function DashboardPage({ embedded = false, financialPeriod = 'week', head
           <CardContent>
             <Typography variant="h6">Pendências e atividades recentes</Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              Recebimentos aguardados, vendas recentes e situação do pátio nas consultas disponíveis.
+              Notas de entrada em rascunho e situação do pátio nas consultas disponíveis.
             </Typography>
             <Stack spacing={1.25}>
-              {canSales && (sales.data?.content ?? []).slice(0, 5).map((sale) => (
-                <Stack key={sale.id} direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between">
-                  <Typography variant="body2">Venda {sale.numero} · {sale.clienteNome}</Typography>
-                  <Typography variant="body2" color="text.secondary">{formatCurrency(sale.valorTotal)} · {formatStatusLabel(sale.status)}</Typography>
-                </Stack>
-              ))}
-              {canPurchases && awaitingReceipt.slice(0, 5).map((order) => (
-                <Stack key={order.id} direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between">
-                  <Typography variant="body2">Ordem {order.numero} aguarda recebimento</Typography>
-                  <Typography variant="body2" color="text.secondary">{order.fornecedorNome}</Typography>
+              {canReadInboundNotes && draftInboundNotes.slice(0, 5).map((note) => (
+                <Stack key={note.id} direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between">
+                  <Typography variant="body2">Nota {note.numero} aguarda conferência</Typography>
+                  <Typography variant="body2" color="text.secondary">{note.fornecedorNome}</Typography>
                 </Stack>
               ))}
               {canOperations && patio.data && patio.data.itens.length === 0 && (

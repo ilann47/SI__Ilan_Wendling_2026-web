@@ -2,6 +2,8 @@
 
 # Conveniência
 
+Preço de venda e estoque mínimo aceitam seis casas. O frontend continua enviando valores nas unidades originais, sem multiplicar por um milhão.
+
 ## Objetivo
 
 Administrar Categoria, Marca, Unidade de Medida, Produto e Serviço no contexto

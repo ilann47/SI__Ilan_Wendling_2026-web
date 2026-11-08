@@ -5,7 +5,6 @@ import AdminPanelSettingsOutlinedIcon from '@mui/icons-material/AdminPanelSettin
 import ApartmentOutlinedIcon from '@mui/icons-material/ApartmentOutlined';
 import EventOutlinedIcon from '@mui/icons-material/EventOutlined';
 import ShoppingBagOutlinedIcon from '@mui/icons-material/ShoppingBagOutlined';
-import ShoppingCartCheckoutOutlinedIcon from '@mui/icons-material/ShoppingCartCheckoutOutlined';
 import BlockOutlinedIcon from '@mui/icons-material/BlockOutlined';
 import AssessmentOutlinedIcon from '@mui/icons-material/AssessmentOutlined';
 import BadgeOutlinedIcon from '@mui/icons-material/BadgeOutlined';
@@ -34,7 +33,6 @@ import StraightenOutlinedIcon from '@mui/icons-material/StraightenOutlined';
 import SwapHorizOutlinedIcon from '@mui/icons-material/SwapHorizOutlined';
 import TrendingDownOutlinedIcon from '@mui/icons-material/TrendingDownOutlined';
 import TrendingUpOutlinedIcon from '@mui/icons-material/TrendingUpOutlined';
-import TuneOutlinedIcon from '@mui/icons-material/TuneOutlined';
 import WorkOutlineIcon from '@mui/icons-material/WorkOutline';
 import WarehouseOutlinedIcon from '@mui/icons-material/WarehouseOutlined';
 import type { ReactNode } from 'react';
@@ -53,13 +51,13 @@ export interface NavGroup {
 
 /**
  * Grupos alinhados às áreas Kaneko (processos, não lista plana de entidades).
- * Documentos ficam junto de Compras e Vendas, sem uma área Fiscal duplicada.
+ * Documentos ficam junto de Estoque e Vendas, sem uma área Fiscal duplicada.
  */
 export const navGroups: NavGroup[] = [
   {
     label: 'Operação',
     items: [
-      { label: 'Resumo do dia', path: '/app', icon: <SpaceDashboardOutlinedIcon fontSize="small" /> },
+      { label: 'Início', path: '/app', icon: <SpaceDashboardOutlinedIcon fontSize="small" /> },
       {
         label: 'Acesso de eventos',
         path: '/app/acesso-eventos',
@@ -97,12 +95,6 @@ export const navGroups: NavGroup[] = [
     label: 'Vendas',
     items: [
       {
-        label: 'Pedidos de venda',
-        path: '/app/vendas-administrativas',
-        icon: <SellOutlinedIcon fontSize="small" />,
-        permissions: ['sales:read'],
-      },
-      {
         label: 'Ordens de Serviço',
         path: '/app/ordens-servico',
         icon: <BuildOutlinedIcon fontSize="small" />,
@@ -126,12 +118,6 @@ export const navGroups: NavGroup[] = [
     label: 'Estoque',
     items: [
       {
-        label: 'Ordens de Compra',
-        path: '/app/ordens-compra',
-        icon: <ShoppingCartCheckoutOutlinedIcon fontSize="small" />,
-        permissions: ['purchases:read'],
-      },
-      {
         label: 'Notas de Entrada',
         path: '/app/notas-entrada',
         icon: <CallReceivedOutlinedIcon fontSize="small" />,
@@ -142,12 +128,6 @@ export const navGroups: NavGroup[] = [
         path: '/app/fornecedores',
         icon: <LocalShippingOutlinedIcon fontSize="small" />,
         permissions: ['suppliers:read'],
-      },
-      {
-        label: 'Recebimentos',
-        path: '/app/recebimentos',
-        icon: <ReceiptOutlinedIcon fontSize="small" />,
-        permissions: ['purchases:read'],
       },
       {
         label: 'Posição de Estoque',
@@ -172,12 +152,6 @@ export const navGroups: NavGroup[] = [
         path: '/app/produtos',
         icon: <Inventory2OutlinedIcon fontSize="small" />,
         permissions: ['catalog:read'],
-      },
-      {
-        label: 'Conferência/Ajustes',
-        path: '/app/estoque?tab=ajustes',
-        icon: <TuneOutlinedIcon fontSize="small" />,
-        permissions: ['stock:read'],
       },
       {
         label: 'Serviços',

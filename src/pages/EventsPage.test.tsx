@@ -42,7 +42,8 @@ describe('EventsPage', () => {
     } });
 
     renderPage();
-    await userEvent.click(screen.getByRole('button', { name: 'Festival legado #1' }));
+    await userEvent.click(screen.getByRole('combobox', { name: /Evento/ }));
+    await userEvent.click(screen.getByRole('option', { name: 'Festival legado' }));
     await userEvent.click(screen.getByRole('button', { name: 'Executar operação' }));
 
     await waitFor(() => expect(api.patch).toHaveBeenCalledOnce());
@@ -76,7 +77,8 @@ describe('EventsPage', () => {
     renderPage();
     await waitFor(() => expect(api.get).toHaveBeenCalledWith('/api/v1/events', expect.any(Object)));
     await userEvent.click(screen.getByRole('tab', { name: 'Produto' }));
-    await userEvent.click(screen.getByRole('button', { name: 'Evento 1 / Patio 1 #3' }));
+    await userEvent.click(screen.getByRole('combobox', { name: /Alocação/ }));
+    await userEvent.click(screen.getByRole('option', { name: 'Evento 1 / Patio 1' }));
 
     expect(screen.getByLabelText('Evento para listar produtos', { exact: true })).toHaveTextContent('Evento 1');
     expect(screen.getByLabelText(/Cota/)).toHaveValue(9);
@@ -119,8 +121,11 @@ describe('EventsPage', () => {
 
     renderPage();
     const user = userEvent.setup();
+    expect(screen.queryByLabelText(/Nome do evento/)).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Novo evento' }));
+    expect(screen.getByRole('dialog', { name: 'Novo evento' })).toBeInTheDocument();
     await user.type(screen.getByLabelText(/Nome do evento/), 'Festival Kaneko');
-    await user.type(screen.getByLabelText(/Local do evento/), '3');
+    await user.type(screen.getByLabelText(/Código de referência — Local do evento/), '3');
     await user.click(screen.getByRole('button', { name: 'Criar evento' }));
 
     await waitFor(() => expect(api.post).toHaveBeenCalledOnce());

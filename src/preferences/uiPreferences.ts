@@ -22,6 +22,10 @@ export function uiPreferencesKey(organizationId: number, login: string): string 
   return `kaneko.ui.${organizationId}.${login}`;
 }
 
+function isRetiredPath(path: string): boolean {
+  return /^\/app\/vendas-administrativas(?:[/?#]|$)/.test(path);
+}
+
 export function readUiPreferences(organizationId: number, login: string): UiPreferences {
   try {
     const raw = localStorage.getItem(uiPreferencesKey(organizationId, login));
@@ -35,10 +39,10 @@ export function readUiPreferences(organizationId: number, login: string): UiPref
         ? parsed.recentSearches.filter((item): item is string => typeof item === 'string').slice(0, 8)
         : [],
       favoritePaths: Array.isArray(parsed.favoritePaths)
-        ? parsed.favoritePaths.filter((item): item is string => typeof item === 'string')
+        ? parsed.favoritePaths.filter((item): item is string => typeof item === 'string' && !isRetiredPath(item))
         : [],
       recentPaths: Array.isArray(parsed.recentPaths)
-        ? parsed.recentPaths.filter((item): item is string => typeof item === 'string').slice(0, 8)
+        ? parsed.recentPaths.filter((item): item is string => typeof item === 'string' && !isRetiredPath(item)).slice(0, 8)
         : [],
     };
   } catch {
@@ -61,11 +65,12 @@ export function rememberRecentSearch(current: string[], term: string): string[] 
 }
 
 export function rememberRecentPath(current: string[], path: string): string[] {
-  if (!path.startsWith('/app') || path === '/app') return current;
+  if (!path.startsWith('/app') || path === '/app' || isRetiredPath(path)) return current;
   return [path, ...current.filter((item) => item !== path)].slice(0, 8);
 }
 
 export function toggleFavoritePath(current: string[], path: string): string[] {
+  if (isRetiredPath(path)) return current;
   return current.includes(path)
     ? current.filter((item) => item !== path)
     : [path, ...current];

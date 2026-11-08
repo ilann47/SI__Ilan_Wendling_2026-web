@@ -1,18 +1,22 @@
 import dayjs from 'dayjs';
 
-export function formatCurrency(value?: number | null, currency = 'BRL'): string {
+export function formatCurrency(value?: number | null, currency = 'BRL', maximumFractionDigits = 6): string {
   if (value === null || value === undefined) return '—';
-  return value.toLocaleString('pt-BR', { style: 'currency', currency });
+  return value.toLocaleString('pt-BR', { style: 'currency', currency, maximumFractionDigits });
 }
 
-export function formatNumber(value?: number | null, digits = 0): string {
-  if (value === null || value === undefined) return '—';
-  return value.toLocaleString('pt-BR', { minimumFractionDigits: digits, maximumFractionDigits: digits });
+export function formatCurrencyMicros(value?: number | null): string {
+  return formatCurrency(value, 'BRL', 6);
 }
 
-export function formatPercent(value?: number | null): string {
+export function formatNumber(value?: number | null, digits = 0, maximumDigits = digits): string {
   if (value === null || value === undefined) return '—';
-  return `${value.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}%`;
+  return value.toLocaleString('pt-BR', { minimumFractionDigits: digits, maximumFractionDigits: maximumDigits });
+}
+
+export function formatPercent(value?: number | null, maximumFractionDigits = 6): string {
+  if (value === null || value === undefined) return '—';
+  return `${value.toLocaleString('pt-BR', { maximumFractionDigits })}%`;
 }
 
 export function formatDate(iso?: string | null): string {

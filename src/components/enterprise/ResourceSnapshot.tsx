@@ -19,6 +19,15 @@ function display(value: unknown, field?: string): string {
 }
 
 export function ResourceSnapshot({ title = 'Dados confirmados pelo sistema', data }: ResourceSnapshotProps) {
+  const visibleEntries = Object.entries(data).filter(([key]) => (
+    key !== 'id'
+    && key !== 'version'
+    && key !== 'organizationId'
+    && key !== 'organizacaoId'
+    && !key.endsWith('Id')
+    && !key.endsWith('Version')
+  ));
+
   return (
     <Box sx={{ border: 1, borderColor: 'success.light', bgcolor: 'success.50', borderRadius: 2, p: 2 }}>
       <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1.5 }}>
@@ -28,7 +37,7 @@ export function ResourceSnapshot({ title = 'Dados confirmados pelo sistema', dat
       </Stack>
       <Divider sx={{ mb: 1.5 }} />
       <Box component="dl" sx={{ m: 0, display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(0, 1fr))' }, gap: 1.5 }}>
-        {Object.entries(data).map(([key, value]) => (
+        {visibleEntries.map(([key, value]) => (
           <Box key={key}>
             <Typography component="dt" variant="caption" color="text.secondary">{humanizeField(key)}</Typography>
             <Typography component="dd" variant="body2" sx={{ m: 0, wordBreak: 'break-word' }}>{display(value, key)}</Typography>

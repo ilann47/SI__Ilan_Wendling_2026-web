@@ -17,4 +17,21 @@ describe('createAppTheme', () => {
     expect(overrides.paper).not.toHaveProperty('width');
     expect(overrides.paper).not.toHaveProperty('maxWidth');
   });
+
+  it('mantem alvos de toque e campos com altura acessivel em todo o sistema', () => {
+    const theme = createAppTheme('light');
+    const button = theme.components?.MuiButton?.styleOverrides?.root as Record<string, unknown>;
+    const input = theme.components?.MuiOutlinedInput?.styleOverrides?.root as Record<string, unknown>;
+
+    expect(button.minHeight).toBe(44);
+    expect(input.minHeight).toBe(44);
+  });
+
+  it('usa hierarquia tipografica previsivel nas paginas', () => {
+    const theme = createAppTheme('light');
+
+    expect(theme.typography.h4.fontWeight).toBe(800);
+    expect(theme.typography.h4.letterSpacing).toBeLessThan(0);
+    expect(theme.typography.body1.lineHeight).toBeGreaterThanOrEqual(1.5);
+  });
 });

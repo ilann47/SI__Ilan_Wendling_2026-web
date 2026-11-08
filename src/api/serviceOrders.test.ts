@@ -15,6 +15,19 @@ describe('buildServiceOrderPayload', () => {
     expect(() => buildServiceOrderPayload({ numero: 'OS-1', clienteId: 3, itens: [] }))
       .toThrow('Inclua ao menos um servico.');
   });
+
+  it('envia a sexta casa dos serviços e descontos sem arredondamento', () => {
+    expect(buildServiceOrderPayload({ numero: 'OS-6', clienteId: 3, valorDesconto: '0.000001',
+      itens: [{ servicoId: 8, quantidade: '1.000001', valorUnitario: '2.000002', valorDesconto: '0.000003' }] }))
+      .toMatchObject({ valorDesconto: 0.000001,
+        itens: [{ quantidade: 1.000001, valorUnitario: 2.000002, valorDesconto: 0.000003 }] });
+  });
+
+  it('rejeita a sétima casa da quantidade antes de enviar a ordem', () => {
+    expect(() => buildServiceOrderPayload({ numero: 'OS-7', clienteId: 3,
+      itens: [{ servicoId: 8, quantidade: '1.0000001', valorUnitario: '2' }] }))
+      .toThrow(/Quantidade.*seis casas/);
+  });
 });
 
 describe('nota preparada pela ordem de serviço', () => {
@@ -26,7 +39,7 @@ describe('nota preparada pela ordem de serviço', () => {
     expect(buildServiceOrderNotePayload({ numero: 'NS-1', condicaoPagamentoId: '4', formaPagamentoId: '5', aliquotaIss: '2.5' }))
       .toEqual({ numero: 'NS-1', condicaoPagamentoId: 4, formaPagamentoId: 5, aliquotaIss: 2.5 });
   });
-  it.each([-1, 101, 'abc'])('recusa alíquota inválida %s', (aliquotaIss) => {
+  it.each([-1, 101, 'abc', '0.0000001'])('recusa alíquota inválida %s', (aliquotaIss) => {
     expect(() => buildServiceOrderNotePayload({ numero: 'NS-1', aliquotaIss })).toThrow('Alíquota ISS');
   });
 });

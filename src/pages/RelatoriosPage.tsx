@@ -211,8 +211,8 @@ function EstoqueTab({ organizationId, enabled }: { organizationId: number; enabl
                     <TableCell>{it.produto}</TableCell>
                     <TableCell>{it.marca}</TableCell>
                     <TableCell>{it.categoria || '—'}</TableCell>
-                    <TableCell align="right">{formatNumber(it.quantidade, 0)}</TableCell>
-                    <TableCell align="right">{formatNumber(it.quantidadeMinima, 0)}</TableCell>
+                    <TableCell align="right">{formatNumber(it.quantidade, 0, 6)}</TableCell>
+                    <TableCell align="right">{formatNumber(it.quantidadeMinima, 0, 6)}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>

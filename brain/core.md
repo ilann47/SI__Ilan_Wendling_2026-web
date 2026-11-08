@@ -2,6 +2,32 @@
 
 # Frontend Kaneko
 
+## Fluxo vigente PARK-0003 (2026-10-16)
+
+Nota de Entrada é o único documento de novas compras, manual ou XML. O editor em
+`InboundNoteEditorPage` reutiliza `FieldRenderer`/`SubItemsEditor`, seletores e
+cadastros existentes. Rascunho é salvo por ID; edição usa PUT/If-Match. Conferência
+usa a prévia autoritativa da API e exige revisão da versão salva antes da única
+confirmação. Erro inconclusivo exige consulta do mesmo documento; não cria outra
+Nota. Os cadastros aprovados não foram redesenhados.
+Editor, conferência, estoque e contas a pagar apresentam a sexta casa quando
+necessária; a API continua recebendo os valores em unidades usuais.
+
+`FieldRenderer` valida até seis casas para valores, quantidades fracionárias
+e percentuais sem arredondar o texto antes de validar. Contadores e
+identificadores mantêm suas regras anteriores. Listagens, detalhes e relatórios
+mostram até seis casas quando há fração relevante; o fator de persistência do
+backend nunca entra no payload do frontend.
+
+Ordem/Recebimento de Compra foram removidos dos menus, rotas, contratos e telas.
+A venda de mercadorias começa em **Vendas → Notas de Saída**. Não há módulo
+nem vínculos de Pedido de Venda no contrato ativo. Pedidos de eventos e Ordens
+de Serviço são fluxos distintos.
+A home usa apenas Notas de Entrada pendentes. Desconto geral e custo médio
+ponderado seguem o contrato atual;
+não há estorno de Nota confirmada nem integração fiscal/bancária externa.
+
+
 ## Objetivo
 
 Fornecer uma única interface React para toda a plataforma Estacionamento Kaneko.
@@ -21,7 +47,7 @@ projeto Java e preserva as telas legadas durante a adoção gradual de `/api/v1`
 ```text
 App -> ProtectedRoute -> AuthContext -> organização ativa
     -> AppLayout (menu superior único / drawer no mobile)
-         -> /app = HubHomePage (módulos e pendências) + Resumo do dia abaixo
+         -> /app = HubHomePage (saudação e pendências)
          -> menus por processo -> telas diretamente, sem landing intermediária
          -> /app/areas/* e /app/visao-geral redirecionam para /app
          -> demais /app/* = conteúdo em largura total, sem sidebar/abas
@@ -49,7 +75,8 @@ Problem Details em mensagens operacionais.
 
 Rotas inexistentes, métodos indisponíveis, formatos não suportados e recursos
 desatualizados recebem mensagens próprias para 404, 405, 415 e 428, sem expor
-o texto técnico do Axios ao usuário final.
+o texto técnico do Axios ao usuário final. Relações ainda ausentes são descritas
+como indisponíveis nesta versão, sem citar API, endpoint ou payload.
 
 O formulário compartilhado valida números no próprio campo. Valores monetários,
 quantidades e inteiros são não negativos por padrão; percentuais aceitam de 0 a
@@ -71,6 +98,12 @@ as larguras `xs/sm/md/lg` voltam a representar a complexidade do fluxo, somente
 o conteúdo rola e título, fechamento e ações permanecem visíveis. Operações em
 andamento bloqueiam Escape/backdrop; confirmações críticas usam `alertdialog`.
 
+As superfícies seguem uma regra previsível: cadastro curto abre em diálogo;
+consulta detalhada abre no painel lateral; confirmação usa diálogo compacto; e
+processos longos ou encadeados permanecem em página dedicada. Formulários
+customizados reutilizam `OperationalFormDialog`, com as mesmas ações fixas,
+responsividade, estado ocupado e confirmação de descarte do CRUD declarativo.
+
 O cliente HTTP possui timeout de 15 segundos, preserva `Authorization` explícita
 na validação de JWT candidato e centraliza o formato estrito de `If-Match`. Chaves
 de consultas enterprise começam por `['tenant', organizationId]`.
@@ -80,6 +113,18 @@ de consultas enterprise começam por `['tenant', organizationId]`.
 Gates disponíveis: `npm run typecheck`, `npm run lint`, `npm test` e
 `npm run build`. Vitest executa testes unitários/de integração em jsdom com
 Testing Library; E2E contra o backend real será acrescentado no recorte próprio.
+
+Em 2026-10-23, a revisão e o detalhe da Nota de Entrada receberam regressões para
+o custo médio ponderado estimado e registrado por item.
+
+Em 2026-10-24, a Nota passou a recolher observações opcionais, manter a barra de
+ações visível durante a rolagem e resumir o impacto do custo médio por item antes
+de abrir sua memória de cálculo. Typecheck, lint, build e 31 testes focados
+passaram. A suíte integral serial foi iniciada, mas o runner encerrou sem emitir
+relatório final e por isso não foi contabilizada como aprovada.
+No navegador, o fluxo foi validado contra backend e banco locais isolados: login,
+seleção de organização, formulário responsivo, observações recolhidas com valores
+preservados e memória expansível do custo médio no documento confirmado.
 
 `HeaderAreaNavigation.test.tsx` cobre navegação direta, filtros na URL, RBAC,
 teclado, troca/fechamento de menus e drawer mobile. `AppLayout.test.tsx` verifica
@@ -125,16 +170,11 @@ jsdom e o aviso do chunk MUI de 603,25 kB, sem reprovação dos gates.
 
 - A navegação é filtrada pelas permissões retornadas pelo backend.
 - O shell mantém a identidade Kaneko e a navegação principal no topo:
-  sem sidebar ou abas abertas. `/app` preserva a home do Hub com módulos e
-  pendências; o resumo do dia aparece logo abaixo, na mesma página.
-- Cartões da home solicitam abertura do menu existente via contexto do `Outlet`
-  (`AppLayoutContext.openArea`). Desktop abre o menu superior; mobile abre o
-  mesmo drawer já expandido na área. Não são criadas páginas intermediárias.
-  `HeaderAreaNavigation` reaplica RBAC antes de atender à solicitação.
-- Hub e resumo compartilham as chaves de consulta `dashboard` por tenant,
-  evitando duplicar chamadas de contas, estoque mínimo e ordens de compra.
-  `HubHomePage.test.tsx` cobre composição, requisições compartilhadas,
-  cartões desktop/mobile e falha na consulta de pendências.
+  sem sidebar ou abas abertas. `/app` mostra saudação e pendências, sem atalhos
+  de áreas ou resumo do dia. O cabeçalho e seu menu mobile continuam sujeitos
+  às permissões da organização.
+- A home usa chaves de consulta `dashboard` por organização. O teste da home
+  cobre o conteúdo reduzido, navegação desktop/mobile e falha de pendências.
 - Home compacta com financeiro separado por fluxo e período; indicadores abrem
   títulos reais. `useLinkedDetail` permite acesso direto aos detalhes nas telas
   existentes, sem adicionar páginas intermediárias ou armazenar registros no navegador.
@@ -189,6 +229,9 @@ jsdom e o aviso do chunk MUI de 603,25 kB, sem reprovação dos gates.
   [[fornecedores]] e [[rh]].
 - O shell possui skip link, foco visível, rótulos acessíveis e respeita redução
   de movimento. A fonte externa foi removida para não depender de rede na operação.
+- O design system global define hierarquia tipográfica, espaçamento, foco e alvos
+  mínimos de 44 px para ações e campos. O conteúdo mantém largura operacional
+  máxima sem limitar tabelas, e modais usam cabeçalho, rolagem e rodapé previsíveis.
 - A cobertura controller por controller está registrada em [[paridade-api]].
 - A restauração das telas antigas concluiu a paridade funcional, mas não a
   paridade de isolamento. Cada módulo legado só será declarado tenant-aware após
@@ -211,6 +254,16 @@ jsdom e o aviso do chunk MUI de 603,25 kB, sem reprovação dos gates.
 
 | Data | Ação |
 |---|---|
+| 2026-11-08 | Aplica precisão decimal comum a formulários, listas, detalhes e relatórios. |
+| 2026-11-08 | Entrada, estoque e contas a pagar exibem e aceitam milionésimos nos fluxos habilitados. |
+| 2026-11-05 | Remove a operação de Pedido de Venda; Notas de Saída são o fluxo de mercadorias. |
+| 2026-11-05 | Retira a compatibilidade histórica de Pedido de Venda dos contratos e telas de nota, estoque e financeiro. |
+| 2026-10-30 | Remove integralmente as rotas, telas, contratos e atalhos de Ordem/Recebimento de Compra; Nota de Entrada fica como fluxo único. |
+| 2026-11-06 | Retira da home os atalhos de áreas duplicados e o cartão informativo, mantendo a navegação no cabeçalho. |
+| 2026-10-30 | Centraliza no `PageHeader` o retorno à página anterior, com fallback seguro para o Hub quando não existe histórico interno. |
+| 2026-10-30 | Aplica uma identidade visual perceptível ao sistema: superfícies elevadas, fundo com profundidade, cabeçalhos com acento, shell translúcido e cartões operacionais maiores. |
+| 2026-10-30 | Revisa o design system do sistema inteiro: hierarquia, alvos de toque, campos, diálogos, largura de conteúdo e feedback visual compartilhado. |
+| 2026-10-23 | Exibe na Nota de Entrada o saldo e custo atuais, o custo da entrada e o custo médio ponderado estimado/registrado por item. |
 | 2026-09-29 | Padroniza entradas numéricas especializadas em estoque, financeiro, eventos, vendas, instalações, filtros e referências. |
 | 2026-09-29 | Adiciona edição contextual aos itens dos seletores, com RBAC, formulário compartilhado, preservação do documento e suporte a ETag. |
 | 2026-09-29 | Estende o cadastro rápido a recursos especializados sem criar rotas CRUD duplicadas. |
@@ -262,3 +315,8 @@ jsdom e o aviso do chunk MUI de 603,25 kB, sem reprovação dos gates.
 | 2026-09-28 | Protege o descarte em todos os formulários compartilhados, mantém erros reais na busca por ID e traduz 405/415/428 em mensagens operacionais. |
 | 2026-09-28 | Percorre 45 rotas, 22 formulários e fluxos especializados no navegador desktop/mobile; padroniza estados, detalhes e mensagens operacionais encontrados durante a execução. |
 | 2026-09-29 | Centraliza todos os modais em AppDialog, restaura larguras semânticas, backdrop integral, cabeçalho/ações fixos e acessibilidade de confirmações. |
+| 2026-10-23 | Exibe na revisão e no documento da Nota de Entrada o saldo, custo médio anterior, custo da entrada e custo médio projetado/registrado por item; typecheck, lint e build passaram, e os testes afetados passaram isoladamente. |
+| 2026-10-24 | Compacta a conferência da Nota, recolhe campos opcionais, fixa as ações operacionais e remove jargão de API das mensagens compartilhadas. |
+| 2026-10-30 | Define a regra global de superfícies e adiciona `OperationalFormDialog` para cadastros customizados com ações, rolagem mobile e descarte consistentes. |
+| 2026-10-30 | Isola a navegação do `PageHeader` para manter páginas e testes reutilizáveis fora do contexto de rotas, sem alterar o comportamento dentro do aplicativo. |
+| 2026-11-05 | Aplica páginas dedicadas ao fluxo longo de Nota de Saída e o diálogo padronizado de reversão interna às notas fiscais. A conferência e os efeitos são segregados por organização e permissões. |

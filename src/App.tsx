@@ -31,24 +31,28 @@ const RelatoriosPage = lazy(() => import('./pages/RelatoriosPage')
   .then((module) => ({ default: module.RelatoriosPage })));
 const StockPage = lazy(() => import('./pages/StockPage')
   .then((module) => ({ default: module.StockPage })));
-const PurchaseOrdersPage = lazy(() => import('./pages/PurchaseOrdersPage')
-  .then((module) => ({ default: module.PurchaseOrdersPage })));
-const PurchaseReceiptsPage = lazy(() => import('./pages/PurchaseReceiptsPage')
-  .then((module) => ({ default: module.PurchaseReceiptsPage })));
 const InboundNotesPage = lazy(() => import('./pages/InboundNotesPage')
   .then((module) => ({ default: module.InboundNotesPage })));
 const InboundNoteWizardPage = lazy(() => import('./pages/InboundNoteWizardPage')
   .then((module) => ({ default: module.InboundNoteWizardPage })));
 const InboundNoteDetailPage = lazy(() => import('./pages/InboundNoteDetailPage')
   .then((module) => ({ default: module.InboundNoteDetailPage })));
+const OutboundNotesPage = lazy(() => import('./pages/OutboundNotesPage')
+  .then((module) => ({ default: module.OutboundNotesPage })));
+const OutboundNoteEditorPage = lazy(() => import('./pages/OutboundNoteEditorPage')
+  .then((module) => ({ default: module.OutboundNoteEditorPage })));
+const OutboundNoteDocumentPage = lazy(() => import('./pages/OutboundNoteDocumentPage')
+  .then((module) => ({ default: module.OutboundNoteDocumentPage })));
+const ServiceNotesPage = lazy(() => import('./pages/ServiceNotesPage')
+  .then((module) => ({ default: module.ServiceNotesPage })));
+const ServiceNoteDocumentPage = lazy(() => import('./pages/ServiceNoteDocumentPage')
+  .then((module) => ({ default: module.ServiceNoteDocumentPage })));
 const XmlInboundImportPage = lazy(() => import('./pages/XmlInboundImportPage')
   .then((module) => ({ default: module.XmlInboundImportPage })));
 const ContasPagarPage = lazy(() => import('./pages/ContasPagarPage')
   .then((module) => ({ default: module.ContasPagarPage })));
 const ContasReceberPage = lazy(() => import('./pages/ContasReceberPage')
   .then((module) => ({ default: module.ContasReceberPage })));
-const AdministrativeSalesPage = lazy(() => import('./pages/AdministrativeSalesPage')
-  .then((module) => ({ default: module.AdministrativeSalesPage })));
 const ServiceOrdersPage = lazy(() => import('./pages/ServiceOrdersPage')
   .then((module) => ({ default: module.ServiceOrdersPage })));
 const CrudResourcePage = lazy(() => import('./components/crud/CrudResourcePage')
@@ -63,7 +67,7 @@ function LoadingPage() {
 }
 
 const crudConfigs = allConfigs.filter(
-  (config) => !['notas-entrada', 'contas-pagar', 'contas-receber'].includes(config.key),
+  (config) => !['notas-entrada', 'notas-saida', 'notas-servico', 'contas-pagar', 'contas-receber'].includes(config.key),
 );
 
 export function App() {
@@ -117,16 +121,13 @@ export function App() {
           <Route path="estoque" element={
             <PermissionRoute anyOf={['stock:read']}><StockPage /></PermissionRoute>
           } />
-          <Route path="ordens-compra" element={
-            <PermissionRoute anyOf={['purchases:read']}><PurchaseOrdersPage /></PermissionRoute>
-          } />
-          <Route path="recebimentos" element={
-            <PermissionRoute anyOf={['purchases:read']}><PurchaseReceiptsPage /></PermissionRoute>
-          } />
           <Route path="notas-entrada" element={
             <PermissionRoute anyOf={['fiscal:read']}><InboundNotesPage /></PermissionRoute>
           } />
           <Route path="notas-entrada/nova" element={
+            <PermissionRoute anyOf={['fiscal:manage']}><InboundNoteWizardPage /></PermissionRoute>
+          } />
+          <Route path="notas-entrada/:id/editar" element={
             <PermissionRoute anyOf={['fiscal:manage']}><InboundNoteWizardPage /></PermissionRoute>
           } />
           <Route path="notas-entrada/:id" element={
@@ -135,14 +136,29 @@ export function App() {
           <Route path="notas-entrada/importar" element={
             <PermissionRoute anyOf={['fiscal:read']}><XmlInboundImportPage /></PermissionRoute>
           } />
+          <Route path="notas-saida" element={
+            <PermissionRoute anyOf={['fiscal:read']}><OutboundNotesPage /></PermissionRoute>
+          } />
+          <Route path="notas-saida/nova" element={
+            <PermissionRoute anyOf={['fiscal:manage']}><OutboundNoteEditorPage /></PermissionRoute>
+          } />
+          <Route path="notas-saida/:id/editar" element={
+            <PermissionRoute anyOf={['fiscal:manage']}><OutboundNoteEditorPage /></PermissionRoute>
+          } />
+          <Route path="notas-saida/:id" element={
+            <PermissionRoute anyOf={['fiscal:read']}><OutboundNoteDocumentPage /></PermissionRoute>
+          } />
+          <Route path="notas-servico" element={
+            <PermissionRoute anyOf={['fiscal:read']}><ServiceNotesPage /></PermissionRoute>
+          } />
+          <Route path="notas-servico/:id" element={
+            <PermissionRoute anyOf={['fiscal:read']}><ServiceNoteDocumentPage /></PermissionRoute>
+          } />
           <Route path="contas-pagar" element={
             <PermissionRoute anyOf={['finance:read']}><ContasPagarPage /></PermissionRoute>
           } />
           <Route path="contas-receber" element={
             <PermissionRoute anyOf={['finance:read']}><ContasReceberPage /></PermissionRoute>
-          } />
-          <Route path="vendas-administrativas" element={
-            <PermissionRoute anyOf={['sales:read']}><AdministrativeSalesPage /></PermissionRoute>
           } />
           <Route path="ordens-servico" element={
             <PermissionRoute anyOf={['service_orders:read']}><ServiceOrdersPage /></PermissionRoute>

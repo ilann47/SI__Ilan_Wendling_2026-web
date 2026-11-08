@@ -83,7 +83,7 @@ export function AppDialog({
         },
       }}
     >
-      <DialogTitle id={titleId}>
+      <DialogTitle id={titleId} sx={{ borderBottom: contentDividers ? '1px solid' : 0, borderColor: 'divider' }}>
         <Stack direction="row" alignItems="flex-start" justifyContent="space-between" gap={2}>
           <Typography component="span" variant="h6" sx={{ lineHeight: 1.35 }}>
             {title}
@@ -94,7 +94,7 @@ export function AppDialog({
             disabled={busy}
             size="small"
             edge="end"
-            sx={{ mt: -0.5, flexShrink: 0 }}
+            sx={{ mt: -0.75, mr: -0.75, flexShrink: 0 }}
           >
             <CloseOutlinedIcon />
           </IconButton>

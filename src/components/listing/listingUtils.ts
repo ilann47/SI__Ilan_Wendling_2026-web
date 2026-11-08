@@ -1,7 +1,7 @@
 import type { FilterConfig } from '../crud/resourceConfig';
-import { formatBool, formatCurrency, formatDate, formatDateTime, formatNumber, formatStatusLabel } from '../../utils/format';
+import { formatBool, formatCurrency, formatDate, formatDateTime, formatNumber, formatPercent, formatStatusLabel } from '../../utils/format';
 
-export const UNAVAILABLE_API = 'Informação não disponibilizada pela API atual';
+export const UNAVAILABLE_API = 'Informação não disponível nesta versão';
 
 export function isFilled(value: unknown): boolean {
   return value !== undefined && value !== null && value !== '';
@@ -29,12 +29,13 @@ export function formatDetailValue(value: unknown, field?: string): string {
   if (typeof value === 'boolean') return formatBool(value);
   if (typeof value === 'number') {
     if (field && /totalAvailable|totalElements|totalPages|totalQuantity/i.test(field)) {
-      return formatNumber(value, Number.isInteger(value) ? 0 : 3);
+      return formatNumber(value, Number.isInteger(value) ? 0 : 3, 6);
     }
+    if (field && /percentual|aliquota|^percent$/i.test(field)) return formatPercent(value);
     if (field && /valor|preco|total|subtotal|frete|seguro|despesa|desconto|salario|custo|limiteCredito/i.test(field)) {
       return formatCurrency(value);
     }
-    return formatNumber(value, Number.isInteger(value) ? 0 : 3);
+    return formatNumber(value, Number.isInteger(value) ? 0 : 3, 6);
   }
   if (typeof value === 'string') {
     if (/^\d{4}-\d{2}-\d{2}T/.test(value)) return formatDateTime(value);
@@ -53,6 +54,27 @@ export function humanizeField(name: string): string {
   const knownLabels: Record<string, string> = {
     id: 'Código interno',
     version: 'Versão',
+    name: 'Nome',
+    type: 'Tipo',
+    active: 'Ativo',
+    code: 'Código',
+    capacity: 'Capacidade',
+    categories: 'Categorias',
+    physicalCapacity: 'Capacidade física',
+    price: 'Preço',
+    currency: 'Moeda',
+    quantity: 'Quantidade',
+    priority: 'Prioridade',
+    unitPrice: 'Valor unitário',
+    expiresAt: 'Expira em',
+    finalizationReason: 'Motivo da finalização',
+    preferredMedium: 'Meio preferido',
+    validFrom: 'Válida desde',
+    validUntil: 'Válida até',
+    requested: 'Solicitadas',
+    created: 'Criadas',
+    existing: 'Já existentes',
+    conflicts: 'Conflitos',
     status: 'Situação',
     number: 'Número',
     buyer: 'Comprador',

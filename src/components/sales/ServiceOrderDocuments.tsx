@@ -4,12 +4,13 @@ import { Alert, Box, Button, Card, Chip,
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRef, useState, type FormEvent } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
+import dayjs from 'dayjs';
 import { serviceOrdersApi, buildServiceOrderNotePayload, type ServiceOrder,
   type ServiceOrderDocumentsResponse, type ServiceOrderNote, type ServiceOrderNoteRequest } from '../../api/serviceOrders';
 import { describeError, getHttpStatus } from '../../api/client';
 import { tenantQueryKey } from '../../api/queryKeys';
 import { formatCurrency, formatDate, formatStatusLabel, statusColor } from '../../utils/format';
-import { ConfirmDialog } from '../common/ConfirmDialog';
+import { DECIMAL_STEP } from '../../utils/fixedDecimal';
 import { AppDialog } from '../common/AppDialog';
 import { ReferenceSelect } from '../form/ReferenceSelect';
 import { ErrorState } from '../listing/ErrorState';
@@ -33,12 +34,9 @@ export function ServiceOrderDocuments({ order, organizationId, permissions }: Pr
   const queryKey = tenantQueryKey(organizationId, 'service-orders', order.id, 'documents', fiscalRead, financeRead);
   const query = useQuery({ queryKey, queryFn: () => serviceOrdersApi.documents(order.id) });
   const [generating, setGenerating] = useState(false);
-  const [confirmEmission, setConfirmEmission] = useState(false);
   const [values, setValues] = useState<Record<string, string | number | null>>({});
   const [generationError, setGenerationError] = useState<string | null>(null);
-  const [emissionError, setEmissionError] = useState<string | null>(null);
   const [uncertain, setUncertain] = useState(false);
-  const [emissionUncertain, setEmissionUncertain] = useState(false);
   const [generatedNote, setGeneratedNote] = useState<ServiceOrderNote | null>(null);
   const intent = useRef<{ fingerprint: string; key: string } | null>(null);
   const note = query.data?.nota ?? generatedNote;
@@ -50,27 +48,19 @@ export function ServiceOrderDocuments({ order, organizationId, permissions }: Pr
     void client.invalidateQueries({ queryKey: tenantQueryKey(organizationId, 'dashboard') });
     void client.invalidateQueries({ queryKey: tenantQueryKey(organizationId, 'list', '/api/notas-servico') });
     void client.invalidateQueries({ queryKey: tenantQueryKey(organizationId, 'detail', '/api/notas-servico', result.id) });
-    if (result.situacao === 'EMITIDA') {
-      void client.invalidateQueries({ queryKey: tenantQueryKey(organizationId, 'financial-accounts') });
-      void client.invalidateQueries({ queryKey: tenantQueryKey(organizationId, 'financial-summary') });
-    }
   };
   const acceptGeneration = (result: ServiceOrderNote) => {
     remember(result); setGenerating(false); setGenerationError(null); setUncertain(false);
   };
-  const reconcile = async (purpose: 'generation' | 'emission') => {
+  const reconcile = async () => {
     const result = await query.refetch();
     if (result.isError) {
       const message = `Não foi possível consultar a situação. ${describeError(result.error)}`;
-      if (purpose === 'generation') setGenerationError(message); else setEmissionError(message);
+      setGenerationError(message);
       return;
     }
     const found = result.data?.nota;
-    if (purpose === 'generation' && found) acceptGeneration(found);
-    if (purpose === 'emission' && found) {
-      remember(found); setEmissionUncertain(false);
-      if (found.situacao === 'EMITIDA') { setConfirmEmission(false); setEmissionError(null); }
-    }
+    if (found) acceptGeneration(found);
   };
   const create = useMutation({
     mutationFn: ({ body, key }: { body: ServiceOrderNoteRequest; key: string }) =>
@@ -79,20 +69,7 @@ export function ServiceOrderDocuments({ order, organizationId, permissions }: Pr
     onError: async (error) => {
       setGenerationError(describeError(error)); const status = getHttpStatus(error);
       setUncertain(!status || status >= 500);
-      if (status === 409) await reconcile('generation');
-    },
-  });
-  const emit = useMutation({
-    mutationFn: () => serviceOrdersApi.issueNote(note!.id),
-    onSuccess: async (result) => {
-      remember(result); setConfirmEmission(false); setEmissionError(null); setEmissionUncertain(false);
-      await query.refetch();
-    },
-    onError: async (error) => {
-      setEmissionError(describeError(error)); setConfirmEmission(false);
-      const status = getHttpStatus(error);
-      setEmissionUncertain(!status || status >= 500);
-      if (status === 409 || !status || status >= 500) await reconcile('emission');
+      if (status === 409) await reconcile();
     },
   });
   const submit = (event: FormEvent) => {
@@ -113,16 +90,12 @@ export function ServiceOrderDocuments({ order, organizationId, permissions }: Pr
         <Typography variant="subtitle2" component="h3">Nota de serviço</Typography>
         {note ? <Stack spacing={1} sx={{ mt: 1 }}>
           <Chip label={formatStatusLabel(note.situacao)} size="small" color={statusColor(note.situacao)} sx={{ alignSelf: 'flex-start' }} />
-          {fiscalRead ? <Link component={RouterLink} to={`/app/notas-servico?detail=${note.id}`}>Ver nota {note.numero}</Link>
+          {fiscalRead ? <Button component={RouterLink} variant={note.situacao === 'PENDENTE' ? 'contained' : 'text'}
+            sx={{ alignSelf: 'flex-start' }} to={`/app/notas-servico/${note.id}`}>
+            {note.situacao === 'PENDENTE' ? 'Conferir nota' : 'Ver nota'} {note.numero}
+          </Button>
             : <Typography>Nota {note.numero} preparada. A consulta exige permissão fiscal.</Typography>}
           <Typography variant="caption" color="text.secondary">Documento interno. Não representa autorização fiscal externa.</Typography>
-          {emissionError && <Alert severity="error">{emissionError}</Alert>}
-          {emissionUncertain && <Alert severity="warning" action={fiscalRead
-            ? <Button onClick={() => void reconcile('emission')} disabled={query.isFetching}>Consultar situação</Button> : undefined}>
-            Confirmação indisponível. Consulte a situação antes de emitir novamente.
-          </Alert>}
-          {note.situacao === 'PENDENTE' && canGenerate && <Button variant="contained" sx={{ alignSelf: 'flex-start' }}
-            disabled={emissionUncertain || emit.isPending || query.isFetching} onClick={() => setConfirmEmission(true)}>Emitir internamente</Button>}
         </Stack> : <Stack spacing={1} sx={{ mt: 1 }}>
           {fiscalRead && <Typography variant="body2">Nenhuma nota vinculada.</Typography>}
           {order.status === 'CONCLUIDA' && canGenerate ? <Button variant="contained" startIcon={<NoteAddOutlinedIcon />}
@@ -153,7 +126,7 @@ export function ServiceOrderDocuments({ order, organizationId, permissions }: Pr
       maxWidth="sm" fullScreenOnMobile busy={create.isPending}
       actions={<>
         <Button color="inherit" disabled={create.isPending} onClick={() => setGenerating(false)}>Voltar</Button>
-        {uncertain && fiscalRead && <Button onClick={() => void reconcile('generation')} disabled={query.isFetching || create.isPending}>Verificar nota</Button>}
+        {uncertain && fiscalRead && <Button onClick={() => void reconcile()} disabled={query.isFetching || create.isPending}>Verificar nota</Button>}
         <Button type="submit" form="service-note-form" variant="contained" disabled={create.isPending || query.isFetching}>{create.isPending ? 'Preparando…' : uncertain ? 'Tentar novamente' : 'Preparar nota'}</Button>
       </>}>
       <Box component="form" id="service-note-form" onSubmit={submit}>
@@ -165,7 +138,8 @@ export function ServiceOrderDocuments({ order, organizationId, permissions }: Pr
             required={'required' in field && field.required} value={values[field.name] ?? ''}
             type={'type' in field ? field.type : 'text'} disabled={create.isPending || uncertain}
             inputProps={'maxLength' in field ? { maxLength: field.maxLength }
-              : field.name === 'aliquotaIss' ? { min: 0, max: 100, step: 0.01 } : undefined}
+              : field.name === 'aliquotaIss' ? { min: 0, max: 100, step: DECIMAL_STEP }
+                : field.name === 'dataEmissao' ? { max: dayjs().format('YYYY-MM-DD') } : undefined}
             InputLabelProps={field.name === 'dataEmissao' ? { shrink: true } : undefined}
             onChange={(event) => setValues((current) => ({ ...current, [field.name]: event.target.value }))} />)}
           {paymentsRead && <>
@@ -180,8 +154,5 @@ export function ServiceOrderDocuments({ order, organizationId, permissions }: Pr
         </Stack>
       </Box>
     </AppDialog>
-    <ConfirmDialog open={confirmEmission} title="Emitir nota internamente" confirmLabel="Confirmar emissão interna"
-      message="Esta ação registra a emissão interna e gera as contas a receber. Ela não envia o documento ao fisco nem significa autorização de NFS-e."
-      loading={emit.isPending} onClose={() => !emit.isPending && setConfirmEmission(false)} onConfirm={() => emit.mutate()} />
   </Stack>;
 }

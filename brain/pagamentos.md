@@ -2,6 +2,8 @@
 
 # Catálogos de Pagamento
 
+Os campos de juros, multa, desconto e percentuais de parcela aceitam seis casas e são apresentados em pontos percentuais.
+
 ## Objetivo
 
 Administrar, dentro da organização ativa, as formas e as condições de pagamento

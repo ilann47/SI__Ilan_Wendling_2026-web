@@ -52,7 +52,7 @@ const lightTokens: ThemeTokens = {
   mode: 'light',
   ...brand,
   header: brand.navy,
-  background: '#F4F5FB',
+  background: '#F7F8FC',
   card: '#FFFFFF',
   sidebar: brand.navy,
   sidebarText: '#C9CEE0',
@@ -60,9 +60,9 @@ const lightTokens: ThemeTokens = {
   sidebarActive: '#FFFFFF',
   text: '#1B2140',
   textMuted: '#6B7289',
-  border: '#E6E8F0',
+  border: '#E2E5EF',
   appBar: '#FFFFFF',
-  brandHover: 'rgba(107,70,254,0.08)',
+  brandHover: 'rgba(107,70,254,0.09)',
 };
 
 const darkTokens: ThemeTokens = {

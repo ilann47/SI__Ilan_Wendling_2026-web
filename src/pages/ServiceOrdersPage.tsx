@@ -29,11 +29,12 @@ import { ResourceFormDialog } from '../components/form/ResourceFormDialog';
 import type { FieldConfig } from '../components/form/fieldConfig';
 import { useSnackbar } from '../components/SnackbarProvider';
 import { formatCurrency, formatDate, formatStatusLabel } from '../utils/format';
+import { DECIMAL_STEP } from '../utils/fixedDecimal';
 
 const itemFields: FieldConfig[] = [
   { name: 'servicoId', label: 'Serviço', type: 'reference', required: true, cols: 5,
     reference: { basePath: '/api/servicos', labelField: 'nome', params: { ativo: true } } },
-  { name: 'quantidade', label: 'Quantidade', type: 'number', required: true, cols: 2, step: 0.001, min: 0.001 },
+  { name: 'quantidade', label: 'Quantidade', type: 'number', required: true, cols: 2, min: DECIMAL_STEP },
   { name: 'valorUnitario', label: 'Valor unitário', type: 'money', required: true, cols: 3 },
   { name: 'valorDesconto', label: 'Desconto', type: 'money', cols: 2 },
 ];

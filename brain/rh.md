@@ -92,5 +92,6 @@ de outra organização retorna `404` e conflitos de integridade permanecem `409`
 
 | Data | Ação |
 |---|---|
+| 2026-11-08 | Cadastro e lista de cargos preservam seis casas no salário e na carga horária fracionária. |
 | 2026-08-03 | Adapta exclusivamente Cargos ao contrato multiempresa V43. |
 | 2026-08-03 | Adapta Funcionários ao contexto multiempresa preservando estado e payload reais. |

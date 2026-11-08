@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react';
+import { useState, type FormEvent, type ReactNode } from 'react';
 import { Link as RouterLink, useSearchParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -26,15 +26,11 @@ import {
 import AddOutlinedIcon from '@mui/icons-material/AddOutlined';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
-import ReplayOutlinedIcon from '@mui/icons-material/ReplayOutlined';
-import TuneOutlinedIcon from '@mui/icons-material/TuneOutlined';
 import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
-import { api, describeError } from '../api/client';
+import { describeError } from '../api/client';
 import { tenantQueryKey } from '../api/queryKeys';
 import { isResourcePreconditionConflict, type Page } from '../api/resource';
 import {
-  buildStockAdjustmentPayload,
-  buildStockCompensationPayload,
   buildStockLocationPayload,
   stockApi,
   stockLocationApi,
@@ -48,7 +44,6 @@ import { ConfirmDialog } from '../components/common/ConfirmDialog';
 import { AppDialog } from '../components/common/AppDialog';
 import { PageHeader } from '../components/common/PageHeader';
 import { ResourceFormDialog } from '../components/form/ResourceFormDialog';
-import { NumberField } from '../components/form/NumberField';
 import { stockLocationFields } from '../resources/estoque';
 import { ReferenceSelect } from '../components/form/ReferenceSelect';
 import { ListingCards } from '../components/listing/ListingCards';
@@ -66,14 +61,6 @@ export function stockQueryKey(
 
 export function stockInvalidationKey(organizationId: number): readonly unknown[] {
   return stockQueryKey(organizationId);
-}
-
-export function canAdjustStock(permissions: readonly string[]): boolean {
-  return permissions.includes('stock:manage') && permissions.includes('catalog:read');
-}
-
-function intentKey(): string {
-  return crypto.randomUUID();
 }
 
 function rows<T>(page?: Page<T>): T[] {
@@ -99,8 +86,9 @@ interface PositionFilters {
 const emptyPositionFilters: PositionFilters = { produtoId: '', localEstoqueId: '', abaixoMinimo: '' };
 
 const movementLabels: Record<string, string> = { RECEBIMENTO: 'Entrada', BAIXA: 'Saída', AJUSTE: 'Ajuste', COMPENSACAO: 'Compensação' };
+const fiscalMovementOrigins = new Set(['NOTA_ENTRADA', 'NOTA_SAIDA', 'REVERSAO_NOTA_ENTRADA', 'REVERSAO_NOTA_SAIDA']);
 const originPermissions: Record<string, string> = { NOTA_ENTRADA: 'fiscal:read', NOTA_SAIDA: 'fiscal:read',
-  VENDA_ADMINISTRATIVA: 'sales:read', RECEBIMENTO_COMPRA: 'purchases:read', ORDEM_COMPRA: 'purchases:read' };
+  REVERSAO_NOTA_ENTRADA: 'fiscal:read', REVERSAO_NOTA_SAIDA: 'fiscal:read' };
 
 function StockReferences({ draft, change }: { draft: { produtoId: string; localEstoqueId: string }; change: (field: 'produtoId' | 'localEstoqueId', value: string) => void }) {
   const { permissions } = useAuth();
@@ -172,8 +160,8 @@ function PositionPanel({ organizationId }: { organizationId: number }) {
           <ListingCards rows={rows<StockPosition>(positions.data)} getKey={(item) => item.produtoId}
             getTitle={(item) => item.produto}
             getFields={(item) => [
-              { label: 'Saldo', value: formatNumber(item.quantidade, 3) },
-              { label: 'Mínimo', value: formatNumber(item.quantidadeMinima, 3) },
+              { label: 'Saldo', value: formatNumber(item.quantidade, 3, 6) },
+              { label: 'Mínimo', value: formatNumber(item.quantidadeMinima, 6) },
               { label: 'Situação', value: <Chip size="small" color={item.abaixoMinimo ? 'warning' : 'success'} label={item.abaixoMinimo ? 'Abaixo do mínimo' : 'Regular'} /> },
             ]}
             onOpen={(item) => openMovements(item.produtoId)}
@@ -183,7 +171,7 @@ function PositionPanel({ organizationId }: { organizationId: number }) {
           <TableCell>Produto</TableCell><TableCell align="right">Saldo</TableCell><TableCell align="right">Mínimo</TableCell><TableCell>Situação</TableCell><TableCell>Histórico</TableCell>
         </TableRow></TableHead><TableBody>
           {rows<StockPosition>(positions.data).map((item) => <TableRow key={item.produtoId}>
-            <TableCell>{item.produto}</TableCell><TableCell align="right">{formatNumber(item.quantidade, 3)}</TableCell><TableCell align="right">{formatNumber(item.quantidadeMinima, 3)}</TableCell>
+            <TableCell>{item.produto}</TableCell><TableCell align="right">{formatNumber(item.quantidade, 3, 6)}</TableCell><TableCell align="right">{formatNumber(item.quantidadeMinima, 6)}</TableCell>
             <TableCell><Chip size="small" color={item.abaixoMinimo ? 'warning' : 'success'} label={item.abaixoMinimo ? 'Abaixo do mínimo' : 'Regular'} /></TableCell>
             <TableCell><Button size="small" onClick={() => openMovements(item.produtoId)}>Ver movimentos</Button></TableCell>
           </TableRow>)}
@@ -202,7 +190,7 @@ function PositionPanel({ organizationId }: { organizationId: number }) {
             getTitle={(item) => item.produto}
             getFields={(item) => [
               { label: 'Local', value: item.localEstoque },
-              { label: 'Saldo', value: formatNumber(item.quantidade, 3) },
+              { label: 'Saldo', value: formatNumber(item.quantidade, 3, 6) },
             ]}
             onOpen={(item) => openMovements(item.produtoId, item.localEstoqueId)}
             getOpenLabel={(item) => `Ver movimentos de ${item.produto} em ${item.localEstoque}`}
@@ -211,7 +199,7 @@ function PositionPanel({ organizationId }: { organizationId: number }) {
           <TableCell>Produto</TableCell><TableCell>Local</TableCell><TableCell align="right">Saldo</TableCell><TableCell>Histórico</TableCell>
         </TableRow></TableHead><TableBody>
           {rows<StockBalance>(balances.data).map((item) => <TableRow key={item.id}>
-            <TableCell>{item.produto}</TableCell><TableCell>{item.localEstoque}</TableCell><TableCell align="right">{formatNumber(item.quantidade, 3)}</TableCell><TableCell><Button size="small" onClick={() => openMovements(item.produtoId, item.localEstoqueId)}>Ver movimentos</Button></TableCell>
+            <TableCell>{item.produto}</TableCell><TableCell>{item.localEstoque}</TableCell><TableCell align="right">{formatNumber(item.quantidade, 3, 6)}</TableCell><TableCell><Button size="small" onClick={() => openMovements(item.produtoId, item.localEstoqueId)}>Ver movimentos</Button></TableCell>
           </TableRow>)}
           {!balances.data?.content.length && <TableRow><TableCell colSpan={4}>Nenhum saldo encontrado.</TableCell></TableRow>}
           </TableBody></Table></TableContainer></Card>
@@ -233,12 +221,10 @@ interface MovementFilters {
 
 const emptyMovementFilters: MovementFilters = { produtoId: '', localEstoqueId: '', tipo: '', de: '', ate: '' };
 
-function MovementPanel({ organizationId, canManage }: { organizationId: number; canManage: boolean }) {
+function MovementPanel({ organizationId }: { organizationId: number }) {
   const { permissions } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const initial = { ...emptyMovementFilters, produtoId: searchParams.get('produtoId') ?? '', localEstoqueId: searchParams.get('localEstoqueId') ?? '' };
-  const queryClient = useQueryClient();
-  const { notify } = useSnackbar();
   const [draft, setDraft] = useState(initial);
   const [filters, setFilters] = useState(initial);
   const [page, setPage] = useState(0);
@@ -248,9 +234,6 @@ function MovementPanel({ organizationId, canManage }: { organizationId: number; 
   const originPermission = origin.data ? originPermissions[origin.data.tipo] : undefined;
   const canReadOrigin = !originPermission || permissions.includes(originPermission);
   const openDetail = (id: number) => setSearchParams((current) => { const next = new URLSearchParams(current); next.set('detail', String(id)); return next; });
-  const [compensating, setCompensating] = useState<StockMovement | null>(null);
-  const [motivo, setMotivo] = useState('');
-  const [compensationKey, setCompensationKey] = useState('');
   const params = {
     page, size: 20,
     produtoId: filters.produtoId ? Number(filters.produtoId) : undefined,
@@ -262,20 +245,6 @@ function MovementPanel({ organizationId, canManage }: { organizationId: number; 
   const movements = useQuery({
     queryKey: stockQueryKey(organizationId, 'movements', params),
     queryFn: () => stockApi.movements(params),
-  });
-  const compensation = useMutation({
-    mutationFn: () => stockApi.compensate(
-      compensating!.id,
-      buildStockCompensationPayload({ motivo }),
-      compensationKey,
-    ),
-    onSuccess: () => {
-      notify('Movimento compensado com sucesso.', 'success');
-      setCompensating(null);
-      setMotivo('');
-      void queryClient.invalidateQueries({ queryKey: stockInvalidationKey(organizationId) });
-      if (detail.requested) void detail.refetch();
-    },
   });
 
   return (
@@ -292,13 +261,13 @@ function MovementPanel({ organizationId, canManage }: { organizationId: number; 
       {!movements.isLoading && !movements.isError && (
         <Box><ListingCards rows={rows<StockMovement>(movements.data)} getKey={(item) => item.id} getTitle={(item) => item.produto} onOpen={(item) => openDetail(item.id)}
           getFields={(item) => [{ label: 'Local', value: item.localEstoque }, { label: 'Movimento', value: movementLabels[item.tipo] ?? item.tipo },
-            { label: 'Quantidade', value: formatNumber(item.delta, 3) }, { label: 'Responsável', value: item.atorNome ?? 'Não informado' }, { label: 'Data', value: formatDateTime(item.ocorridoEm) }]} />
+            { label: 'Quantidade', value: formatNumber(item.delta, 3, 6) }, { label: 'Responsável', value: item.atorNome ?? 'Não informado' }, { label: 'Data', value: formatDateTime(item.ocorridoEm) }]} />
         <Card sx={{ display: { xs: 'none', md: 'block' } }}><TableContainer><Table size="small" aria-label="Razão de estoque"><TableHead><TableRow>
           <TableCell>Produto</TableCell><TableCell>Local</TableCell><TableCell>Tipo</TableCell><TableCell align="right">Quantidade</TableCell><TableCell>Data</TableCell><TableCell>Responsável</TableCell><TableCell>Ações</TableCell>
         </TableRow></TableHead><TableBody>
           {rows<StockMovement>(movements.data).map((item) => <TableRow key={item.id}>
             <TableCell>{item.produto}</TableCell><TableCell>{item.localEstoque}</TableCell><TableCell>{movementLabels[item.tipo] ?? item.tipo}</TableCell>
-            <TableCell align="right">{formatNumber(item.delta, 3)}</TableCell><TableCell>{formatDateTime(item.ocorridoEm)}</TableCell>
+            <TableCell align="right">{formatNumber(item.delta, 3, 6)}</TableCell><TableCell>{formatDateTime(item.ocorridoEm)}</TableCell>
             <TableCell>{item.atorNome ?? 'Não informado'}</TableCell>
             <TableCell><Button size="small" startIcon={<VisibilityOutlinedIcon />} onClick={() => openDetail(item.id)}>Detalhe</Button>
             </TableCell>
@@ -310,27 +279,23 @@ function MovementPanel({ organizationId, canManage }: { organizationId: number; 
 
       <AppDialog open={detail.requested} onClose={detail.close} title="Detalhe do movimento" maxWidth="sm"
         fullScreenOnMobile actions={<>
-          {canManage && detail.data && detail.data.tipo !== 'COMPENSACAO' && <Button color="warning" startIcon={<ReplayOutlinedIcon />} onClick={() => { compensation.reset(); setMotivo(''); setCompensating(detail.data!); setCompensationKey(intentKey()); }}>Compensar movimento</Button>}
           <Button onClick={detail.close}>Fechar</Button>
         </>}>
         <QueryFeedback loading={detail.isLoading} error={detail.error} />
         {detail.data && <Stack spacing={1}><Typography>Produto: {detail.data.produto}</Typography><Typography>Local: {detail.data.localEstoque}</Typography><Typography>Tipo: {movementLabels[detail.data.tipo] ?? detail.data.tipo}</Typography>
-          <Typography>Quantidade movimentada: {formatNumber(detail.data.delta, 3)}</Typography><Typography>Saldo anterior: {formatNumber(detail.data.saldoAnterior, 3)}</Typography><Typography>Saldo posterior: {formatNumber(detail.data.saldoPosterior, 3)}</Typography>
+          <Typography>Quantidade movimentada: {formatNumber(detail.data.delta, 3, 6)}</Typography><Typography>Saldo anterior: {formatNumber(detail.data.saldoAnterior, 3, 6)}</Typography><Typography>Saldo posterior: {formatNumber(detail.data.saldoPosterior, 3, 6)}</Typography>
           <Typography>Responsável: {detail.data.atorNome ?? 'Não informado'}</Typography><Typography>Data: {formatDateTime(detail.data.ocorridoEm)}</Typography><Typography>Motivo: {detail.data.motivo ?? 'Não informado'}</Typography>
+          {fiscalMovementOrigins.has(detail.data.origemTipo) && <Typography variant="body2" color="text.secondary">
+            Movimentos de nota fiscal são revertidos pelo documento de origem, não isoladamente no estoque.
+          </Typography>}
           <QueryFeedback loading={origin.isLoading} error={origin.error} />
           {origin.data && (!canReadOrigin ? <Typography color="text.secondary">Seu acesso não permite consultar o documento de origem.</Typography>
-            : origin.data.caminho ? <Button component={RouterLink} to={origin.data.caminho}>{origin.data.descricao}</Button> : <Typography color="text.secondary">{origin.data.descricao}</Typography>)}
+            : origin.data.caminho
+              ? <Button component={RouterLink} to={origin.data.caminho}>{origin.data.descricao}</Button>
+              : <Typography color="text.secondary">{origin.data.descricao}</Typography>)}
         </Stack>}
       </AppDialog>
 
-      <AppDialog open={compensating !== null} onClose={() => setCompensating(null)} title="Compensar movimento"
-        maxWidth="xs" role="alertdialog" busy={compensation.isPending} actions={<>
-          <Button onClick={() => setCompensating(null)}>Cancelar</Button>
-          <Button variant="contained" color="warning" disabled={compensation.isPending || !motivo.trim()} onClick={() => compensation.mutate()}>Compensar</Button>
-        </>}>
-        {compensation.isError && <Alert severity="error" sx={{ mb: 2 }}>{describeError(compensation.error)}</Alert>}
-        <TextField autoFocus fullWidth multiline minRows={2} label="Motivo" value={motivo} onChange={(event) => setMotivo(event.target.value)} required />
-      </AppDialog>
     </Stack>
   );
 }
@@ -428,54 +393,6 @@ function LocationsPanel({ organizationId, canManage }: { organizationId: number;
   );
 }
 
-interface ProductOption { id: number; nome: string }
-
-function AdjustmentDialog({ open, organizationId, locations, onClose }: { open: boolean; organizationId: number; locations: StockLocation[]; onClose: () => void }) {
-  const queryClient = useQueryClient();
-  const { notify } = useSnackbar();
-  const [values, setValues] = useState({ produtoId: '', localEstoqueId: '', delta: '', custoUnitario: '', motivo: '' });
-  const [key, setKey] = useState('');
-  const products = useQuery({
-    queryKey: stockQueryKey(organizationId, 'adjustment-products'),
-    queryFn: () => api.get<Page<ProductOption>>('/api/produtos', {
-      params: { size: 100, ativo: true, sort: 'nome,asc' },
-    }).then((response) => response.data),
-    enabled: open,
-  });
-  const mutation = useMutation({
-    mutationFn: () => stockApi.adjust(buildStockAdjustmentPayload(values), key),
-    onSuccess: () => {
-      notify('Ajuste registrado na razão de estoque.', 'success');
-      setValues({ produtoId: '', localEstoqueId: '', delta: '', custoUnitario: '', motivo: '' });
-      onClose();
-      void queryClient.invalidateQueries({ queryKey: stockInvalidationKey(organizationId) });
-    },
-  });
-  const close = () => { if (!mutation.isPending) onClose(); };
-  const submit = (event: FormEvent) => { event.preventDefault(); mutation.mutate(); };
-  useEffect(() => {
-    setKey(open ? intentKey() : '');
-  }, [open]);
-
-  return <AppDialog open={open} onClose={close} title="Ajustar estoque" maxWidth="sm"
-    fullScreenOnMobile busy={mutation.isPending} actions={<>
-      <Button onClick={close}>Cancelar</Button>
-      <Button type="submit" form="stock-adjustment-form" variant="contained" disabled={mutation.isPending || !key}>Registrar ajuste</Button>
-    </>}><Box component="form" id="stock-adjustment-form" onSubmit={submit}>
-    <Stack spacing={2}>
-      {mutation.isError && <Alert severity="error">{describeError(mutation.error)}</Alert>}
-      <TextField select label="Produto" value={values.produtoId} onChange={(event) => setValues({ ...values, produtoId: event.target.value })} required fullWidth>{rows<ProductOption>(products.data).map((item) => <MenuItem key={item.id} value={item.id}>{item.nome}</MenuItem>)}</TextField>
-      <TextField select label="Local" value={values.localEstoqueId} onChange={(event) => setValues({ ...values, localEstoqueId: event.target.value })} required fullWidth>{locations.filter((item) => item.ativo).map((item) => <MenuItem key={item.id} value={item.id}>{item.nome}</MenuItem>)}</TextField>
-      <NumberField label="Delta" value={values.delta} step={0.001}
-        onValueChange={(delta) => setValues({ ...values, delta })}
-        helperText="Use valor positivo para entrada e negativo para saída." required />
-      <NumberField label="Custo unitário" value={values.custoUnitario} min={0} step={0.01}
-        onValueChange={(custoUnitario) => setValues({ ...values, custoUnitario })} />
-      <TextField label="Motivo" multiline minRows={2} value={values.motivo} onChange={(event) => setValues({ ...values, motivo: event.target.value })} required />
-    </Stack>
-  </Box></AppDialog>;
-}
-
 export function StockPage() {
   const { activeOrganization, permissions } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -485,22 +402,9 @@ export function StockPage() {
     : tabKey === 'locais'
       ? 2
       : 0;
-  const [adjustmentOpen, setAdjustmentOpen] = useState(tabKey === 'ajustes');
   const organizationId = activeOrganization?.organizationId;
   const canRead = permissions.includes('stock:read');
   const canManage = permissions.includes('stock:manage');
-  const canAdjust = canAdjustStock(permissions);
-  const locations = useQuery({
-    queryKey: organizationId ? stockQueryKey(organizationId, 'location-options') : ['stock', 'location-options'],
-    queryFn: () => stockLocationApi.list({ size: 100, sort: 'nome,asc' }),
-    enabled: !!organizationId && canRead,
-  });
-  const locationOptions = useMemo(() => rows<StockLocation>(locations.data), [locations.data]);
-
-  useEffect(() => {
-    if (tabKey === 'ajustes') setAdjustmentOpen(true);
-  }, [tabKey]);
-
   const setTab = (value: number) => {
     const next = value === 1 ? 'razao' : value === 2 ? 'locais' : 'posicao';
     setSearchParams({ tab: next }, { replace: true });
@@ -509,28 +413,11 @@ export function StockPage() {
   if (!canRead || !organizationId) return <Alert severity="warning">Seu contexto não possui permissão de estoque.</Alert>;
 
   return <Box>
-    <PageHeader title="Estoque" subtitle="Saldos por produto e local, entradas, saídas e responsáveis por cada movimentação." action={canAdjust ? <Button variant="contained" startIcon={<TuneOutlinedIcon />} onClick={() => setAdjustmentOpen(true)}>Ajustar estoque</Button> : undefined} />
-    {canManage && !permissions.includes('catalog:read') && <Alert severity="info" sx={{ mb: 2 }}>Ajustes exigem também leitura do catálogo para selecionar o produto.</Alert>}
-    {tabKey === 'ajustes' && !canAdjust && (
-      <Alert severity="info" sx={{ mb: 2 }}>
-        Conferência e ajustes exigem permissão de gestão de estoque e leitura do catálogo.
-      </Alert>
-    )}
+    <PageHeader title="Estoque" subtitle="Saldos por produto e local, entradas, saídas e responsáveis por cada movimentação." />
     <Card><Tabs value={tabIndex} onChange={(_, value: number) => setTab(value)} variant="scrollable"
       scrollButtons="auto" allowScrollButtonsMobile aria-label="Áreas do estoque"><Tab label="Posição" /><Tab label="Razão" /><Tab label="Locais" /></Tabs></Card>
     <TabPanel current={tabIndex} index={0}><PositionPanel organizationId={organizationId} /></TabPanel>
-    <TabPanel current={tabIndex} index={1}><MovementPanel organizationId={organizationId} canManage={canManage} /></TabPanel>
+    <TabPanel current={tabIndex} index={1}><MovementPanel organizationId={organizationId} /></TabPanel>
     <TabPanel current={tabIndex} index={2}><LocationsPanel organizationId={organizationId} canManage={canManage} /></TabPanel>
-    {canAdjust && (
-      <AdjustmentDialog
-        open={adjustmentOpen}
-        organizationId={organizationId}
-        locations={locationOptions}
-        onClose={() => {
-          setAdjustmentOpen(false);
-          if (tabKey === 'ajustes') setSearchParams({ tab: 'posicao' }, { replace: true });
-        }}
-      />
-    )}
   </Box>;
 }

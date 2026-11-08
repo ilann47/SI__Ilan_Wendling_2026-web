@@ -2,16 +2,16 @@ import AddOutlinedIcon from '@mui/icons-material/AddOutlined';
 import CancelOutlinedIcon from '@mui/icons-material/CancelOutlined';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
-import { Alert, Box, Button, Card, Stack, useMediaQuery } from '@mui/material';
+import { Alert, Box, Button, Card, Chip, Stack, useMediaQuery } from '@mui/material';
 import UploadFileOutlinedIcon from '@mui/icons-material/UploadFileOutlined';
 import { useTheme } from '@mui/material/styles';
 import { DataGrid, type GridColDef, type GridPaginationModel } from '@mui/x-data-grid';
 import { ptBR } from '@mui/x-data-grid/locales';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { describeError } from '../api/client';
-import { inboundNotesApi } from '../api/inboundNotes';
+import { inboundNotesApi, inboundNoteVersion } from '../api/inboundNotes';
 import { tenantQueryKey } from '../api/queryKeys';
 import { useAuth } from '../auth/AuthContext';
 import { ConfirmDialog } from '../components/common/ConfirmDialog';
@@ -29,11 +29,10 @@ import { ListingToolbar } from '../components/listing/ListingToolbar';
 import { countAppliedFilters, formatDetailValue } from '../components/listing/listingUtils';
 import { PrimaryButton } from '../components/listing/PrimaryButton';
 import { SecondaryActionsMenu, type SecondaryAction } from '../components/listing/SecondaryActionsMenu';
-import { PurchaseProcessStrip } from '../components/purchases/PurchaseProcessStrip';
 import { useSnackbar } from '../components/SnackbarProvider';
 import { notaEntradaConfig } from '../resources/fiscal';
 import type { NotaEntradaResponse } from '../types';
-import { formatCurrency, formatDate } from '../utils/format';
+import { formatCurrencyMicros, formatDate } from '../utils/format';
 
 const gridLocale = ptBR.components.MuiDataGrid.defaultProps.localeText;
 
@@ -42,11 +41,15 @@ const situacaoFilter: FilterConfig = {
   label: 'Situação',
   type: 'select',
   options: [
-    { value: 'PENDENTE', label: 'Pendente' },
+    { value: 'PENDENTE', label: 'Rascunho' },
     { value: 'CONFIRMADA', label: 'Confirmada' },
-    { value: 'CANCELADA', label: 'Cancelada' },
+    { value: 'CANCELADA', label: 'Cancelada ou revertida' },
   ],
 };
+
+const noteStatus = (row: NotaEntradaResponse) => row.revertidaEm
+  ? <Chip size="small" color="warning" label="Revertida" />
+  : <StatusChip status={row.situacao} />;
 
 function key(organizationId: number, ...parts: readonly unknown[]) {
   return tenantQueryKey(organizationId, 'notas-entrada', ...parts);
@@ -62,10 +65,10 @@ export function InboundNotesPage() {
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   const [pagination, setPagination] = useState<GridPaginationModel>({ page: 0, pageSize: 10 });
-  const [search, setSearch] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [filters, setFilters] = useState<Record<string, unknown>>({});
-  const [confirming, setConfirming] = useState<NotaEntradaResponse | null>(null);
+  const [params, setParams] = useSearchParams();
+  const [search, setSearch] = useState(params.get('numero') ?? '');
+  const [debouncedSearch, setDebouncedSearch] = useState(params.get('numero') ?? '');
+  const [filters, setFilters] = useState<Record<string, unknown>>({ situacao: params.get('situacao') ?? '', fornecedorId: params.get('fornecedorId') ?? '' });
   const [cancelling, setCancelling] = useState<NotaEntradaResponse | null>(null);
   const [deleting, setDeleting] = useState<NotaEntradaResponse | null>(null);
 
@@ -95,24 +98,15 @@ export function InboundNotesPage() {
       ...queryFilters,
     }),
     enabled: !!organizationId && canRead,
-    placeholderData: keepPreviousData,
+    placeholderData: (previous, query) => query?.queryKey[1] === organizationId ? keepPreviousData(previous) : undefined,
   });
 
   const invalidate = () => organizationId
-    && queryClient.invalidateQueries({ queryKey: key(organizationId) });
+    && queryClient.invalidateQueries({ queryKey: ['tenant', organizationId] });
   const failure = (error: unknown) => notify(describeError(error), 'error');
 
-  const confirmMutation = useMutation({
-    mutationFn: (note: NotaEntradaResponse) => inboundNotesApi.confirmRecoverable(note.id),
-    onSuccess: () => {
-      setConfirming(null);
-      notify('Nota de entrada confirmada.', 'success');
-      void invalidate();
-    },
-    onError: failure,
-  });
   const cancelMutation = useMutation({
-    mutationFn: (note: NotaEntradaResponse) => inboundNotesApi.cancel(note.id),
+    mutationFn: (note: NotaEntradaResponse) => inboundNotesApi.cancel(note.id, inboundNoteVersion(note)),
     onSuccess: () => {
       setCancelling(null);
       notify('Nota de entrada cancelada.', 'success');
@@ -121,7 +115,7 @@ export function InboundNotesPage() {
     onError: failure,
   });
   const deleteMutation = useMutation({
-    mutationFn: (note: NotaEntradaResponse) => inboundNotesApi.remove(note.id),
+    mutationFn: (note: NotaEntradaResponse) => inboundNotesApi.deleteDraft(note.id, inboundNoteVersion(note)),
     onSuccess: () => {
       setDeleting(null);
       notify('Nota de entrada excluída.', 'success');
@@ -141,7 +135,7 @@ export function InboundNotesPage() {
   };
   const appliedCount = countAppliedFilters(filters);
   const clearFilters = () => {
-    setFilters({});
+    setFilters({}); setParams({});
     setSearch('');
     setDebouncedSearch('');
     setPagination((current) => ({ ...current, page: 0 }));
@@ -152,6 +146,7 @@ export function InboundNotesPage() {
       setDebouncedSearch('');
     }
     setFilters((current) => ({ ...current, [name]: undefined }));
+    setParams((current) => { const next = new URLSearchParams(current); next.delete(name); return next; }, { replace: true });
     setPagination((current) => ({ ...current, page: 0 }));
   };
 
@@ -160,9 +155,9 @@ export function InboundNotesPage() {
     if (canManage && row.situacao === 'PENDENTE') {
       actions.push({
         key: 'confirmar',
-        label: 'Confirmar',
+        label: 'Conferir / editar rascunho',
         icon: <CheckCircleOutlineIcon fontSize="small" />,
-        onClick: () => setConfirming(row),
+        onClick: () => navigate(`/app/notas-entrada/${row.id}/editar`),
       });
       actions.push({
         key: 'cancelar',
@@ -172,7 +167,7 @@ export function InboundNotesPage() {
         onClick: () => setCancelling(row),
       });
     }
-    if (canManage) {
+    if (canManage && row.situacao !== 'CONFIRMADA' && !row.revertidaEm) {
       actions.push({
         key: 'excluir',
         label: 'Excluir',
@@ -185,8 +180,9 @@ export function InboundNotesPage() {
   };
 
   const columns: GridColDef<NotaEntradaResponse>[] = [
-    { field: 'id', headerName: 'ID', width: 80 },
     { field: 'numero', headerName: 'Número', width: 120 },
+    { field: 'serie', headerName: 'Série', width: 85 },
+    { field: 'modelo', headerName: 'Modelo', width: 90 },
     { field: 'fornecedorNome', headerName: 'Fornecedor', flex: 1, minWidth: 160 },
     {
       field: 'dataEmissao',
@@ -200,13 +196,13 @@ export function InboundNotesPage() {
       width: 130,
       align: 'right',
       headerAlign: 'right',
-      valueFormatter: (value) => formatCurrency(value as number),
+      valueFormatter: (value) => formatCurrencyMicros(value as number),
     },
     {
       field: 'situacao',
       headerName: 'Situação',
       width: 140,
-      renderCell: (params) => <StatusChip status={params.value as string} />,
+      renderCell: ({ row }) => noteStatus(row),
     },
     {
       field: '__actions',
@@ -227,6 +223,7 @@ export function InboundNotesPage() {
   const chipFilters: FilterConfig[] = [
     { name: 'numero', label: 'Número', type: 'text' },
     situacaoFilter,
+    { name: 'fornecedorId', label: 'Fornecedor', type: 'select', options: [{ value: String(filters.fornecedorId ?? ''), label: 'Selecionado no filtro' }] },
   ];
 
   return (
@@ -244,20 +241,21 @@ export function InboundNotesPage() {
           </PrimaryButton>}
         </Stack>}
       />
-      <PurchaseProcessStrip active="nota" />
       <ListingToolbar
         searchValue={search}
         searchLabel="Buscar por número"
         onSearchChange={(value) => {
           setSearch(value);
+          setParams((current) => { const next = new URLSearchParams(current); if (value.trim()) next.set('numero', value.trim()); else next.delete('numero'); return next; }, { replace: true });
           setPagination((current) => ({ ...current, page: 0 }));
         }}
         filterForm={(
           <FilterBar
-            filters={[situacaoFilter]}
+            filters={[situacaoFilter, ...(permissions.includes('suppliers:read') ? [{ name: 'fornecedorId', label: 'Fornecedor', type: 'reference' as const, reference: { basePath: '/api/fornecedores', labelField: 'nome' } }] : [])]}
             values={filters}
             onChange={(value) => {
               setFilters(value);
+              setParams((current) => { const next = new URLSearchParams(current); for (const field of ['situacao', 'fornecedorId']) { if (value[field]) next.set(field, String(value[field])); else next.delete(field); } return next; }, { replace: true });
               setPagination((current) => ({ ...current, page: 0 }));
             }}
           />
@@ -297,9 +295,10 @@ export function InboundNotesPage() {
             getTitle={(row) => row.numero}
             getFields={(row) => [
               { label: 'Fornecedor', value: formatDetailValue(row.fornecedorNome) },
+              { label: 'Série / modelo', value: `${row.serie} / ${row.modelo}` },
               { label: 'Emissão', value: formatDate(row.dataEmissao) },
-              { label: 'Total', value: formatCurrency(row.valorTotal) },
-              { label: 'Situação', value: <StatusChip status={row.situacao} /> },
+              { label: 'Total', value: formatCurrencyMicros(row.valorTotal) },
+              { label: 'Situação', value: noteStatus(row) },
             ]}
             getActions={rowActions}
             onOpen={openDetail}
@@ -353,15 +352,6 @@ export function InboundNotesPage() {
         </>
       )}
 
-      <ConfirmDialog
-        open={!!confirming}
-        title="Confirmar nota de entrada"
-        message={confirming?.recebimentoCompraId ? 'Confirmar a nota e gerar as contas a pagar? O estoque do recebimento não será somado novamente.' : 'Confirmar a nota? Isso soma o estoque e gera as contas a pagar.'}
-        confirmLabel="Confirmar"
-        loading={confirmMutation.isPending}
-        onClose={() => setConfirming(null)}
-        onConfirm={() => confirming && confirmMutation.mutate(confirming)}
-      />
       <ConfirmDialog
         open={!!cancelling}
         title="Cancelar nota de entrada"

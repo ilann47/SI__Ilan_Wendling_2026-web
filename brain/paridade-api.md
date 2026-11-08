@@ -90,7 +90,6 @@ controller + PreAuthorize -> rota/comando da UI -> cliente HTTP -> resposta real
 | `/api/funcionarios` | `workforce:read`, `workforce:manage` | RH/Funcionários | Integrada e isolada por organização |
 | `/api/v1/stock-locations` | `stock:read`, `stock:manage` | Estoque/Locais | Integrada com ETag e isolada por organização |
 | `/api/v1/stock-positions`, `/stock-balances`, `/stock-movements` | `stock:read` | Estoque/Posição e Razão | Integrada e isolada por organização |
-| `/api/v1/stock-adjustments`, `/stock-movements/{id}/compensation` | `stock:manage` | Estoque/Ajustes | Integrada com idempotência |
 
 ## Lacunas de leitura do contrato atual
 
@@ -166,3 +165,4 @@ críticas e granularidade de RBAC. A validação real local complementa esta mat
 | 2026-08-03 | Registra Funcionários como contrato tenant-aware com estado `ativo` real. |
 | 2026-08-03 | Registra os catálogos de conveniência V50-V52 com `catalog:*`, cache por organização e `If-Match`. |
 | 2026-08-03 | Registra Produto–Fornecedor V53 com `catalog:*`, ETag e lookup condicionado a `suppliers:read`. |
+| 2026-11-06 | Retira os comandos manuais de ajuste e compensação; mantém as consultas de estoque e locais. |

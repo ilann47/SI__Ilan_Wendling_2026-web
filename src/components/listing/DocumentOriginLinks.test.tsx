@@ -5,19 +5,21 @@ import { notaSaidaConfig, notaServicoConfig } from '../../resources/fiscal';
 import { DocumentOriginLinks } from './DocumentOriginLinks';
 
 describe('origem comercial do documento fiscal', () => {
-  it.each([
-    [notaSaidaConfig, { vendaAdministrativaId: 15 }, 'sales:read', '/app/vendas-administrativas?detail=15', 'Ver pedido de venda'],
-    [notaServicoConfig, { ordemServicoId: 18 }, 'service_orders:read', '/app/ordens-servico?detail=18', 'Ver ordem de serviço'],
-  ] as const)('config %# abre origem exata respeitando leitura contextual', (config, row, permission, path, label) => {
-    render(<MemoryRouter><DocumentOriginLinks row={row} links={config.detailLinks ?? []} permissions={[permission]} /></MemoryRouter>);
-    expect(screen.getByRole('link', { name: label })).toHaveAttribute('href', path);
+  it('abre a ordem de serviço exata com a permissão de leitura contextual', () => {
+    render(<MemoryRouter><DocumentOriginLinks row={{ ordemServicoId: 18 }} links={notaServicoConfig.detailLinks ?? []} permissions={['service_orders:read']} /></MemoryRouter>);
+    expect(screen.getByRole('link', { name: 'Ver ordem de serviço' })).toHaveAttribute('href', '/app/ordens-servico?detail=18');
+  });
+  it('não oferece seletor ou link de pedido de venda na nota de saída', () => {
+    expect(notaSaidaConfig.fields.some((field) => field.name === 'vendaAdministrativaId')).toBe(false);
+    render(<MemoryRouter><DocumentOriginLinks row={{ vendaAdministrativaId: 15 }} links={notaSaidaConfig.detailLinks ?? []} permissions={['sales:read']} /></MemoryRouter>);
+    expect(screen.queryByRole('link')).not.toBeInTheDocument();
   });
   it('não mostra links sem permissão do módulo de origem', () => {
-    render(<MemoryRouter><DocumentOriginLinks row={{ vendaAdministrativaId: 15 }} links={notaSaidaConfig.detailLinks ?? []} permissions={['fiscal:read']} /></MemoryRouter>);
+    render(<MemoryRouter><DocumentOriginLinks row={{ ordemServicoId: 18 }} links={notaServicoConfig.detailLinks ?? []} permissions={['fiscal:read']} /></MemoryRouter>);
     expect(screen.queryByRole('link')).not.toBeInTheDocument();
   });
   it.each([null, undefined, 0, -2, 'abc'])('não inventa origem para id %s', (id) => {
-    render(<MemoryRouter><DocumentOriginLinks row={{ vendaAdministrativaId: id }} links={notaSaidaConfig.detailLinks ?? []} permissions={['sales:read']} /></MemoryRouter>);
+    render(<MemoryRouter><DocumentOriginLinks row={{ ordemServicoId: id }} links={notaServicoConfig.detailLinks ?? []} permissions={['service_orders:read']} /></MemoryRouter>);
     expect(screen.queryByRole('link')).not.toBeInTheDocument();
   });
   it('comandos fiscais exigem gerenciar fiscal', () => {

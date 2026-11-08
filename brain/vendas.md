@@ -1,16 +1,15 @@
 > Links: [[core]] · [[auth]] · [[workspace]] · [[eventos]] · [[acesso]]
 
-# Pedidos de venda e vendas de eventos
+# Vendas de mercadorias, eventos e serviços
 
 ## Objetivo
 
 Operar o funil real de reserva temporaria, pedido, confirmacao/cancelamento e
 emissao de credenciais de acesso.
 
-Na operação comercial, apresentar `VendaAdministrativa` como **Pedidos de venda**,
-conectando cliente/produtos, confirmação, nota de saída e recebimento. O nome do
-agregado, contratos `/administrative-sales` e rota `/app/vendas-administrativas`
-permanecem compatíveis; esse fluxo não utiliza o pedido de ingresso de evento.
+Na operação comercial de mercadorias, usar **Vendas → Notas de Saída** sem
+pedido intermediário. A interface de Pedidos de Venda de mercadorias foi
+retirada. Pedidos de ingressos de eventos e Ordens de Serviço são fluxos distintos.
 
 ## Contexto
 
@@ -26,9 +25,8 @@ Disponibilidade -> Hold -> Pedido -> Confirmacao -> Credencial -> Token QR
 ```
 
 ```text
-Pedidos de venda -> confirmação (baixa estoque + gera recebíveis)
-                 -> preparar nota de saída pendente (sem repetir lançamentos)
-                 -> consultar nota / parcelas / razão de estoque no detalhe
+Nova Nota de Saída -> conferir rascunho -> confirmar (baixa estoque + gera recebíveis)
+                   -> consultar nota / parcelas / razão de estoque no detalhe
 ```
 
 ## Endpoints (se houver)
@@ -40,13 +38,8 @@ Pedidos de venda -> confirmação (baixa estoque + gera recebíveis)
 - `POST /api/v1/orders/{id}/credentials`
 - `GET /api/v1/credentials/{id}`
 - `POST /api/v1/credentials/{id}/qr-code`
-- `GET/POST /api/v1/administrative-sales` e `GET/PUT /api/v1/administrative-sales/{id}`
-- `POST /api/v1/administrative-sales/{id}/confirmation|cancellation` com `If-Match`
-- `GET /api/v1/administrative-sales/{id}/documents`: `nota`, `contas`, `movimentos`;
-  seções protegidas respectivamente por `fiscal:read`, `finance:read`, `stock:read`.
-- `POST /api/v1/administrative-sales/{id}/outbound-note`: `Idempotency-Key` e
-  `numero` obrigatório (20 caracteres); `modelo` e `serie` opcionais (10 caracteres),
-  `dataEmissao` e `dataSaida` opcionais. Cliente, itens e valores vêm do servidor.
+- Para venda de mercadorias: `POST /api/notas-saida` e conferência em
+  `GET /api/notas-saida/{id}/detalhes`; consulte [[fiscal-financeiro]].
 
 ## Estrutura de Dados (DTOs, Entidades)
 
@@ -54,9 +47,8 @@ As telas refletem ReservaInventario, Pedido/ItemPedido, CancelamentoPedido,
 CredencialAcesso e RepresentacaoQr. Chaves idempotentes sao novas por intencao;
 If-Match usa a versao consultada ou retornada.
 
-`AdministrativeSaleDocuments` contém somente vínculos persistidos consultados no
-servidor. Valores e parcelas são exibidos a partir das respostas reais. O saldo a
-receber soma o saldo dos títulos não cancelados, `valorTotal - valorRecebido`.
+O contrato de Nota de Saída não possui vínculo com Pedido de Venda. Seu
+detalhe apresenta os títulos e movimentos vinculados à própria nota.
 
 ## Integracoes externas (se houver)
 
@@ -67,6 +59,10 @@ Pagamento e reembolso externos permanecem bloqueados conforme a matriz oficial.
 `ServiceOrdersPage` mantém execução `RASCUNHO -> EM_EXECUCAO -> CONCLUIDA` sem
 gerar cobrança na conclusão. O detalhe fica aberto após transições, permite
 preparar a nota a partir da ordem concluída e consultar seus recebíveis.
+Quantidades fracionárias, valores e descontos aceitam até seis casas, inclusive
+a alíquota ao preparar a Nota de Serviço. A conferência preserva as frações
+registradas no serviço, ISS, parcelas e recebimentos. Lotes e pedidos de eventos
+também exibem os preços até a sexta casa, sem converter cotas em frações.
 
 - `GET /api/v1/service-orders/{id}/documents`: `nota` e `contas` reais;
   leitura base `service_orders:read`, seções `fiscal:read` e `finance:read`.
@@ -98,20 +94,15 @@ como concluida. O token QR e tratado como segredo: nao entra no workspace e so
 fica visivel no resultado imediato, com copia explicita.
 
 Falha na leitura dos documentos não é exibida como ausência de nota/contas/estoque.
-Geração de nota mantém formulário e chave da intenção após timeout; a repetição
-é explicitamente solicitada pelo usuário, com a mesma chave e dados. No conflito
-409, consulta novamente os vínculos, sem repetir o POST automaticamente. Nota já
-existente é mostrada por link. Não há envio nem autorização fiscal externa.
+O tratamento de criação e confirmação da Nota de Saída está em [[fiscal-financeiro]].
 
 ## Testes (curl ou equivalente)
 
 Vitest cobre criacao de hold com payload real, isolamento e chave idempotente.
 
-`AdministrativeSalesPage.test.tsx` cobre detalhe por URL fora da paginação,
-transição sem perder contexto, leitura por permissão, troca de organização,
-falha de consulta, dados adicionais da nota, timeout e conciliação de conflito.
-`administrativeSales.test.ts` valida normalização da venda e payload fiscal mínimo.
-`navigation.test.tsx` conserva rota/permissão com o rótulo Pedidos de venda.
+`App.test.tsx` e `navigation.test.tsx` cobrem a retirada da rota e dos menus
+de Pedido de Venda e a ação para a Nota de Saída. `OutboundNoteDocumentPage.test.tsx`
+cobre conferência, reversão e links para os títulos e movimentos da nota.
 
 ## Decisoes Tecnicas
 
@@ -122,34 +113,22 @@ falha de consulta, dados adicionais da nota, timeout e conciliação de conflito
   quando o principal possui a permissao contextual exigida pela operacao.
 - Criar, consultar, confirmar e cancelar pedido são controles independentes;
   possuir uma dessas permissões não revela comandos das demais.
-- Pedidos de venda usam `useLinkedDetail` em `?detail=ID`, inclusive abertura
-  direta sem o registro estar na página corrente. A troca de organização desmonta
-  o workspace anterior, sem reutilizar formulário, detalhe ou chave de intenção.
-- Desktop mantém tabela e menu de ações; mobile reutiliza `ListingCards` e
-  `SecondaryActionsMenu`. Confirmar/editar/cancelar também estão no detalhe.
-- Geração exige `sales:read` e `fiscal:manage`; consulta a nota por
-  `/app/notas-saida?detail=ID` e parcelas por `/app/contas-receber?detail=ID`.
-  Não são solicitados IDs manuais nem repetidos dados comerciais.
-- Preparar a nota deixa documento `PENDENTE`; não confundir com emissão externa.
-- A atualização da venda utiliza a versão retornada para manter o detalhe atual;
-  invalida os documentos e consultas operacionais afetadas no contexto do tenant.
-- Notas de saída e de serviço exibem o vínculo persistido de origem por
-  `DocumentOriginLinks`, retornando diretamente ao pedido/OS em `?detail=ID`.
-  O link exige respectivamente `sales:read` ou `service_orders:read`; IDs de
-  origem não são apresentados como campos técnicos no detalhe genérico.
-- O vínculo opcional no formulário fiscal usa `ReferenceSelect`, com busca por
-  número e filtro de estado confirmado/concluído. Os comandos fiscais exigem
-  `fiscal:manage`, separados da leitura. O backend aplica `numero` e `status`
-  antes da paginação em vendas e OS; a busca não é uma aproximação apenas local.
+- A antiga rota de Pedido de Venda cai na home. Links persistidos em favoritos
+  ou recentes são filtrados para não oferecer atalhos quebrados.
+- A OS concluída prepara a Nota de Serviço e encaminha para sua conferência
+  dedicada, sem emitir diretamente no painel da ordem. A nota mantém o link
+  de volta à OS com `service_orders:read`; comandos exigem `fiscal:manage`.
 - Referências respeitam a permissão de leitura e usam cache organizacional
   mesmo sem registro de CRUD. Falhas de leitura permanecem visíveis, sem sugerir
   que o documento não existe. Cliente/fornecedor podem ser cadastrados pelo
   provider contextual existente sem sair do formulário.
-- Confirmar pedido ou emitir a nota de serviço invalida também lista e resumo
+- Confirmar Nota de Saída ou emitir a nota de serviço invalida também lista e resumo
   financeiro. Preparar nota invalida a listagem fiscal com sua chave real;
   nenhuma dessas atualizações cria lançamentos ou notas adicionais.
 - Quantidade da reserva, filtros e versoes operacionais usam validacao numerica
   comum, com limites visiveis e normalizacao de zeros a esquerda.
+- Produto, reserva, pedido e credencial priorizam seleção pela referência
+  recente; o código interno fica como contingência quando não há catálogo.
 
 ## Modulos relacionados
 
@@ -165,11 +144,16 @@ falha de consulta, dados adicionais da nota, timeout e conciliação de conflito
 
 | Data | Acao |
 |---|---|
+| 2026-11-08 | Valida e apresenta seis casas nos serviços, ISS e preços de eventos. |
+| 2026-11-05 | Retira a operação de Pedido de Venda de mercadorias e mantém Nota de Saída avulsa como o único novo fluxo; preserva histórico e pedidos de eventos. |
+| 2026-11-05 | Alinha o frontend à retirada completa do vínculo de Pedido de Venda; preserva os fluxos de eventos e ordens de serviço. |
+| 2026-10-24 | QA redesenha referências de reserva/pedido/credencial e oculta IDs/versões dos resumos confirmados. |
 | 2026-08-03 | Implementa holds, pedidos, confirmacao, cancelamento, credenciais e QR. |
 | 2026-08-03 | Restringe cada area comercial por permissao contextual efetiva. |
 | 2026-08-03 | Separa os comandos de pedido conforme o RBAC do backend. |
 | 2026-09-12 | Integra pedidos de venda a nota de saída, parcelas e razão de estoque; preserva efeitos da confirmação, RBAC, tenant e retry idempotente sem redigitar dados. |
 | 2026-09-12 | Conecta OS concluída à preparação e emissão interna da nota de serviço, com parcelas, navegação por contexto e conciliação de timeout sem reenvio automático. |
+| 2026-11-06 | Retira emissão sem conferência do painel da OS e direciona à Nota de Serviço detalhada. |
 | 2026-09-12 | Adiciona retorno exato nota→pedido/OS com RBAC, seletores pesquisáveis de origem e cadastros contextuais preservados; cobre invalidação fiscal/financeira e filtros reais de número/situação. |
 | 2026-09-28 | Traduz estados e termos comerciais, confirma navegação pedido → nota → recebível → estoque e preserva a reserva temporária sem jargão de hold. |
 | 2026-09-29 | Padroniza quantidade, filtro de evento e versões numéricas nos fluxos de venda. |

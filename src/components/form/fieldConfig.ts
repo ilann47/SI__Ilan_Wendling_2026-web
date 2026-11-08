@@ -1,3 +1,5 @@
+import type { ContactMask } from './contactMask';
+
 export type FieldType =
   | 'text'
   | 'textarea'
@@ -49,7 +51,7 @@ export interface FieldConfig {
   reference?: ReferenceConfig;
   subFields?: FieldConfig[];
   /** Resumo especializado exibido abaixo de uma coleção de itens. */
-  subItemsSummary?: 'purchase-costs';
+  subItemsSummary?: 'inbound-note-costs';
   helperText?: string;
   defaultValue?: unknown;
   disabled?: boolean;
@@ -61,6 +63,14 @@ export interface FieldConfig {
   /** Limites numéricos. Campos numéricos são não negativos por padrão. */
   min?: number;
   max?: number;
+  /** Limite de texto validado sem truncar digitação ou colagem. */
+  maxLength?: number;
+  /** Teclado adequado ao conteúdo, sem converter o valor em número. */
+  inputMode?: 'email' | 'numeric' | 'tel';
+  /** Máscara ativa para telefone ou CEP, sem aceitar dígitos acima do limite. */
+  contactMask?: ContactMask;
+  /** No calendário, impede selecionar datas posteriores a hoje. */
+  disableFuture?: boolean;
   /** Validação contextual que pode comparar o campo com outros valores do formulário. */
   validate?: (
     value: unknown,

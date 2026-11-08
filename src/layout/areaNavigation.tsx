@@ -29,13 +29,11 @@ import QrCodeScannerOutlinedIcon from '@mui/icons-material/QrCodeScannerOutlined
 import ReceiptOutlinedIcon from '@mui/icons-material/ReceiptOutlined';
 import SellOutlinedIcon from '@mui/icons-material/SellOutlined';
 import ShoppingBagOutlinedIcon from '@mui/icons-material/ShoppingBagOutlined';
-import ShoppingCartCheckoutOutlinedIcon from '@mui/icons-material/ShoppingCartCheckoutOutlined';
 import SpaceDashboardOutlinedIcon from '@mui/icons-material/SpaceDashboardOutlined';
 import StraightenOutlinedIcon from '@mui/icons-material/StraightenOutlined';
 import SwapHorizOutlinedIcon from '@mui/icons-material/SwapHorizOutlined';
 import TrendingDownOutlinedIcon from '@mui/icons-material/TrendingDownOutlined';
 import TrendingUpOutlinedIcon from '@mui/icons-material/TrendingUpOutlined';
-import TuneOutlinedIcon from '@mui/icons-material/TuneOutlined';
 import WarehouseOutlinedIcon from '@mui/icons-material/WarehouseOutlined';
 import WorkOutlineIcon from '@mui/icons-material/WorkOutline';
 import { navGroups, type NavItem } from './navigation';
@@ -63,7 +61,7 @@ export const areaMenus: AreaMenuDefinition[] = [
       {
         label: 'Dia a dia',
         items: [
-          { label: 'Resumo do dia', path: '/app', icon: <SpaceDashboardOutlinedIcon fontSize="small" /> },
+          { label: 'Início', path: '/app', icon: <SpaceDashboardOutlinedIcon fontSize="small" /> },
           { label: 'Pátio', path: '/app/patio', icon: <LocalParkingOutlinedIcon fontSize="small" /> },
           {
             label: 'Movimentações',
@@ -113,12 +111,6 @@ export const areaMenus: AreaMenuDefinition[] = [
         label: 'Vendas',
         items: [
           {
-            label: 'Pedidos de venda',
-            path: '/app/vendas-administrativas',
-            icon: <SellOutlinedIcon fontSize="small" />,
-            permissions: ['sales:read'],
-          },
-          {
             label: 'Notas de Saída',
             path: '/app/notas-saida',
             icon: <CallMadeOutlinedIcon fontSize="small" />,
@@ -148,23 +140,11 @@ export const areaMenus: AreaMenuDefinition[] = [
   {
     areaId: 'estoque',
     title: 'Estoque',
-    description: 'Comprar, receber, entrar nota e controlar posição.',
+    description: 'Notas de entrada e controle de estoque.',
     processGroups: [
       {
-        label: 'Compras',
+        label: 'Entradas',
         items: [
-          {
-            label: 'Ordens de Compra',
-            path: '/app/ordens-compra',
-            icon: <ShoppingCartCheckoutOutlinedIcon fontSize="small" />,
-            permissions: ['purchases:read'],
-          },
-          {
-            label: 'Recebimentos',
-            path: '/app/recebimentos',
-            icon: <ReceiptOutlinedIcon fontSize="small" />,
-            permissions: ['purchases:read'],
-          },
           {
             label: 'Notas de Entrada',
             path: '/app/notas-entrada',
@@ -198,12 +178,6 @@ export const areaMenus: AreaMenuDefinition[] = [
             label: 'Locais de Estoque',
             path: '/app/estoque?tab=locais',
             icon: <Inventory2OutlinedIcon fontSize="small" />,
-            permissions: ['stock:read'],
-          },
-          {
-            label: 'Conferência/Ajustes',
-            path: '/app/estoque?tab=ajustes',
-            icon: <TuneOutlinedIcon fontSize="small" />,
             permissions: ['stock:read'],
           },
         ],

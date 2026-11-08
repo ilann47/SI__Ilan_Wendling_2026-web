@@ -3,10 +3,15 @@ import { describe, expect, it, vi } from 'vitest';
 import { AppliedFilterChips } from './AppliedFilterChips';
 import { EmptyState } from './EmptyState';
 import { ErrorState } from './ErrorState';
-import { buildDetailSections, formatDetailValue, highlightTerm } from './listingUtils';
+import { buildDetailSections, formatDetailValue, highlightTerm, humanizeField, UNAVAILABLE_API } from './listingUtils';
 import { SecondaryActionsMenu } from './SecondaryActionsMenu';
 
 describe('listing utils', () => {
+  it('não expõe jargão técnico quando uma informação não existe nesta versão', () => {
+    expect(UNAVAILABLE_API).toBe('Informação não disponível nesta versão');
+    expect(UNAVAILABLE_API).not.toMatch(/API|endpoint|payload/i);
+  });
+
   it('destaca o termo encontrado sem alterar o restante', () => {
     expect(highlightTerm('Mariana Souza', 'mari')).toEqual([
       { text: 'Mari', match: true },
@@ -41,6 +46,12 @@ describe('listing utils', () => {
     expect(formatDetailValue(0, 'outrasDespesas')).toBe('R$ 0,00');
   });
 
+  it('não perde a sexta casa nem mostra percentual como moeda', () => {
+    expect(formatDetailValue(0.000001, 'valorPago')).toBe('R$ 0,000001');
+    expect(formatDetailValue(0.000001, 'percentualDesconto')).toBe('0,000001%');
+    expect(formatDetailValue(1.000001, 'cargaHoraria')).toBe('1,000001');
+  });
+
   it('trata limite de crédito como moeda e mantém rótulos em português', () => {
     const fields = buildDetailSections({
       limiteCredito: 5000,
@@ -70,12 +81,19 @@ describe('listing utils', () => {
       { label: 'E-mail', value: 'pessoa@exemplo.com' },
     ]));
   });
+
+  it('traduz campos operacionais comuns dos fluxos especializados', () => {
+    expect(['name', 'type', 'active', 'physicalCapacity', 'unitPrice', 'validUntil'].map(humanizeField)).toEqual([
+      'Nome', 'Tipo', 'Ativo', 'Capacidade física', 'Valor unitário', 'Válida até',
+    ]);
+  });
 });
 
 describe('EmptyState e ErrorState', () => {
   it('apresenta estado vazio útil', () => {
     render(<EmptyState title="Nenhum cliente encontrado" description="Ajuste os filtros." />);
     expect(screen.getByRole('status')).toHaveTextContent('Nenhum cliente encontrado');
+    expect(screen.getByRole('status')).toHaveAccessibleName('Nenhum cliente encontrado');
     expect(screen.getByText('Ajuste os filtros.')).toBeInTheDocument();
   });
 

@@ -5,22 +5,17 @@ import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined';
 import ShoppingCartCheckoutOutlinedIcon from '@mui/icons-material/ShoppingCartCheckoutOutlined';
 import ReportProblemOutlinedIcon from '@mui/icons-material/ReportProblemOutlined';
 import { useQuery } from '@tanstack/react-query';
-import { Alert, Box, Button, ButtonBase, MenuItem, TextField, Typography } from '@mui/material';
-import { useMemo, useState } from 'react';
-import { Link as RouterLink, useOutletContext } from 'react-router-dom';
+import { Alert, Box, Button, ButtonBase, Typography } from '@mui/material';
+import { useMemo } from 'react';
+import { Link as RouterLink } from 'react-router-dom';
 import { api } from '../api/client';
 import { operationalPendencies, pendencyPermissions } from '../api/operationalPendencies';
 import { tenantQueryKey } from '../api/queryKeys';
 import { useAuth } from '../auth/AuthContext';
-import { HexMark } from '../components/brand/HexMark';
 import { getThemeTokens } from '../theme/hubTokens';
 import { useColorMode } from '../context/ColorModeContext';
 import { formatCurrency, formatDate } from '../utils/format';
-import { type FinancialPeriod } from './dashboardContext';
 import type { EstoqueMinimoResponse } from '../types';
-import { canOpenHubModule, hubModules } from '../layout/hubModules';
-import type { AppLayoutContext } from '../layout/AppLayout';
-import { DashboardPage } from './DashboardPage';
 
 interface Pendency {
   id: string;
@@ -31,18 +26,14 @@ interface Pendency {
 }
 
 /**
- * Home Kaneko: módulos e pendências no topo, resumo do dia logo abaixo.
+ * Home Kaneko: saudação e pendências da organização.
  */
 export function HubHomePage() {
-  const [financialPeriod, setFinancialPeriod] = useState<FinancialPeriod>('week');
-  const { openArea } = useOutletContext<AppLayoutContext>();
   const { user, activeOrganization, permissions } = useAuth();
   const { mode } = useColorMode();
   const colors = getThemeTokens(mode);
   const organizationId = activeOrganization?.organizationId;
   const firstName = (user?.login ?? 'Operador').split(/[.@]/)[0] ?? 'Operador';
-
-  const visibleModules = hubModules.filter((module) => canOpenHubModule(module, permissions));
 
   const canReadOperational = Object.values(pendencyPermissions).some((permission) => permissions.includes(permission));
   const operational = useQuery({
@@ -104,8 +95,7 @@ export function HubHomePage() {
   return (
     <Box
       sx={{
-        bgcolor: colors.background,
-        py: 1,
+        py: 1.5,
       }}
     >
       <Box
@@ -117,132 +107,10 @@ export function HubHomePage() {
         }}
       >
         <Box sx={{ flex: 1, minWidth: 0, order: { xs: 1, lg: 1 } }}>
-          <Typography sx={{ color: colors.purple, fontWeight: 800, fontSize: { xs: '1.2rem', md: '1.4rem' }, letterSpacing: -0.3 }}>
+          <Typography component="h1"
+            sx={{ color: colors.purple, fontWeight: 850, fontSize: { xs: '1.25rem', md: '1.5rem' }, letterSpacing: -0.5 }}>
             Olá, {firstName} 👋
           </Typography>
-          <Typography
-            component="h1"
-            variant="h4"
-            sx={{
-              fontWeight: 800,
-              color: colors.text,
-              mt: 0.35,
-              mb: 0.5,
-              fontSize: { xs: '1.15rem', md: '1.55rem' },
-              lineHeight: 1.25,
-            }}
-          >
-            O que você deseja fazer hoje?
-          </Typography>
-          <Typography variant="body1" sx={{ color: colors.textMuted, mb: 1.5, maxWidth: 520, fontSize: '0.9rem' }}>
-            Escolha um módulo para começar.
-          </Typography>
-
-          <Box
-            sx={{
-              display: 'grid',
-              gridTemplateColumns: {
-                xs: 'repeat(2, minmax(0, 1fr))',
-                sm: 'repeat(3, minmax(0, 1fr))',
-                md: 'repeat(3, minmax(0, 1fr))',
-                xl: 'repeat(3, minmax(0, 1fr))',
-              },
-              gap: { xs: 1, md: 1.25 },
-            }}
-          >
-            {visibleModules.map((module) => (
-              <Box
-                key={module.id}
-                component="button"
-                type="button"
-                onClick={() => openArea(module.id)}
-                aria-label={`Abrir módulo ${module.label}`}
-                sx={{
-                  appearance: 'none',
-                  border: `1px solid ${colors.border}`,
-                  cursor: 'pointer',
-                  textAlign: 'center',
-                  borderRadius: 2.5,
-                  minHeight: { xs: 76, md: 82 },
-                  p: 1.25,
-                  bgcolor: colors.card,
-                  color: colors.text,
-                  boxShadow: '0 4px 14px rgba(27, 33, 64, 0.04)',
-                  display: 'flex',
-                  flexDirection: { xs: 'column', sm: 'row' },
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 0.75,
-                  WebkitTapHighlightColor: 'transparent',
-                  transition: 'transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease',
-                  '&:hover': {
-                    transform: 'translateY(-3px)',
-                    boxShadow: '0 10px 24px rgba(107, 70, 254, 0.12)',
-                    borderColor: colors.purpleSoft,
-                  },
-                  '&:active': {
-                    transform: 'scale(0.98)',
-                    borderColor: colors.purpleSoft,
-                  },
-                  '&:focus-visible': { outline: `2px solid ${colors.purple}`, outlineOffset: 3 },
-                }}
-              >
-                <Box
-                  sx={{
-                    width: { xs: 40, md: 44 },
-                    height: { xs: 40, md: 44 },
-                    borderRadius: 2,
-                    bgcolor: colors.brandHover,
-                    color: colors.purple,
-                    display: 'grid',
-                    placeItems: 'center',
-                    '& .MuiSvgIcon-root': { fontSize: { xs: 22, md: 24 } },
-                  }}
-                >
-                  {module.icon}
-                </Box>
-                <Typography sx={{ fontWeight: 800, fontSize: { xs: '0.78rem', md: '0.84rem' }, lineHeight: 1.2 }}>
-                  {module.label}
-                </Typography>
-                {module.flowSummary && (
-                  <Typography sx={{
-                    color: colors.textMuted,
-                    fontSize: '0.68rem',
-                    lineHeight: 1.25,
-                    display: { xs: 'none', lg: 'block' },
-                  }}>
-                    {module.flowSummary}
-                  </Typography>
-                )}
-              </Box>
-            ))}
-          </Box>
-
-          <Box
-            sx={{
-              mt: 1.5,
-              p: 1.25,
-              borderRadius: 2.5,
-              bgcolor: colors.card,
-              border: `1px solid ${colors.border}`,
-              boxShadow: '0 4px 14px rgba(27, 33, 64, 0.04)',
-              display: { xs: 'none', sm: 'flex' },
-              alignItems: 'center',
-              gap: 2,
-            }}
-          >
-            <Box sx={{ width: 36, height: 36, flexShrink: 0, borderRadius: 2, bgcolor: colors.brandHover, display: 'grid', placeItems: 'center' }}>
-              <HexMark size={24} />
-            </Box>
-            <Box>
-              <Typography sx={{ fontWeight: 800, fontSize: '0.95rem', color: colors.text }}>
-                Hub operacional Kaneko
-              </Typography>
-              <Typography sx={{ fontSize: '0.82rem', color: colors.textMuted, mt: 0.5, lineHeight: 1.45 }}>
-                Pátio, acessos, mensalistas, eventos e cobrança na sua organização.
-              </Typography>
-            </Box>
-          </Box>
         </Box>
 
         <Box sx={{ width: { xs: '100%', md: 300, lg: 340 }, flexShrink: 0, order: { xs: 2, lg: 2 }, ml: { xs: 0, md: 'auto' } }}>
@@ -356,20 +224,12 @@ export function HubHomePage() {
                 })
               )}
             </Box>
-            {permissions.includes('finance:read') && <Typography variant="caption" color="text.secondary">Contas vencidas incluem todo o histórico; o período abaixo filtra somente o resumo financeiro.</Typography>}
+            {permissions.includes('finance:read') && <Typography variant="caption" color="text.secondary">Contas vencidas incluem todo o histórico.</Typography>}
             {operational.isSuccess && operationalTotal > operationalShown && <Typography variant="caption" color="text.secondary">
               Mostrando {operationalShown} de {operationalTotal} pendências operacionais, até {operational.data.limitePorGrupo} por categoria. Abra as listagens para consultar as demais.
             </Typography>}
           </Box>
         </Box>
-      </Box>
-      <Box component="section" aria-label="Resumo do dia" sx={{ mt: 2.5 }}>
-        <DashboardPage embedded financialPeriod={financialPeriod} headerActions={permissions.includes('finance:read') &&
-          <TextField select size="small" label="Período financeiro" value={financialPeriod} sx={{ minWidth: 220 }}
-            onChange={(event) => setFinancialPeriod(event.target.value as FinancialPeriod)}>
-            <MenuItem value="today">Hoje</MenuItem><MenuItem value="week">Próximos 7 dias (inclui hoje)</MenuItem><MenuItem value="month">Este mês</MenuItem>
-          </TextField>
-        } />
       </Box>
     </Box>
   );

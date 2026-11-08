@@ -45,6 +45,9 @@ describe('LoginPage', () => {
     renderLogin(vi.fn());
 
     expect(screen.getByRole('heading', { name: /Hub Operacional Kaneko/i })).toBeInTheDocument();
+    const identity = screen.getByRole('region', { name: 'Identidade Kaneko' });
+    expect(identity).toHaveTextContent('Operação clara.');
+    expect(identity).toHaveTextContent('Decisões rápidas.');
     expect(screen.getByText('Acesso contextual por organização')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Criar conta' })).toHaveAttribute('href', '/register');
     expect(screen.queryByText('Lembrar meu acesso')).not.toBeInTheDocument();
@@ -62,6 +65,46 @@ describe('LoginPage', () => {
 
     await user.click(screen.getByRole('button', { name: 'Ocultar senha' }));
     expect(password).toHaveAttribute('type', 'password');
+  });
+
+  it('indica cada campo obrigatorio e leva o foco ao primeiro problema', async () => {
+    const login = vi.fn();
+    renderLogin(login);
+    const user = userEvent.setup();
+
+    await user.click(screen.getByRole('button', { name: 'Entrar' }));
+
+    const loginField = screen.getByLabelText(/^Login/);
+    const passwordField = screen.getByLabelText(/^Senha/);
+    expect(loginField).toHaveAttribute('aria-invalid', 'true');
+    expect(passwordField).toHaveAttribute('aria-invalid', 'true');
+    expect(screen.getByText('Informe seu login.')).toBeInTheDocument();
+    expect(screen.getByText('Informe sua senha.')).toBeInTheDocument();
+    expect(loginField).toHaveFocus();
+    expect(login).not.toHaveBeenCalled();
+
+    await user.type(loginField, 'admin');
+    expect(screen.queryByText('Informe seu login.')).not.toBeInTheDocument();
+  });
+
+  it('mostra progresso e impede envio duplicado enquanto autentica', async () => {
+    let resolveLogin: (() => void) | undefined;
+    const login = vi.fn(() => new Promise<void>((resolve) => { resolveLogin = resolve; }));
+    renderLogin(login);
+    const user = userEvent.setup();
+
+    await user.type(screen.getByLabelText(/^Login/), 'admin');
+    await user.type(screen.getByLabelText(/^Senha/), 'senha');
+    await user.click(screen.getByRole('button', { name: 'Entrar' }));
+
+    const submit = screen.getByRole('button', { name: 'Entrando…' });
+    expect(submit).toBeDisabled();
+    expect(submit).toHaveAttribute('aria-busy', 'true');
+    expect(screen.getByRole('progressbar', { name: 'Autenticando' })).toBeInTheDocument();
+    expect(login).toHaveBeenCalledTimes(1);
+
+    resolveLogin?.();
+    await waitFor(() => expect(screen.queryByRole('progressbar', { name: 'Autenticando' })).not.toBeInTheDocument());
   });
 
   it('exibe credencial invalida amigavel em ProblemDetail 401', async () => {

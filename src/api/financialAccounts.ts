@@ -32,11 +32,10 @@ export function financialAccountsApi(tipo: FinancialAccountType) {
 
 export const financialOriginLabels: Record<string, string> = {
   MANUAL: 'Lançamento manual', NOTA_ENTRADA: 'Nota de entrada', NOTA_SAIDA: 'Nota de saída',
-  NOTA_SERVICO: 'Nota de serviço', VENDA: 'Pedido de venda', MENSALIDADE: 'Mensalidade',
+  NOTA_SERVICO: 'Nota de serviço', MENSALIDADE: 'Mensalidade',
 };
 export function financialOriginPermission(tipo: string): string | null {
   if (tipo.startsWith('NOTA_')) return 'fiscal:read';
-  if (tipo === 'VENDA') return 'sales:read';
   if (tipo === 'MENSALIDADE') return 'operations:read';
   return null;
 }

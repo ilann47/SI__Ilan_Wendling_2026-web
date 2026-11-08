@@ -33,10 +33,13 @@ export function createAppTheme(mode: AppColorMode) {
     },
     typography: {
       fontFamily: FONT,
-      h4: { fontWeight: 800 },
-      h5: { fontWeight: 800 },
-      h6: { fontWeight: 700 },
-      button: { textTransform: 'none', fontWeight: 700 },
+      h4: { fontWeight: 800, lineHeight: 1.18, letterSpacing: -0.6 },
+      h5: { fontWeight: 800, lineHeight: 1.22, letterSpacing: -0.4 },
+      h6: { fontWeight: 750, lineHeight: 1.3, letterSpacing: -0.2 },
+      subtitle1: { fontWeight: 700, lineHeight: 1.4 },
+      body1: { lineHeight: 1.55 },
+      body2: { lineHeight: 1.5 },
+      button: { textTransform: 'none', fontWeight: 700, letterSpacing: 0 },
     },
     shape: { borderRadius: 12 },
     components: {
@@ -68,6 +71,8 @@ export function createAppTheme(mode: AppColorMode) {
         styleOverrides: {
           root: {
             borderRadius: 10,
+            minHeight: 44,
+            paddingInline: 18,
             boxShadow: 'none',
             '&.MuiButton-containedPrimary': {
               background: c.purple,
@@ -76,13 +81,22 @@ export function createAppTheme(mode: AppColorMode) {
           },
         },
       },
+      MuiIconButton: {
+        styleOverrides: {
+          root: {
+            width: 44,
+            height: 44,
+            '&.MuiIconButton-sizeSmall': { width: 40, height: 40 },
+          },
+        },
+      },
       MuiCard: {
         defaultProps: { elevation: 0 },
         styleOverrides: {
           root: {
-            boxShadow: isDark ? '0 2px 12px rgba(0,0,0,0.35)' : '0 4px 16px rgba(27, 33, 64, 0.05)',
+            boxShadow: isDark ? '0 8px 28px rgba(0,0,0,0.32)' : '0 10px 32px rgba(27, 33, 64, 0.07)',
             border: `1px solid ${c.border}`,
-            borderRadius: 14,
+            borderRadius: 18,
             backgroundImage: 'none',
           },
         },
@@ -96,6 +110,7 @@ export function createAppTheme(mode: AppColorMode) {
             backgroundColor: c.appBar,
             color: c.text,
             borderBottom: `1px solid ${c.border}`,
+            boxShadow: isDark ? '0 8px 24px rgba(0,0,0,0.18)' : '0 6px 24px rgba(27,33,64,0.06)',
           },
         },
       },
@@ -178,13 +193,23 @@ export function createAppTheme(mode: AppColorMode) {
             gap: 8,
             padding: '12px 20px 16px',
             borderTop: `1px solid ${c.border}`,
-            '& .MuiButton-root': { flexShrink: 0 },
+            '& .MuiButton-root': { flexShrink: 0, minHeight: 44 },
+            '@media (max-width: 599.95px)': {
+              padding: '12px 16px max(16px, env(safe-area-inset-bottom))',
+              '& .MuiButton-root': { flex: '1 1 100%' },
+            },
           },
         },
       },
       MuiOutlinedInput: {
         styleOverrides: {
-          root: { borderRadius: 10 },
+          root: {
+            borderRadius: 10,
+            minHeight: 44,
+            backgroundColor: c.card,
+            transition: 'border-color 120ms ease, box-shadow 120ms ease',
+            '&.Mui-focused': { boxShadow: `0 0 0 3px ${c.brandHover}` },
+          },
           input: {
             '&:-webkit-autofill, &:-webkit-autofill:hover, &:-webkit-autofill:focus, &:-webkit-autofill:active':
               {
@@ -201,7 +226,7 @@ export function createAppTheme(mode: AppColorMode) {
         styleOverrides: {
           root: {
             border: `1px solid ${c.border}`,
-            borderRadius: 14,
+            borderRadius: 18,
             backgroundColor: c.card,
             '--DataGrid-rowBorderColor': c.border,
             '& .MuiDataGrid-columnHeaders': {
@@ -210,9 +235,8 @@ export function createAppTheme(mode: AppColorMode) {
             },
             '& .MuiDataGrid-columnHeaderTitle': {
               fontWeight: 800,
-              fontSize: '0.75rem',
-              letterSpacing: 0.3,
-              textTransform: 'uppercase',
+              fontSize: '0.8rem',
+              letterSpacing: 0,
               color: c.textMuted,
             },
             '& .MuiDataGrid-cell': {
@@ -243,7 +267,13 @@ export function createAppTheme(mode: AppColorMode) {
           },
         },
       },
-      MuiChip: { styleOverrides: { root: { fontWeight: 600 } } },
+      MuiChip: { styleOverrides: { root: { minHeight: 28, borderRadius: 8, fontWeight: 700 } } },
+      MuiFormHelperText: {
+        styleOverrides: { root: { marginTop: 6, lineHeight: 1.35 } },
+      },
+      MuiAlert: {
+        styleOverrides: { root: { borderRadius: 12, alignItems: 'center' } },
+      },
     },
   };
 

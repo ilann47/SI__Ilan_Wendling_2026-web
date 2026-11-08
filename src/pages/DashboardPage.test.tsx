@@ -34,10 +34,11 @@ describe('DashboardPage', () => {
   });
 
   it('não transforma amostra sem pendências em total zero', async () => {
-    vi.mocked(useAuth).mockReturnValue({ activeOrganization: { organizationId: 2 }, permissions: ['purchases:read'] } as unknown as ReturnType<typeof useAuth>);
+    vi.mocked(useAuth).mockReturnValue({ activeOrganization: { organizationId: 2 }, permissions: ['fiscal:read'] } as unknown as ReturnType<typeof useAuth>);
     vi.spyOn(api, 'get').mockResolvedValue({ data: { content: [], totalElements: 50 } });
     render(<MemoryRouter><QueryClientProvider client={new QueryClient()}><DashboardPage /></QueryClientProvider></MemoryRouter>);
-    expect(await screen.findByText(/Total de pendências indisponível/)).toBeInTheDocument();
+    expect(await screen.findByText('50')).toBeInTheDocument();
+    expect(screen.getByText('Total de rascunhos na organização')).toBeInTheDocument();
   });
   it('apresenta decisões consultadas sem uma grade adicional de navegação', async () => {
     vi.mocked(useAuth).mockReturnValue({
@@ -85,11 +86,22 @@ describe('DashboardPage', () => {
   it('explica quando as listas consultadas não possuem atividades', async () => {
     vi.mocked(useAuth).mockReturnValue({
       activeOrganization: { organizationId: 2, legalName: 'Kaneko' },
-      permissions: ['purchases:read'],
+      permissions: ['fiscal:read'],
     } as unknown as ReturnType<typeof useAuth>);
     vi.spyOn(api, 'get').mockResolvedValue({ data: { content: [], totalElements: 0 } });
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     render(<MemoryRouter><QueryClientProvider client={client}><DashboardPage /></QueryClientProvider></MemoryRouter>);
     expect(await screen.findByText('Nenhuma atividade adicional nas listas consultadas.')).toBeInTheDocument();
+  });
+
+  it('não consulta a API removida mesmo com a permissão comercial antiga', async () => {
+    vi.mocked(useAuth).mockReturnValue({
+      activeOrganization: { organizationId: 2, legalName: 'Kaneko' },
+      permissions: ['sales:read', 'fiscal:read'],
+    } as unknown as ReturnType<typeof useAuth>);
+    const get = vi.spyOn(api, 'get').mockResolvedValue({ data: { content: [], totalElements: 0 } });
+    render(<MemoryRouter><QueryClientProvider client={new QueryClient()}><DashboardPage /></QueryClientProvider></MemoryRouter>);
+    expect(await screen.findByText('Nenhuma atividade adicional nas listas consultadas.')).toBeInTheDocument();
+    expect(get.mock.calls.map(([url]) => url)).not.toContain('/api/v1/administrative-sales');
   });
 });

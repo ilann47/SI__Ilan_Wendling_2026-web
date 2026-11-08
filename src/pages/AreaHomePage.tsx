@@ -34,12 +34,10 @@ const AREA_QUICK_ACTIONS: Record<string, AreaQuickAction[]> = {
     { label: 'Validar acesso', description: 'Faça check-in ou check-out de eventos.', path: '/app/acesso-eventos', permissions: ['access:validate', 'access:checkin', 'access:checkout'] },
   ],
   comercial: [
-    { label: 'Registrar uma venda', description: 'Crie uma venda administrativa.', path: '/app/vendas-administrativas', permissions: ['sales:read'] },
+    { label: 'Lançar nota de saída', description: 'Registre a venda de mercadorias direto na nota.', path: '/app/notas-saida/nova', permissions: ['fiscal:manage'] },
     { label: 'Abrir ordem de serviço', description: 'Organize serviços solicitados.', path: '/app/ordens-servico', permissions: ['service_orders:read'] },
   ],
   estoque: [
-    { label: 'Fazer um pedido', description: 'Crie uma ordem de compra para o fornecedor.', path: '/app/ordens-compra', permissions: ['purchases:read'] },
-    { label: 'Receber mercadoria', description: 'Registre o que chegou e atualize o estoque.', path: '/app/recebimentos', permissions: ['purchases:read'] },
     { label: 'Lançar nota de entrada', description: 'Confira documento, custos e pagamento.', path: '/app/notas-entrada/nova', permissions: ['fiscal:manage'] },
     { label: 'Consultar estoque', description: 'Veja posição, locais e movimentações.', path: '/app/estoque', permissions: ['stock:read'] },
   ],

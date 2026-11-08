@@ -58,7 +58,7 @@ describe('SalesPage', () => {
 
     render(<SalesPage />);
     const user = userEvent.setup();
-    await user.type(screen.getByLabelText(/^Produto/), '7');
+    await user.type(screen.getByLabelText(/Código de referência — Produto/), '7');
     await user.click(screen.getByRole('button', { name: 'Reservar vaga' }));
 
     await waitFor(() => expect(api.post).toHaveBeenCalledOnce());

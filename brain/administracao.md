@@ -65,6 +65,11 @@ com a versao carregada.
   de navegacao visiveis e rotulo acessivel do conjunto.
 - Identificadores e versoes informados nos comandos legados usam limites
   numericos consistentes e removem zeros a esquerda.
+- Dados empresariais apresentam documento e situação, mas ocultam ID e versão.
+  Moeda e fuso horário usam rótulos operacionais com exemplos.
+- A inclusão curta de usuário abre em `OperationalFormDialog`; consulta e
+  transição de vínculo permanecem na página porque dependem do contexto já
+  carregado e formam uma operação administrativa contínua.
 
 ## Modulos relacionados
 
@@ -76,6 +81,7 @@ com a versao carregada.
 
 | Data | Acao |
 |---|---|
+| 2026-10-24 | QA reduz metadados técnicos no perfil empresarial e padroniza moeda, fuso horário e revisão de atribuição. |
 | 2026-09-29 | Padroniza a confirmação de descarte do formulário de organização e cobre o fluxo por teste. |
 | 2026-08-03 | Implementa provisionamento, perfil empresarial, Memberships e RBAC contextual. |
 | 2026-08-03 | Alinha cada comando administrativo à permissão do controller. |
@@ -83,3 +89,4 @@ com a versao carregada.
 | 2026-09-28 | Revisa no navegador organização, vínculos e permissões; apresenta negação de acesso contextual com mensagem operacional. |
 | 2026-09-29 | Corrige a navegacao das abas administrativas em telas estreitas. |
 | 2026-09-29 | Padroniza identificadores e versoes numericas dos comandos administrativos. |
+| 2026-10-30 | Padroniza a inclusão de usuário em diálogo responsivo com descarte protegido e mantém gestão do vínculo na página. |

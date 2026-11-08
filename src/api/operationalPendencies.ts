@@ -20,7 +20,7 @@ export interface OperationalPendencies {
   grupos: OperationalPendencyGroup[];
 }
 export const pendencyPermissions: Record<string, string> = {
-  COMPRA_RECEBER: 'purchases:read', VENDA_SEM_NOTA: 'sales:read',
+  NOTA_ENTRADA_PENDENTE: 'fiscal:read',
   SERVICO_SEM_NOTA: 'service_orders:read', CONTA_PAGAR_VENCIDA: 'finance:read',
   CONTA_RECEBER_VENCIDA: 'finance:read',
   DESPESA_AVULSA_VENCIDA: 'finance:read',

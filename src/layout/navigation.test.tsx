@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { navGroups } from './navigation';
+import { areaMenuFor } from './areaNavigation';
+import { quickActionsFor } from '../pages/AreaHomePage';
 
 describe('navigation - areas por processo', () => {
   it('organiza destinos em seis áreas, com documentos no processo correspondente', () => {
@@ -30,20 +32,23 @@ describe('navigation - areas por processo', () => {
       'Notas de Saída': '/app/notas-saida',
       'Posição de Estoque': '/app/estoque',
       'Razão de estoque': '/app/estoque?tab=razao',
-      'Recebimentos': '/app/recebimentos',
       Produtos: '/app/produtos',
       Serviços: '/app/servicos',
       'Contas a Pagar': '/app/contas-pagar',
-      'Ordens de Compra': '/app/ordens-compra',
-      'Pedidos de venda': '/app/vendas-administrativas',
       'Ordens de Serviço': '/app/ordens-servico',
     });
   });
 
-  it('exige leitura contextual para Pedidos de venda', () => {
-    const item = navGroups.flatMap((group) => group.items)
-      .find((candidate) => candidate.label === 'Pedidos de venda');
-    expect(item?.permissions).toEqual(['sales:read']);
+  it('remove pedido de mercadoria dos dois menus e aponta a ação para a nota avulsa', () => {
+    const items = [
+      ...navGroups.flatMap((group) => group.items),
+      ...(areaMenuFor('comercial')?.processGroups.flatMap((group) => group.items) ?? []),
+      ...quickActionsFor('comercial', ['sales:read', 'fiscal:manage', 'service_orders:read']),
+    ];
+    expect(items.map(({ path }) => path)).not.toContain('/app/vendas-administrativas');
+    expect(items.map(({ path }) => path)).toContain('/app/notas-saida/nova');
+    expect(items.map(({ path }) => path)).toContain('/app/ordens-servico');
+    expect(navGroups.flatMap((group) => group.items).some(({ path }) => path === '/app/vendas')).toBe(true);
   });
 
   it('exige leitura contextual para Ordens de Servico', () => {
@@ -52,11 +57,9 @@ describe('navigation - areas por processo', () => {
     expect(item?.permissions).toEqual(['service_orders:read']);
   });
 
-  it('exige leitura contextual para Ordens de Compra', () => {
-    const item = navGroups.flatMap((group) => group.items)
-      .find((candidate) => candidate.label === 'Ordens de Compra');
-
-    expect(item?.permissions).toEqual(['purchases:read']);
+  it('não oferece criação de OC ou recebimento na navegação', () => {
+    expect(navGroups.flatMap((group) => group.items).map((item) => item.path)).not.toContain('/app/ordens-compra');
+    expect(navGroups.flatMap((group) => group.items).map((item) => item.path)).not.toContain('/app/recebimentos');
   });
 
   it.each(['Formas de Pagamento', 'Condições de Pagamento'])(

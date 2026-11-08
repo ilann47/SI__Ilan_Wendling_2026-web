@@ -2,6 +2,14 @@ import { type ResourceConfig } from '../components/crud/resourceConfig';
 import { cols } from './columns';
 import { tipoPessoaOptions } from './options';
 
+function optionalPattern(pattern: RegExp, message: string) {
+  return (value: unknown) => value == null || value === '' || pattern.test(String(value)) || message;
+}
+
+const telefoneComDdd = /^(?:\+55 ?)?(?:\([1-9]\d\) ?|[1-9]\d[ -]?)\d{4,5}[ -]?\d{4}$/;
+const emailDeContato = /^[^\s@.,;<>"]+(?:\.[^\s@.,;<>"]+)*@(?:[a-z\d](?:[a-z\d-]*[a-z\d])?\.)+[a-z\d](?:[a-z\d-]*[a-z\d])?$/i;
+const cepBrasileiro = /^\d{5}-?\d{3}$/;
+
 export const transportadorasConfig: ResourceConfig = {
   key: 'transportadoras',
   basePath: '/api/transportadoras',
@@ -30,18 +38,30 @@ export const transportadorasConfig: ResourceConfig = {
     { name: 'ativo', label: 'Situação', type: 'boolean' },
   ],
   fields: [
-    { name: 'nome', label: 'Nome (razão social)', type: 'text', required: true, cols: 6 },
-    { name: 'nomeFantasia', label: 'Nome fantasia', type: 'text', cols: 6 },
+    {
+      name: 'nome', label: 'Nome (razão social)', type: 'text', required: true, maxLength: 150, cols: 6,
+      validate: (value) => !!String(value ?? '').trim() || 'Informe a razão social.',
+    },
+    { name: 'nomeFantasia', label: 'Nome fantasia', type: 'text', maxLength: 120, cols: 6 },
     { name: 'tipo', label: 'Tipo', type: 'select', cols: 4, options: tipoPessoaOptions, defaultValue: 'JURIDICA' },
     { name: 'documento', label: 'CNPJ / CPF', type: 'document', documentTypeFrom: 'tipo', required: true, cols: 4 },
-    { name: 'rgInscricaoEstadual', label: 'RG / Inscr. Estadual', type: 'text', cols: 4 },
-    { name: 'telefone', label: 'Telefone', type: 'text', cols: 4 },
-    { name: 'email', label: 'E-mail', type: 'text', cols: 8 },
-    { name: 'endereco', label: 'Endereço', type: 'text', cols: 6 },
-    { name: 'numero', label: 'Número', type: 'text', cols: 2 },
-    { name: 'complemento', label: 'Complemento', type: 'text', cols: 4 },
-    { name: 'bairro', label: 'Bairro', type: 'text', cols: 4 },
-    { name: 'cep', label: 'CEP', type: 'text', cols: 4 },
+    { name: 'rgInscricaoEstadual', label: 'RG / Inscr. Estadual', type: 'text', maxLength: 20, cols: 4 },
+    {
+      name: 'telefone', label: 'Telefone', type: 'text', inputMode: 'tel', contactMask: 'telefone-br', cols: 4,
+      validate: optionalPattern(telefoneComDdd, 'Informe um telefone com DDD e 10 ou 11 dígitos.'),
+    },
+    {
+      name: 'email', label: 'E-mail', type: 'text', inputMode: 'email', maxLength: 120, cols: 8,
+      validate: optionalPattern(emailDeContato, 'Informe um e-mail válido.'),
+    },
+    { name: 'endereco', label: 'Endereço', type: 'text', maxLength: 120, cols: 6 },
+    { name: 'numero', label: 'Número', type: 'text', maxLength: 10, cols: 2 },
+    { name: 'complemento', label: 'Complemento', type: 'text', maxLength: 100, cols: 4 },
+    { name: 'bairro', label: 'Bairro', type: 'text', maxLength: 60, cols: 4 },
+    {
+      name: 'cep', label: 'CEP', type: 'text', inputMode: 'numeric', contactMask: 'cep-br', cols: 4,
+      validate: optionalPattern(cepBrasileiro, 'Informe um CEP de 8 dígitos.'),
+    },
     {
       name: 'cidadeId',
       label: 'Cidade',
@@ -57,7 +77,7 @@ export const transportadorasConfig: ResourceConfig = {
       reference: { basePath: '/api/condicoes-pagamento', labelField: 'nome' },
     },
     { name: 'ativo', label: 'Ativo', type: 'switch', cols: 6 },
-    { name: 'observacao', label: 'Observação', type: 'textarea' },
+    { name: 'observacao', label: 'Observação', type: 'textarea', maxLength: 255 },
   ],
 };
 
@@ -81,7 +101,7 @@ export const veiculosFrotaConfig: ResourceConfig = {
     cols.text('modelo', 'Modelo'),
     cols.text('marca', 'Marca'),
     cols.number('ano', 'Ano'),
-    cols.number('capacidade', 'Capacidade', 2),
+    cols.decimal('capacidade', 'Capacidade'),
     cols.bool('ativo', 'Ativo'),
   ],
   filters: [

@@ -13,9 +13,11 @@ import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import dayjs from 'dayjs';
 import type { FieldConfig } from './fieldConfig';
 import { ReferenceSelect } from './ReferenceSelect';
-import { PurchaseCostsSummary, SubItemsEditor } from './SubItemsEditor';
+import { InboundNoteCostsSummary, SubItemsEditor } from './SubItemsEditor';
 import { DocumentField } from './DocumentField';
 import { normalizeNumericInput } from './NumberField';
+import { applyContactMask } from './contactMask';
+import { DECIMAL_STEP, exactDecimal } from '../../utils/fixedDecimal';
 
 interface Props {
   field: FieldConfig;
@@ -39,8 +41,13 @@ export function FieldRenderer({ field, namePrefix = '', dense }: Props) {
   const minimum = isNumeric ? field.min ?? 0 : undefined;
   const maximum = isNumeric ? field.max ?? (isPercent ? 100 : undefined) : undefined;
   const dependencies = field.dependsOn?.map((dependency) => `${namePrefix}${dependency}`);
-  const rules = {
+  // Valores calculados e somente leitura não são entradas do formulário.
+  // Uma margem negativa já salva, por exemplo, não invalida a edição do produto.
+  const rules = disabled ? {} : {
     required: field.required ? 'Campo obrigatório' : false,
+    ...(field.maxLength !== undefined ? {
+      maxLength: { value: field.maxLength, message: `Use no máximo ${field.maxLength} caracteres.` },
+    } : {}),
     ...(dependencies?.length ? { deps: dependencies } : {}),
     ...(isNumeric ? {
       validate: (value: unknown) => {
@@ -50,6 +57,13 @@ export function FieldRenderer({ field, namePrefix = '', dense }: Props) {
         if (field.type === 'integer' && !Number.isInteger(parsed)) return 'Informe um número inteiro.';
         if (minimum !== undefined && parsed < minimum) return `O valor mínimo é ${minimum}.`;
         if (maximum !== undefined && parsed > maximum) return `O valor máximo é ${maximum}.`;
+        if (field.type !== 'integer') {
+          try {
+            exactDecimal(value, field.label);
+          } catch (error) {
+            return error instanceof Error ? error.message : 'Informe um número válido.';
+          }
+        }
         return field.validate?.(value, formValues, namePrefix) ?? true;
       },
     } : field.validate ? {
@@ -74,8 +88,8 @@ export function FieldRenderer({ field, namePrefix = '', dense }: Props) {
       summary={field.subItemsSummary} disabled={disabled} />;
   }
 
-  if (field.type === 'subitems-summary' && field.subItemsSummary === 'purchase-costs') {
-    return <PurchaseCostsSummary />;
+  if (field.type === 'subitems-summary' && field.subItemsSummary === 'inbound-note-costs') {
+    return <InboundNoteCostsSummary />;
   }
 
   if (field.type === 'document') {
@@ -146,6 +160,7 @@ export function FieldRenderer({ field, namePrefix = '', dense }: Props) {
         render={({ field: f, fieldState }) => (
           <DatePicker
             disabled={disabled}
+            disableFuture={field.disableFuture}
             label={field.label}
             value={f.value ? dayjs(f.value) : null}
             onChange={(d) => f.onChange(d && d.isValid() ? d.format('YYYY-MM-DD') : undefined)}
@@ -234,7 +249,11 @@ export function FieldRenderer({ field, namePrefix = '', dense }: Props) {
           }}
           onChange={(e) => {
             const v = e.target.value;
-            if (isNumeric) {
+            if (field.contactMask) {
+              const previous = String(f.value ?? '');
+              const formatted = applyContactMask(e.target, field.contactMask, previous);
+              if (formatted !== previous) f.onChange(formatted);
+            } else if (isNumeric) {
               if (v.startsWith('-') && minimum !== undefined && minimum >= 0) {
                 setError(name, { type: 'min', message: `O valor mínimo é ${minimum}.` });
                 return;
@@ -246,11 +265,12 @@ export function FieldRenderer({ field, namePrefix = '', dense }: Props) {
           }}
           inputProps={{
             ...(isNumeric ? {
-              step: field.step ?? (field.type === 'integer' ? 1 : 0.01),
+              step: field.step ?? (field.type === 'integer' ? 1 : DECIMAL_STEP),
               min: minimum,
               max: maximum,
               inputMode: field.type === 'integer' ? 'numeric' : 'decimal',
             } : {}),
+            ...(field.inputMode ? { inputMode: field.inputMode } : {}),
             ...(upper ? { style: { textTransform: 'uppercase' } } : {}),
           }}
           error={!!fieldState.error}

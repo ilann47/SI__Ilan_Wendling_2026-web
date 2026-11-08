@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { ResourceSnapshot } from './ResourceSnapshot';
 
 describe('ResourceSnapshot', () => {
-  it('apresenta rótulos e valores operacionais sem expor chaves técnicas', () => {
+  it('apresenta rótulos e valores operacionais sem expor identificadores técnicos', () => {
     render(<ResourceSnapshot data={{
       eventId: 7,
       status: 'VENDAS_ABERTAS',
@@ -11,7 +11,7 @@ describe('ResourceSnapshot', () => {
     }} />);
 
     expect(screen.getByText('Dados confirmados pelo sistema')).toBeInTheDocument();
-    expect(screen.getByText('Evento')).toBeInTheDocument();
+    expect(screen.queryByText('Evento')).not.toBeInTheDocument();
     expect(screen.getAllByText('Vendas abertas').length).toBeGreaterThan(0);
     expect(screen.getByText('Conferência da configuração')).toBeInTheDocument();
     expect(screen.getByText('Pronto: Sim · Produto de estacionamento: Não')).toBeInTheDocument();
@@ -36,14 +36,16 @@ describe('ResourceSnapshot', () => {
       status: 'CONFIRMADO',
       vehiclePlate: 'ABC1D23',
       version: 2,
+      qrVersion: 4,
     }} />);
 
-    expect(screen.getByText('Código interno')).toBeInTheDocument();
     expect(screen.getByText('Número')).toBeInTheDocument();
     expect(screen.getByText('Comprador')).toBeInTheDocument();
     expect(screen.getByText('Situação')).toBeInTheDocument();
     expect(screen.getByText('Placa do veículo')).toBeInTheDocument();
-    expect(screen.getByText('Versão')).toBeInTheDocument();
+    expect(screen.queryByText('Código interno')).not.toBeInTheDocument();
+    expect(screen.queryByText('Versão')).not.toBeInTheDocument();
+    expect(screen.queryByText('Qr Version')).not.toBeInTheDocument();
     expect(screen.queryByText('Buyer')).not.toBeInTheDocument();
     expect(screen.queryByText('Vehicle Plate')).not.toBeInTheDocument();
   });

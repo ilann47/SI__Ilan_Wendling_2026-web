@@ -55,18 +55,6 @@ export interface StockMovement {
   createdAt: string;
 }
 
-export interface StockAdjustmentRequest {
-  produtoId: number;
-  localEstoqueId: number;
-  delta: number;
-  custoUnitario?: number;
-  motivo: string;
-}
-
-export interface StockCompensationRequest {
-  motivo: string;
-}
-
 type Filters = Record<string, unknown>;
 export interface StockMovementOrigin { tipo: string; id: number | null; descricao: string; caminho: string | null }
 
@@ -76,40 +64,10 @@ function clean(filters: Filters): Filters {
   )));
 }
 
-function positiveId(value: unknown, field: string): number {
-  const parsed = Number(value);
-  if (!Number.isSafeInteger(parsed) || parsed <= 0) throw new Error(`${field} invalido.`);
-  return parsed;
-}
-
 function requiredText(value: unknown, field: string): string {
   const parsed = typeof value === 'string' ? value.trim() : '';
   if (!parsed) throw new Error(`${field} obrigatorio.`);
   return parsed;
-}
-
-export function buildStockAdjustmentPayload(values: Record<string, unknown>): StockAdjustmentRequest {
-  const delta = Number(values.delta);
-  const custoUnitario = values.custoUnitario === '' || values.custoUnitario == null
-    ? undefined
-    : Number(values.custoUnitario);
-  if (!Number.isFinite(delta) || delta === 0) throw new Error('Delta deve ser diferente de zero.');
-  if (custoUnitario !== undefined && (!Number.isFinite(custoUnitario) || custoUnitario < 0)) {
-    throw new Error('Custo unitario invalido.');
-  }
-  return {
-    produtoId: positiveId(values.produtoId, 'Produto'),
-    localEstoqueId: positiveId(values.localEstoqueId, 'Local'),
-    delta,
-    ...(custoUnitario === undefined ? {} : { custoUnitario }),
-    motivo: requiredText(values.motivo, 'Motivo'),
-  };
-}
-
-export function buildStockCompensationPayload(
-  values: Record<string, unknown>,
-): StockCompensationRequest {
-  return { motivo: requiredText(values.motivo, 'Motivo') };
 }
 
 export function buildStockLocationPayload(values: Record<string, unknown>): StockLocationRequest {
@@ -136,15 +94,5 @@ export const stockApi = {
   movement: (id: number) => api
     .get<StockMovement>(`/api/v1/stock-movements/${id}`)
     .then((response) => response.data),
-  adjust: (body: StockAdjustmentRequest, idempotencyKey: string) => api
-    .post<StockMovement>('/api/v1/stock-adjustments', body, {
-      headers: { 'Idempotency-Key': idempotencyKey },
-    })
-    .then((response) => response.data),
   origin: (id: number) => api.get<StockMovementOrigin>(`/api/v1/stock-movements/${id}/origin`).then((response) => response.data),
-  compensate: (id: number, body: StockCompensationRequest, idempotencyKey: string) => api
-    .post<StockMovement>(`/api/v1/stock-movements/${id}/compensation`, body, {
-      headers: { 'Idempotency-Key': idempotencyKey },
-    })
-    .then((response) => response.data),
 };

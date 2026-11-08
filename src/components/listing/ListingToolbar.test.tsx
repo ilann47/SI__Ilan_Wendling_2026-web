@@ -28,4 +28,22 @@ describe('ListingToolbar', () => {
     await user.click(screen.getByRole('button', { name: 'Limpar filtros' }));
     expect(onClear).toHaveBeenCalledOnce();
   });
+
+  it('permite limpar a busca sem apagar os demais filtros', async () => {
+    const user = userEvent.setup();
+    const onSearchChange = vi.fn();
+
+    render(
+      <ColorModeProvider>
+        <ListingToolbar
+          searchValue="cliente"
+          searchLabel="Buscar cliente"
+          onSearchChange={onSearchChange}
+        />
+      </ColorModeProvider>,
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Limpar busca' }));
+    expect(onSearchChange).toHaveBeenCalledWith('');
+  });
 });

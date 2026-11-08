@@ -28,15 +28,13 @@ vi.mock('./components/crud/CrudResourcePage', () => ({
 }));
 
 vi.mock('./pages/PatioPage', () => ({ PatioPage: () => <h1>Patio legado</h1> }));
-vi.mock('./pages/DashboardPage', () => ({ DashboardPage: () => <h1>Resumo do dia</h1> }));
 vi.mock('./pages/HubHomePage', () => ({ HubHomePage: () => <h1>Home Hub</h1> }));
 vi.mock('./pages/RelatoriosPage', () => ({ RelatoriosPage: () => <h1>Relatorios legados</h1> }));
 vi.mock('./pages/StockPage', () => ({ StockPage: () => <h1>Estoque</h1> }));
-vi.mock('./pages/PurchaseOrdersPage', () => ({ PurchaseOrdersPage: () => <h1>Ordens de Compra</h1> }));
 vi.mock('./pages/InboundNotesPage', () => ({ InboundNotesPage: () => <h1>Notas de Entrada</h1> }));
-vi.mock('./pages/AdministrativeSalesPage', () => ({
-  AdministrativeSalesPage: () => <h1>Vendas Administrativas</h1>,
-}));
+vi.mock('./pages/OutboundNotesPage', () => ({ OutboundNotesPage: () => <h1>Notas de Saída</h1> }));
+vi.mock('./pages/OutboundNoteEditorPage', () => ({ OutboundNoteEditorPage: () => <h1>Editor da Nota de Saída</h1> }));
+vi.mock('./pages/OutboundNoteDocumentPage', () => ({ OutboundNoteDocumentPage: () => <h1>Documento da Nota de Saída</h1> }));
 vi.mock('./pages/ServiceOrdersPage', () => ({
   ServiceOrdersPage: () => <h1>Ordens de Servico</h1>,
 }));
@@ -55,17 +53,10 @@ describe('App - compatibilidade legada', () => {
     expect(heading.closest('[data-permissions]')).toHaveAttribute('data-permissions', 'stock:read');
   });
 
-  it('protege ordens de compra com purchases:read', async () => {
-    render(<MemoryRouter initialEntries={['/app/ordens-compra']}><App /></MemoryRouter>);
-
-    const heading = await screen.findByRole('heading', { name: 'Ordens de Compra' });
-    expect(heading.closest('[data-permissions]')).toHaveAttribute('data-permissions', 'purchases:read');
-  });
-
-  it('protege vendas administrativas com sales:read', async () => {
-    render(<MemoryRouter initialEntries={['/app/vendas-administrativas']}><App /></MemoryRouter>);
-    const heading = await screen.findByRole('heading', { name: 'Vendas Administrativas' });
-    expect(heading.closest('[data-permissions]')).toHaveAttribute('data-permissions', 'sales:read');
+  it('não expõe a tela removida nem quando se usa um link salvo', async () => {
+    render(<MemoryRouter initialEntries={['/app/vendas-administrativas?detail=42']}><App /></MemoryRouter>);
+    expect(await screen.findByRole('heading', { name: 'Home Hub' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Vendas Administrativas' })).not.toBeInTheDocument();
   });
 
   it('protege ordens de servico com service_orders:read', async () => {
@@ -83,6 +74,16 @@ describe('App - compatibilidade legada', () => {
     render(<MemoryRouter initialEntries={[path]}><App /></MemoryRouter>);
 
     expect(await screen.findByRole('heading', { name: heading })).toBeInTheDocument();
+  });
+
+  it.each([
+    ['/app/notas-saida/nova', 'Editor da Nota de Saída', 'fiscal:manage'],
+    ['/app/notas-saida/12/editar', 'Editor da Nota de Saída', 'fiscal:manage'],
+    ['/app/notas-saida/12', 'Documento da Nota de Saída', 'fiscal:read'],
+  ])('protege a rota dedicada %s', async (path, heading, permission) => {
+    render(<MemoryRouter initialEntries={[path]}><App /></MemoryRouter>);
+    expect((await screen.findByRole('heading', { name: heading })).closest('[data-permissions]'))
+      .toHaveAttribute('data-permissions', permission);
   });
 
   it.each([

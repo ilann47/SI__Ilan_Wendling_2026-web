@@ -68,9 +68,17 @@ usa o catálogo tenant-aware V38 descrito em [[pagamentos]].
 O cliente central converte Problem Details. Contexto inválido retorna `401`,
 falta de `logistics:read` ou `logistics:manage` retorna `403`, recurso ausente ou
 de outra organização retorna `404` e conflitos de integridade permanecem `409`.
+No cadastro de transportadora, os erros de preenchimento aparecem no campo e
+bloqueiam o envio. Telefone, e-mail e CEP são opcionais; quando preenchidos,
+valida-se telefone brasileiro com DDD (com ou sem `+55`), formato de e-mail e
+CEP de oito dígitos. Telefone e CEP recebem máscara ao digitar ou colar; o
+campo recusa letras e dígitos extras. Colagem maior que o limite não é
+truncada e preserva o valor anterior. Valores incompletos impedem o envio.
+Os limites dos demais textos seguem o contrato existente.
 
 ## Testes (curl ou equivalente)
 
+- `npm test -- src/resources/logistica.test.tsx`
 - `npm test -- --run src/components/crud/resourceConfig.test.ts src/layout/navigation.test.tsx src/App.test.tsx`
 - `npm run typecheck`
 - `npm run lint`
@@ -102,5 +110,8 @@ de outra organização retorna `404` e conflitos de integridade permanecem `409`
 
 | Data | Ação |
 |---|---|
+| 2026-11-08 | Cadastro e lista de veículos preservam a capacidade fracionária até a sexta casa. |
 | 2026-08-03 | Adapta exclusivamente Transportadoras ao contrato multiempresa V41. |
 | 2026-08-03 | Adapta Veículos de Frota e vínculo Transportadora–Veículo ao contrato V48. |
+| 2026-11-06 | Valida contatos e limites do cadastro de transportadora no próprio formulário, sem alterar a API. |
+| 2026-11-06 | Mascara telefone e CEP e impede a digitação ou colagem acima do limite. |

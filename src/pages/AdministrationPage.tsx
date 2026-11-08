@@ -23,6 +23,7 @@ import { ResourceIdField } from '../components/enterprise/ResourceIdField';
 import { ResourceSnapshot } from '../components/enterprise/ResourceSnapshot';
 import { ReferenceSelect } from '../components/form/ReferenceSelect';
 import { NumberField } from '../components/form/NumberField';
+import { OperationalFormDialog } from '../components/form/OperationalFormDialog';
 import { PageHeader } from '../components/common/PageHeader';
 import { useSnackbar } from '../components/SnackbarProvider';
 import { useOperationalWorkspace } from '../workspace/OperationalWorkspaceContext';
@@ -120,24 +121,22 @@ function OrganizationProfile() {
   return (
     <OperationCard
       title="Dados empresariais"
-      description="Documento, estado, ID e versão são controlados pelo sistema e não podem ser alterados."
+      description="Atualize os dados usados nos documentos e rotinas da empresa."
       error={error}
     >
       <Stack component="form" spacing={2} onSubmit={(event) => void save(event)}>
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-          <TextField label="ID" value={query.data?.id ?? ''} disabled fullWidth />
           <TextField label="Documento" value={query.data?.document ?? ''} disabled fullWidth />
-          <TextField label="Estado" value={query.data?.status ?? ''} disabled fullWidth />
-          <TextField label="Versão" value={query.data?.version ?? ''} disabled fullWidth />
+          <TextField label="Situação" value={query.data?.status ?? ''} disabled fullWidth />
         </Stack>
         <TextField label="Razão social" value={form.legalName} onChange={(event) => update('legalName', event.target.value)} required />
         <TextField label="Nome fantasia" value={form.tradeName} onChange={(event) => update('tradeName', event.target.value)} />
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-          <TextField label="Moeda ISO 4217" value={form.currency} onChange={(event) => update('currency', event.target.value.toUpperCase())} inputProps={{ maxLength: 3 }} required fullWidth />
+          <TextField label="Moeda padrão" value={form.currency} onChange={(event) => update('currency', event.target.value.toUpperCase())} inputProps={{ maxLength: 3 }} required fullWidth helperText="Ex.: BRL" />
           <TextField label="Região" value={form.region} onChange={(event) => update('region', event.target.value.toUpperCase())} required fullWidth />
           <TextField label="Plano" value={form.plan} onChange={(event) => update('plan', event.target.value.toUpperCase())} required fullWidth />
         </Stack>
-        <TextField label="Fuso horário IANA" value={form.timeZone} onChange={(event) => update('timeZone', event.target.value)} required />
+        <TextField label="Fuso horário" value={form.timeZone} onChange={(event) => update('timeZone', event.target.value)} required helperText="Ex.: America/Sao_Paulo" />
         <Button type="submit" variant="contained" disabled={saving} startIcon={saving ? <CircularProgress size={18} color="inherit" /> : <SaveOutlinedIcon />} sx={{ alignSelf: 'flex-start' }}>
           Salvar alterações
         </Button>
@@ -149,7 +148,9 @@ function OrganizationProfile() {
 function MembershipOperations({ canInvite, canManage }: { canInvite: boolean; canManage: boolean }) {
   const { activeOrganization } = useAuth();
   const { recent, remember } = useOperationalWorkspace();
+  const { notify } = useSnackbar();
   const organizationId = activeOrganization!.organizationId;
+  const [inviteOpen, setInviteOpen] = useState(false);
   const [userId, setUserId] = useState('');
   const [membershipId, setMembershipId] = useState('');
   const [membership, setMembership] = useState<MembershipResponse | null>(null);
@@ -190,6 +191,11 @@ function MembershipOperations({ canInvite, canManage }: { canInvite: boolean; ca
         version: response.data.version,
         snapshot: { ...response.data },
       });
+      if (operation === 'create') {
+        notify('Usuário adicionado à organização.', 'success');
+        setUserId('');
+        setInviteOpen(false);
+      }
     } catch (cause) {
       setError(describeError(cause));
     } finally {
@@ -202,22 +208,23 @@ function MembershipOperations({ canInvite, canManage }: { canInvite: boolean; ca
       <Alert severity="info">
         A listagem de vínculos ainda não está disponível. Selecione o usuário pelo cadastro global ou consulte um vínculo conhecido.
       </Alert>
-      {canInvite && <OperationCard title="Adicionar usuário" description="Cria um vínculo ativo com a organização atual." error={error}>
-        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-          <Box sx={{ flex: 1 }}>
-            <ReferenceSelect
-              label="Usuário"
-              value={userId ? Number(userId) : null}
-              onChange={(value) => setUserId(value ? String(value) : '')}
-              reference={{ basePath: '/api/usuarios', labelField: 'nome' }}
-              required
-            />
-          </Box>
-          <Button variant="contained" disabled={!userId || loading !== null} onClick={() => void run('create')} startIcon={loading === 'create' ? <CircularProgress size={18} color="inherit" /> : <GroupAddOutlinedIcon />}>
-            Criar vínculo
-          </Button>
-        </Stack>
-      </OperationCard>}
+      {canInvite && <Button variant="contained" startIcon={<GroupAddOutlinedIcon />}
+        onClick={() => { setError(null); setInviteOpen(true); }} sx={{ alignSelf: 'flex-start' }}>
+        Adicionar usuário
+      </Button>}
+      {canInvite && <OperationalFormDialog open={inviteOpen} onClose={() => setInviteOpen(false)}
+        title="Adicionar usuário" description="Cria um vínculo ativo com a organização atual."
+        formId="membership-create-form" submitLabel="Criar vínculo" submitting={loading === 'create'}
+        submitDisabled={!userId} dirty={userId !== ''} error={error} maxWidth="sm"
+        onSubmit={(event) => { event.preventDefault(); void run('create'); }}>
+        <ReferenceSelect
+          label="Usuário"
+          value={userId ? Number(userId) : null}
+          onChange={(value) => setUserId(value ? String(value) : '')}
+          reference={{ basePath: '/api/usuarios', labelField: 'nome' }}
+          required
+        />
+      </OperationalFormDialog>}
       {canManage && <OperationCard
         title="Consultar e alterar vínculo"
         description="Consulte os dados atuais antes de alterar. Um vínculo encerrado não pode ser reativado."
@@ -325,7 +332,7 @@ function RoleOperations({ canGrant, canRevoke }: { canGrant: boolean; canRevoke:
       {canRevoke && <OperationCard title="Revogar atribuição" description="Informe a atribuição atual e registre o motivo da revogação." error={error}>
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
           <NumberField label="Atribuição" value={assignmentId} min={1} onValueChange={setAssignmentId} required fullWidth />
-          <NumberField label="Versão" value={assignmentVersion} min={0} onValueChange={setAssignmentVersion} required fullWidth />
+          <NumberField label="Revisão da atribuição" value={assignmentVersion} min={0} onValueChange={setAssignmentVersion} required fullWidth />
         </Stack>
         <TextField label="Motivo da revogação" value={reason} onChange={(event) => setReason(event.target.value)} inputProps={{ maxLength: 300 }} required multiline minRows={2} />
         <Button variant="outlined" color="error" disabled={loading || !membershipId || !assignmentId || !reason.trim()} onClick={() => void revoke()}>

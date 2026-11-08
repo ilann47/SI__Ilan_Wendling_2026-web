@@ -2,10 +2,29 @@
 
 # Estoque
 
+O mínimo do catálogo é exibido com seis casas na posição. Saldos, quantidade
+movimentada e saldos anterior e posterior também exibem até seis casas.
+
+## Fluxo vigente PARK-0003 (2026-10-16)
+
+Entrada nova ocorre somente por Nota: rascunho -> conferência -> confirmação única.
+Não existem aprovação, ordem ou recebimento de compra na web. A Nota de Saída
+confirmada é a origem da baixa. O Estoque conserva posição, razão e locais, sem
+ajuste ou compensação avulsa; a reversão é feita no documento fiscal.
+
+A composição de custos e parcelas da Nota vem da prévia do backend. Desconto geral
+reduz a obrigação e a UI explicita a diferença para o custo, conforme UC401. Cada
+item mostra saldo e custo médios atuais, custo unitário de aquisição e o custo médio
+ponderado projetado; após confirmação, mostra os valores efetivamente registrados.
+Não há reprecificação histórica. A calculadora compartilhada
+distribui centavos sem rateio negativo; ela não é a fonte autoritativa dos custos
+da Nota.
+
+
 ## Objetivo
 
-Expor a posição e a razão append-only do estoque da organização ativa, além da
-administração de locais e dos comandos compensatórios autorizados.
+Expor a posição e o histórico do estoque da organização ativa e administrar
+locais, sem alterar saldo diretamente.
 
 ## Contexto
 
@@ -17,10 +36,9 @@ inventário de vagas e das notas fiscais legadas.
 
 ```text
 JWT contextual + stock:read
-  -> menu superior Estoque (Compras + Estoque, acesso direto às telas)
-  -> /app/estoque?tab=... -> posição / razão / locais / ajustes
-  -> /app/ordens-compra, /app/recebimentos, /app/notas-entrada
-stock:manage -> ajuste ou compensação idempotente
+  -> menu superior Estoque (Entradas + Estoque, acesso direto às telas)
+  -> /app/estoque?tab=... -> posição / razão / locais
+  -> /app/notas-entrada
 stock:manage -> CRUD de local com ETag/If-Match
 stock:manage -> cadastro rápido de local dentro dos seletores operacionais
 ```
@@ -31,10 +49,6 @@ stock:manage -> cadastro rápido de local dentro dos seletores operacionais
 - `GET /api/v1/stock-balances`: saldos por produto/local.
 - `GET /api/v1/stock-movements[/{id}]`: razão e detalhe append-only.
 - `GET/POST /api/v1/stock-locations` e `GET/PUT/DELETE .../{id}`: locais.
-- `POST /api/v1/stock-adjustments`: ajuste com `Idempotency-Key`.
-- `POST /api/v1/stock-movements/{id}/compensation`: compensação com chave e motivo.
-- `GET/POST /api/v1/purchase-orders` e recebimentos por ordem.
-- `GET /api/v1/purchase-orders/{id}/documents`: consulta integrada com notas, contas e razão; seções sem permissão retornam `null`.
 - `GET/POST /api/notas-entrada` (+ `/confirmacao`, `/cancelamento`).
 - `GET /api/v1/stock-movements/{id}/origin`: origem real navegável quando autorizada pelo backend.
 ## Estrutura de Dados (DTOs, Entidades)
@@ -42,24 +56,16 @@ stock:manage -> cadastro rápido de local dentro dos seletores operacionais
 Posição usa `produtoId`, `produto`, `quantidade`, `quantidadeMinima` e
 `abaixoMinimo`. Saldo acrescenta local e versão. Movimento expõe nomes, tipo,
 delta, saldos anterior/posterior, custo, origem, ator, motivo e instante. Local
-envia somente `nome` e `ativo`. Ajuste envia somente `produtoId`,
-`localEstoqueId`, `delta`, `custoUnitario` opcional e `motivo`.
-Ordem de compra expõe a chave fiscal fornecedor/número/série/modelo, comprador,
-condição de pagamento, transportadora, local
-planejado de entrega, responsabilidade do frete, referência do fornecedor,
-observação interna, seguro e outras despesas. Por item, expõe código no
-fornecedor, desconto, rateios de despesas, custo total e custo unitário final.
+envia somente `nome` e `ativo`.
 
 ## Integrações externas (se houver)
 
-Não há. O seletor de produto consulta o catálogo tenant-aware e, por isso, o
-ajuste exige cumulativamente `stock:manage` e `catalog:read` na interface.
+Não há.
 
 ## Tratamento de Erros
 
-`409` preserva o mesmo intento idempotente para correção/reenvio. Locais usam
-ETag forte; 412/428 mantêm a edição aberta e oferecem recarga. Movimentos nunca
-são editados ou excluídos; correções geram compensação com motivo.
+Locais usam ETag forte; 412/428 mantêm a edição aberta e oferecem recarga.
+Movimentos antigos continuam consultáveis, sem opção de compensar diretamente.
 
 ## Testes (curl ou equivalente)
 
@@ -79,56 +85,38 @@ arquivos, além de typecheck, lint e build.
 ## Decisões Técnicas
 
 - A listagem funciona somente com `stock:read` porque respostas incluem nomes.
-- Ajuste é ocultado sem `catalog:read`; compensação não depende desse lookup.
 - Razão é append-only e não reutiliza `/api/movimentacoes`.
 - Posição e saldos por local têm paginação real de 20 registros e ação Ver movimentos. Filtros usam seletores pesquisáveis, sem pedir IDs; sem `catalog:read`, o produto pode ser filtrado pelo contexto da linha de estoque sem consultar catálogo indevidamente.
-- Razão aceita `produtoId`/`localEstoqueId` e `detail` na URL, abre o GET exato mesmo fora da página e apresenta ator, data, motivo, saldo anterior/posterior e origem. A chave técnica não é exibida. Mobile usa ListingCards; compensação fica no detalhe.
+- Razão aceita `produtoId`/`localEstoqueId` e `detail` na URL, abre o GET exato mesmo fora da página e apresenta ator, data, motivo, saldo anterior/posterior e origem. A chave técnica não é exibida. Mobile usa ListingCards.
+- Movimentos de notas fiscais não oferecem compensação individual no razão. Quando elegível, a reversão integral é feita pelo documento de origem e preserva o movimento original.
 - Posicao consolidada, saldos por local e locais cadastrados tambem usam
   `ListingCards` no mobile. Historico abre pelo card e editar/inativar local fica
   no menu de acoes, sem tabela espremida nem botoes concorrentes na horizontal.
-- Ajuste de estoque permite sinal negativo apenas no delta; custo unitario
-  permanece nao negativo e ambos seguem o campo numerico compartilhado.
-- Consulta de origem tem cache separado por tenant e permissões; recebimento abre `/app/ordens-compra?detail=OC&recebimentoId=ID` com destaque implementado pelo módulo de compras. Sem vínculo/permissão, há texto honesto sem link.
+- O endereço antigo `?tab=ajustes` abre apenas a posição, sem formulário.
+- Consulta de origem tem cache separado por tenant e permissões. Sem vínculo ou permissão, há texto honesto sem link.
 - Notas e relatório de estoque mínimo continuam em compatibilidade global.
 - Nenhum tenant, nome derivado, ID do recurso ou versão integra payload mutável.
-- Mega menu da área Estoque agrupa Compras e posição; tabs via query string.
-- Pendência de compra abre o GET da OC por `?detail=ID`, mesmo fora da página
-  atual. O detalhe oferece Aprovar/Receber conforme estado e `purchases:manage`.
+- Mega menu da área Estoque agrupa Entradas e posição; tabs via query string.
 - Pendência de estoque mínimo abre a aba existente do relatório diretamente;
   erro/carregamento não é exibido como estoque saudável.
-- O detalhe da compra mostra entregas com responsável, nota por recebimento e contas com links para o registro exato. Uma nota existente substitui o CTA de geração por “Ver nota”. A chave da criação/recebimento permanece estável até sucesso, inclusive após erro recuperável.
-- O cadastro da compra apresenta os itens, depois frete, seguro e outras
-  despesas, e só então o resumo de quantidade, produtos e total estimado. Essa
-  ordem mantém os valores que alimentam o cálculo antes do resultado e recalcula
-  o custo unitário estimado enquanto o usuário informa as despesas. A regra exposta ao usuário permite
-  desconto somente por item; o campo geral legado é enviado como zero e também é
-  recusado pelo backend e pelo banco. O resumo calcula o total estimado da ordem.
-- Fornecedor, número, série e modelo liberam o restante do cadastro e ficam
-  bloqueados após o primeiro produto. O identificador técnico da ordem não é
-  digitado nem exibido como referência operacional.
-- Dados comerciais e de entrega usam seletores tenant-aware para condição de
-  pagamento, transportadora e local planejado. A responsabilidade do frete,
-  referência do fornecedor e observação interna ficam separadas da observação
-  enviada ao fornecedor. O recebimento sugere o local planejado da ordem.
-- Ao selecionar um fornecedor, a interface preenche imediatamente a condição de
-  pagamento e a transportadora cadastradas nele. Os dois padrões continuam
-  substituíveis; se o cliente omitir os campos, o backend repete a herança como
-  garantia da regra de negócio.
 - Calendários ficam acima do modal; valores monetários substituem o zero inicial.
   O diálogo rola em telas menores e exige confirmação antes de descartar mudanças.
 - Seletores de local de estoque oferecem cadastro rápido quando o usuário possui
   `stock:manage`. O formulário é o mesmo da gestão de locais, abre empilhado,
   preserva o documento em andamento e seleciona o registro recém-criado. Os
   locais existentes também podem ser editados no seletor com `If-Match`.
-- O recebimento não permite edição de quantidade: todos os itens entram pelo
-  saldo integral ou a entrega inteira é rejeitada. O wizard fiscal reaproveita
-  preço, desconto e a chave da compra para conferir o documento do fornecedor.
-- A nota preserva o link exato da compra (`?detail=ID`); criar o rascunho usa idempotência. Se confirmar falhar, a interface consulta a situação antes de repetir qualquer ação. Nota vinculada deixa explícito que estoque já entrou pelo recebimento.
-- A listagem de compras não exibe mais o fluxo genérico nem atalhos repetidos.
-  No detalhe, `Ordem → Recebimento → Nota → Conta` reflete o status da ordem e
-  a existência real de recebimentos, notas e contas; relações sem permissão ou
-  indisponíveis são identificadas sem presumir conclusão. A home resume esse
-  caminho no cartão do módulo Estoque sem acrescentar novas ações.
+- A revisão da Nota de Entrada apresenta, por item, o cálculo ponderado aplicado
+  pelo backend. Antes da confirmação identifica o resultado como estimativa; no
+  documento confirmado usa o snapshot persistido e identifica-o como registrado.
+- O documento da Nota de Entrada prioriza leitura operacional em uma única
+  superfície de documento ERP: cabeçalho fiscal compacto, itens tabulares,
+  custo médio recolhido por padrão e totais logo abaixo dos itens, sem painel
+  lateral flutuante. Estoque e contas a pagar aparecem juntos em `Lançamentos
+  gerados`; origem e observações ficam recolhidas. No mobile, linhas e campos
+  são empilhados sem rolagem horizontal nem perda de local ou condição.
+- Cada lançamento de estoque vinculado à Nota exibe o saldo anterior, a entrada
+  e o saldo posterior retornados pelo movimento persistido; o navegador não
+  recalcula saldos nem deduz o valor anterior a partir da quantidade.
 
 ## Módulos relacionados
 
@@ -144,6 +132,15 @@ arquivos, além de typecheck, lint e build.
 
 | Data | Ação |
 |---|---|
+| 2026-11-08 | Mostra a sexta casa na posição, razão e detalhe de estoque sem arredondar para zero. |
+| 2026-11-06 | Retira Conferência/Ajustes dos menus e as ações Ajustar estoque e Compensar movimento; razão histórico e locais continuam disponíveis. |
+| 2026-11-05 | Exibe movimentos de venda histórica apenas para consulta, sem link para o pedido removido ou compensação isolada. |
+| 2026-11-05 | Retira a apresentação de movimento de Pedido de Venda; lançamentos de mercadorias são rastreados pela Nota de Saída. |
+| 2026-10-30 | Remove Ordem/Recebimento de Compra, histórico e permissões específicas; Estoque recebe entradas somente pela Nota. |
+| 2026-10-30 | Completa o lançamento de estoque da Nota com saldo anterior, entrada e saldo posterior vindos do movimento persistido. |
+| 2026-11-05 | Oculta compensação avulsa para movimentos de notas fiscais; orienta a reversão pelo documento de origem. |
+| 2026-10-30 | Consolida o documento da Nota de Entrada em uma superfície ERP compacta, com itens tabulares, totais abaixo da composição, custo médio sob demanda e lançamentos reais agrupados; valida desktop e mobile no navegador. |
+| 2026-10-23 | Exibe por item da Nota de Entrada o custo médio ponderado projetado e o snapshot registrado na confirmação. |
 | 2026-09-29 | Adapta posição, saldos e locais ao mobile com cards, ações contextuais e abas roláveis. |
 | 2026-09-29 | Padroniza delta e custo do ajuste, preservando negativo somente para saída. |
 | 2026-09-29 | Move frete, seguro e outras despesas para antes do resumo de totais da Ordem de Compra, mantendo as observações por último. |

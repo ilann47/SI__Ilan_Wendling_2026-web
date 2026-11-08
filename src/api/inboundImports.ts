@@ -1,5 +1,6 @@
 import { api, ifMatchHeaders } from './client';
 import type { Page } from './resource';
+import type { InboundNotePreview } from './inboundNotes';
 
 export type InboundImportStatus = 'IMPORTADA' | 'CONCILIADA' | 'CONFERIDA' | 'CONFIRMADA';
 export interface ImportedXmlItem {
@@ -9,7 +10,7 @@ export interface ImportedXmlItem {
 export interface ReconciledImportItem {
   sequencia: number; produtoId: number; produtoNome: string; unidadeDestino: string;
   fatorConversao: number; quantidade: number; valorUnitario: number;
-  quantidadeConferida?: number | null; itemOrdemCompraId?: number | null; motivoDivergencia?: string | null;
+  quantidadeConferida?: number | null; motivoDivergencia?: string | null;
 }
 export interface InboundImportSummary {
   id: number; version: number; status: InboundImportStatus; chave: string;
@@ -21,16 +22,13 @@ export interface InboundImport {
     emitenteDocumento: string; emitenteNome: string; destinatarioDocumento: string;
     emissao: string; frete: number; seguro: number; outrasDespesas: number; total: number; itens: ImportedXmlItem[] };
   fornecedorId?: number | null; localEstoqueId?: number | null; condicaoPagamentoId?: number | null;
-  ordemCompraId?: number | null; recebimentoCompraId?: number | null; notaEntradaId?: number | null;
-  registrarNovoRecebimento?: boolean;
+  notaEntradaId?: number | null;
   itens: ReconciledImportItem[]; divergencias: string[];
 }
 export interface ReconcileImportRequest {
   fornecedorId: number; localEstoqueId: number; condicaoPagamentoId?: number;
-  ordemCompraId?: number; recebimentoCompraId?: number;
-  registrarNovoRecebimento?: boolean;
   itens: Array<{ sequencia: number; produtoId: number; fatorConversao: number; valorUnitario: number;
-    itemOrdemCompraId?: number; motivoDivergencia?: string }>;
+    motivoDivergencia?: string }>;
 }
 const path = '/api/notas-entrada/importacoes';
 
@@ -43,6 +41,7 @@ export function validateXmlFile(file: Pick<File, 'name' | 'size'>) {
 export const inboundImportsApi = {
   list: (page = 0) => api.get<Page<InboundImportSummary>>(path, { params: { page, size: 20, sort: 'createdAt,desc' } }).then((r) => r.data),
   get: (id: number) => api.get<InboundImport>(`${path}/${id}`).then((r) => r.data),
+  preview: (id: number) => api.get<InboundNotePreview>(`${path}/${id}/previa`).then((r) => r.data),
   upload: (xml: Blob | string) => api.post<InboundImport>(path, xml, { headers: { 'Content-Type': 'application/xml' } }).then((r) => r.data),
   reconcile: (id: number, version: number, body: ReconcileImportRequest) => api
     .put<InboundImport>(`${path}/${id}/conciliacao`, body, { headers: ifMatchHeaders(version) }).then((r) => r.data),

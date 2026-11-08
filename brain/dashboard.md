@@ -4,48 +4,31 @@
 
 ## Objetivo
 
-Manter a home do Hub com módulos e pendências do tenant ativo no topo,
-seguida do resumo do dia na mesma página, sem sidebar ou abas de módulos.
+Manter na home a saudação e as pendências da organização ativa. O acesso às áreas fica no menu superior, sem atalhos repetidos na home.
 
 ## Contexto
 
-A rota `/app` exibe **HubHomePage**: saudação, módulos e pendências; abaixo,
-**Resumo do dia** (`DashboardPage` com `embedded`). As antigas URLs
-`/app/visao-geral` e `/app/areas/:areaId` redirecionam para ela sem landing
-intermediária. O resumo usa apenas contratos existentes: pátio,
-contas a vencer, estoque mínimo, eventos, tentativas de acesso e últimas
-páginas de ordens e vendas.
+A rota `/app` exibe **HubHomePage**: saudação e pendências. As antigas URLs
+`/app/visao-geral` e `/app/areas/:areaId` redirecionam para a home, sem página intermediária.
+A home não monta o Resumo do dia nem executa as consultas exclusivas dos indicadores.
 
 ## Fluxo (camadas da arquitetura)
 
 ```text
-/app -> HubHomePage (saudação + módulos + pendências)
-     -> DashboardPage embedded (Resumo do dia logo abaixo)
-cartão de módulo -> AppLayoutContext.openArea -> menu existente / drawer mobile
+/app -> HubHomePage (saudação + pendências)
+menu superior / drawer mobile -> áreas e processos
 /app/visao-geral ou /app/areas/* -> redirecionamento /app
 permissoes -> relatorios/listagens existentes
 ```
 
 ## Endpoints (se houver)
 
-- `GET /api/relatorios/patio`
-- `GET /api/relatorios/contas-a-vencer`
 - `GET /api/relatorios/estoque-minimo`
-- `GET /api/v1/events`
-- `GET /api/v1/access-attempts`
-- `GET /api/v1/purchase-orders`
-- `GET /api/v1/administrative-sales`
-- `GET /api/v1/service-orders`
 - `GET /api/v1/operational-pendencies?limit=5`
 
 ## Estrutura de Dados (DTOs, Entidades)
 
-O dashboard usa apenas totais presentes nas respostas e decisões dos últimos 20
-itens. Não estima ocupação, receita ou vendas sem contrato correspondente.
-O painel de pendências do Hub agora utiliza projeção específica com totais completos por categoria, independente das páginas do resumo. Apresenta até 5 itens por categoria e informa explicitamente quando existem outros; o total não é fabricado pela contagem da página.
-`dashboardContext` define períodos inclusivos e mapeia `CONTA_PAGAR`,
-`CONTA_RECEBER` e `DESPESA_AVULSA` aos detalhes corretos. Origem desconhecida
-não recebe um destino presumido.
+O painel usa a projeção de pendências com totais completos por categoria e o relatório de estoque mínimo. A projeção mostra até cinco itens por categoria, informa quando há outros e fornece os caminhos para abrir os registros.
 
 ## Integracoes externas (se houver)
 
@@ -53,16 +36,16 @@ Nenhuma.
 
 ## Tratamento de Erros
 
-Falha de leitura usa `describeError` e permite tentar novamente. Indicadores
-sem resposta usam travessão; não há zeros fictícios. Listas sem atividades e
-perfil sem indicadores têm mensagens específicas, sem jargão técnico.
 O painel de pendências distingue carregamento, falta de permissão e falha de
-consulta; erro não é tratado como ausência de pendências. A tentativa de nova
-leitura pode ser feita no resumo, usando o mesmo cache.
+consulta; erro não é tratado como ausência de pendências. A ação “Tentar novamente”
+refaz apenas as consultas que falharam.
 
 ## Testes (curl ou equivalente)
 
-Entrega integrada de 2026-09-12: HubHomePage.test.tsx tem 7 testes verdes (desktop/mobile, contagem completa limitada, links exatos, isolamento de permissões, erro honesto e período aplicado somente ao resumo). Gates finais do recorte financeiro/home/estoque: 19 testes/6 arquivos, typecheck, lint e build verdes. Esta rodada foi automatizada; a validação visual histórica abaixo não substitui smoke do backend atualizado.
+O teste da home cobre ausência do bloco de atalhos, do Resumo do dia e do seletor de período,
+navegação pelo cabeçalho no desktop/mobile e preservação das consultas de pendências.
+
+### Evidências históricas anteriores à remoção do resumo
 
 Vitest cobre decisões consultadas, ausência de navegação duplicada, perfil sem
 permissão (sem consultas indevidas), listas vazias e redirects de URLs antigas.
@@ -84,28 +67,22 @@ preexistentes de XHR no jsdom e chunk MUI de 603,25 kB no build.
 ## Decisões Técnicas
 
 - Refetch somente para consultas operacionais ativas.
-- O financeiro separa valores a pagar e a receber, sem somar fluxos opostos.
-  Hoje consulta uma data; próximos sete dias inclui hoje até hoje + 6; mês
-  corrente consulta primeiro/último dia. Vencidas são somente as do período.
-- Pendências financeiras abrem a conta exata por `?detail=ID`, compras abrem a
-  OC exata e estoque abre `/app/relatorios?tab=estoque`. Indicadores financeiros
-  abrem a lista real de títulos retornados no relatório, sem filtros fictícios.
-- Home compacta: módulos e pendências lado a lado a partir de `md`, cartões e
-  banner menores, resumo abaixo com seletor financeiro alinhado ao título.
+- Pendências financeiras abrem a conta exata por `?detail=ID`, notas abrem seu
+  detalhe e estoque abre `/app/relatorios?tab=estoque`.
+- Home compacta: saudação à esquerda e pendências à direita a partir de `md`;
+  empilhadas em telas menores.
   Nenhuma pendência carregada é silenciosamente cortada; o painel permite rolagem.
 - Consultas paginadas incompletas são identificadas também quando não há
   pendências na amostra. Contadores globais dependem do backend registrado no backlog.
 - Consultas seguem permissões efetivas e cache por organização.
-- Pendências incluem compras aguardando recebimento, vendas confirmadas sem nota, OS concluídas sem nota e contas vencidas de todo o histórico. Período financeiro filtra somente os indicadores do resumo. Cada item abre o registro exato, e grupos sem permissão são removidos também na apresentação.
-- Indicadores são informativos; a navegação principal fica no menu superior.
-  Os cartões de módulo da home abrem esse mesmo menu, não páginas intermediárias.
+- Pendências incluem notas de entrada em rascunho, OS concluídas sem nota e contas
+  vencidas de todo o histórico. O frontend também ignora pendências residuais de
+  Pedido de Venda.
+  Cada item abre o registro exato; grupos sem permissão são removidos na apresentação.
+- As áreas permitidas ficam no menu superior, sem grade de atalhos na home.
 - Hold continua sendo a unica garantia de inventario.
 - `HubHomePage` volta à rota inicial com o painel de pendências alinhado à direita
-  em telas largas e empilhado no celular. O resumo ocupa a largura disponível abaixo.
-- `DashboardPage embedded` usa título h2, preserva os indicadores e omite uma
-  segunda lista de pendências/atividades e a consulta exclusiva de vendas recentes.
-- Contas, estoque e compras compartilham chave por tenant, filtros e `staleTime`
-  entre Hub e resumo, sem novas APIs ou chamadas duplicadas na montagem.
+  em telas largas e empilhado no celular.
 - Totais parciais de ordens são identificados como consultas das últimas 20
   ordens; ausência de resposta não é exibida como `0+`.
 - Área Estoque: mega menu Compras (OC, Nota de Entrada, Fornecedores,
@@ -117,8 +94,6 @@ preexistentes de XHR no jsdom e chunk MUI de 603,25 kB no build.
 - No mobile, `HeaderAreaNavigation` oferece os mesmos grupos em um único drawer.
   Não existe sidebar, aba de módulo ou link “Ver área”. Favoritos e recentes
   persistidos são preservados. A marca Kaneko continua levando ao início.
-- O fechamento por clique externo usa o início do gesto, evitando que o clique
-  no cartão da home feche imediatamente o menu que acabou de abrir.
 
 ## Modulos relacionados
 
@@ -134,6 +109,12 @@ preexistentes de XHR no jsdom e chunk MUI de 603,25 kB no build.
 
 | Data | Acao |
 |---|---|
+| 2026-11-08 | Relatórios e indicadores exibem valores monetários e saldos fracionários até a sexta casa. |
+| 2026-11-06 | Retira o bloco de atalhos de áreas e o cartão informativo da home, mantendo saudação, pendências e cabeçalho. |
+| 2026-11-06 | Remove o Resumo do dia e o seletor financeiro da home; mantém pendências, atalhos e compatibilidade das rotas de início. |
+| 2026-11-05 | Remove consulta de vendas administrativas e pendências do fluxo desativado; mantém pendências de OS e indicadores existentes. |
+| 2026-10-30 | Substitui indicadores e pendências de compras por Notas de Entrada e remove a permissão purchases. |
+| 2026-10-30 | Amplia a presença visual da home com cartões de áreas maiores, ícones em gradiente, elevação e contraste compatíveis com o novo shell global. |
 | 2026-08-03 | Substitui landing estatica por painel operacional com dados reais. |
 | 2026-09-04 | Amplia o painel com pátio, vencimentos, estoque mínimo e pendências comerciais reais. |
 | 2026-09-04 | Separa Hub home (`/app`) do dashboard operacional (`/app/visao-geral`). |
@@ -145,3 +126,4 @@ preexistentes de XHR no jsdom e chunk MUI de 603,25 kB no build.
 | 2026-09-11 | Recupera o Hub inicial com módulos e pendências e coloca o resumo abaixo; cartões abrem a navegação existente e consultas são deduplicadas. |
 | 2026-09-12 | Compacta a home, separa pagar/receber, explicita períodos e cobertura, e conecta pendências aos detalhes reais sem novos endpoints. |
 | 2026-09-12 | Integra operational-pendencies com totais completos e links exatos de compras/vendas/OS/financeiro; preserva Hub e resumo e não esconde vencidas anteriores ao período. |
+| 2026-10-30 | Reduz a escolha inicial para até quatro áreas prioritárias sem esconder perfis restritos; áreas secundárias permanecem no menu superior. |

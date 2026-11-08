@@ -1,5 +1,6 @@
 import { type ResourceConfig } from '../components/crud/resourceConfig';
 import { type FieldConfig } from '../components/form/fieldConfig';
+import { formatCurrency } from '../utils/format';
 import { cols } from './columns';
 import { tipoPessoaOptions, tipoEmailOptions, tipoTelefoneOptions } from './options';
 
@@ -223,8 +224,8 @@ export const produtosConfig: ResourceConfig = {
     cols.text('marcaNome', 'Marca'),
     cols.text('categoriaNome', 'Categoria'),
     cols.money('custo', 'Custo'),
-    cols.money('valorVenda', 'Venda'),
-    cols.number('quantidadeMinima', 'Estoque mínimo', 3),
+    cols.money('valorVenda', 'Venda', { valueFormatter: (value: number) => formatCurrency(value, 'BRL', 6) }),
+    cols.number('quantidadeMinima', 'Estoque mínimo', 6),
     cols.bool('ativo', 'Ativo'),
   ],
   filters: [
@@ -267,9 +268,9 @@ export const produtosConfig: ResourceConfig = {
     },
     { name: 'valorCompra', label: 'Preço de compra', type: 'money', cols: 3, disabled: true, helperText: 'Definido pela Nota de Entrada' },
     { name: 'custo', label: 'Preço de custo', type: 'money', cols: 3, disabled: true, helperText: 'Custo com rateio (Nota de Entrada)' },
-    { name: 'valorVenda', label: 'Valor de venda', type: 'money', cols: 3 },
+    { name: 'valorVenda', label: 'Valor de venda', type: 'money', cols: 3, step: 0.000001 },
     { name: 'percentualLucro', label: '% Lucro', type: 'percent', cols: 3, disabled: true, helperText: 'Calculado: (venda − custo) / custo' },
-    { name: 'quantidadeMinima', label: 'Estoque mín.', type: 'number', cols: 3 },
+    { name: 'quantidadeMinima', label: 'Estoque mín.', type: 'number', cols: 3, step: 0.000001 },
     { name: 'ativo', label: 'Ativo', type: 'switch', cols: 3 },
     { name: 'descricao', label: 'Descrição', type: 'text', cols: 6 },
     { name: 'observacao', label: 'Observação', type: 'textarea' },

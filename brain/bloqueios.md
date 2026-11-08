@@ -45,6 +45,8 @@ Vitest valida os 13 IDs unicos, ausencia de botoes e filtragem local.
 - `BlockedFeatureNotice` padroniza motivo, dependencia, impacto e retomada.
 - A rota exige `organizations:admin` ou `audit:read`.
 - Nenhum segredo, credencial ou comportamento externo e simulado.
+- O conteúdo usa linguagem de operação, sem expor termos de implementação ao
+  usuário final.
 
 ## Modulos relacionados
 
@@ -58,5 +60,6 @@ Vitest valida os 13 IDs unicos, ausencia de botoes e filtragem local.
 
 | Data | Acao |
 |---|---|
+| 2026-10-24 | QA remove referências a API, agregados e flags técnicas do catálogo exibido ao operador. |
 | 2026-08-03 | Implementa catalogo administrativo dos bloqueios oficiais. |
 | 2026-09-28 | Revisa textos no navegador, corrige acentuação e troca jargões técnicos por termos operacionais sem simular integrações ausentes. |

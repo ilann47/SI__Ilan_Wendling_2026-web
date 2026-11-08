@@ -1,10 +1,13 @@
 import FilterListOutlinedIcon from '@mui/icons-material/FilterListOutlined';
 import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined';
+import CloseOutlinedIcon from '@mui/icons-material/CloseOutlined';
 import {
   Badge,
   Box,
   Button,
+  IconButton,
   InputAdornment,
+  Paper,
   Stack,
   TextField,
 } from '@mui/material';
@@ -58,7 +61,14 @@ export function ListingToolbar({
   );
 
   return (
-    <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.25} sx={{ mb: 2 }} alignItems={{ sm: 'center' }}>
+    <Paper
+      component="section"
+      role="search"
+      aria-label="Ferramentas da listagem"
+      variant="outlined"
+      sx={{ mb: 2, p: 1, borderRadius: 3, bgcolor: colors.card }}
+    >
+    <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ sm: 'center' }}>
       <TextField
         value={searchValue}
         onChange={(event) => onSearchChange(event.target.value)}
@@ -72,10 +82,17 @@ export function ListingToolbar({
               <SearchOutlinedIcon sx={{ fontSize: 18, color: colors.textMuted }} />
             </InputAdornment>
           ),
+          endAdornment: searchValue ? (
+            <InputAdornment position="end">
+              <IconButton size="small" aria-label="Limpar busca" onClick={() => onSearchChange('')}>
+                <CloseOutlinedIcon fontSize="small" />
+              </IconButton>
+            </InputAdornment>
+          ) : undefined,
         }}
         sx={{
           '& .MuiOutlinedInput-root': {
-            borderRadius: 999,
+            borderRadius: 2,
             bgcolor: colors.background,
             fontSize: '0.85rem',
           },
@@ -90,12 +107,12 @@ export function ListingToolbar({
               onClick={() => setOpen(true)}
               aria-label={count > 0 ? `Filtros, ${count} aplicados` : 'Filtros'}
               sx={{
-                borderRadius: 999,
+                borderRadius: 2,
                 borderColor: colors.border,
                 color: colors.text,
                 bgcolor: colors.card,
                 px: 2,
-                minHeight: 40,
+                minHeight: 44,
                 '&:hover': { borderColor: colors.purpleSoft, bgcolor: colors.brandHover },
               }}
             >
@@ -106,5 +123,6 @@ export function ListingToolbar({
       )}
       {panel}
     </Stack>
+    </Paper>
   );
 }

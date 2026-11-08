@@ -17,20 +17,25 @@ export function EmptyState({ title, description, action }: Props) {
   return (
     <Box
       role="status"
+      aria-label={title}
       sx={{
         display: 'grid',
         placeItems: 'center',
         textAlign: 'center',
         px: 3,
-        py: 8,
+        py: { xs: 6, md: 8 },
         gap: 1,
+        minHeight: 280,
+        border: `1px dashed ${colors.border}`,
+        borderRadius: 3,
+        bgcolor: colors.card,
       }}
     >
       <Box
         sx={{
           width: 56,
           height: 56,
-          borderRadius: 2,
+          borderRadius: 3,
           bgcolor: colors.brandHover,
           color: colors.purple,
           display: 'grid',
@@ -46,7 +51,7 @@ export function EmptyState({ title, description, action }: Props) {
           {description}
         </Typography>
       )}
-      {action}
+      {action && <Box sx={{ mt: 1.5 }}>{action}</Box>}
     </Box>
   );
 }

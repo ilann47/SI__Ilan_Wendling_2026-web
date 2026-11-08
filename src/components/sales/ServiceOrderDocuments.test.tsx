@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { api } from '../../api/client';
@@ -39,37 +39,23 @@ describe('faturamento contextual de serviços', () => {
     fireEvent.change(within(form).getByRole('textbox', { name: /Número da nota/ }), { target: { value: 'NS-21' } });
     fireEvent.click(within(form).getByRole('button', { name: 'Preparar nota' }));
     fireEvent.click(await within(form).findByRole('button', { name: 'Tentar novamente' }));
-    expect(await screen.findByRole('link', { name: /Ver nota NS-21/ })).toHaveAttribute('href', '/app/notas-servico?detail=21');
+    expect(await screen.findByRole('link', { name: /Conferir nota NS-21/ })).toHaveAttribute('href', '/app/notas-servico/21');
     expect(post.mock.calls[0]).toEqual(post.mock.calls[1]);
     expect(post.mock.calls[0][1]).toEqual({ numero: 'NS-21' });
     expect(invalidate).toHaveBeenCalledWith({ queryKey: ['tenant', 2, 'list', '/api/notas-servico'] });
   });
-  it('emissão interna é uma segunda ação confirmada, que atualiza as parcelas', async () => {
-    let emitted = false;
-    vi.spyOn(api, 'get').mockImplementation(async () => ({ data: { nota: { ...note, situacao: emitted ? 'EMITIDA' : 'PENDENTE' },
-      contas: emitted ? [{ id: 61, numeroParcela: 1, totalParcelas: 1, valorTotal: 100,
-        valorOriginal: 100, valorRecebido: 0, dataVencimento: '2026-09-20', situacao: 'PENDENTE' }] : [] } }));
-    const post = vi.spyOn(api, 'post').mockImplementation(async () => { emitted = true; return { data: { ...note, situacao: 'EMITIDA' } }; }); const client = mount();
-    const invalidate = vi.spyOn(client, 'invalidateQueries');
-    fireEvent.click(await screen.findByRole('button', { name: 'Emitir internamente' }));
-    const confirmation = screen.getByRole('alertdialog', { name: 'Emitir nota internamente' });
-    expect(within(confirmation).getByText(/gera as contas a receber.*não envia/i)).toBeInTheDocument();
-    fireEvent.click(within(confirmation).getByRole('button', { name: 'Confirmar emissão interna' }));
-    await waitFor(() => expect(post).toHaveBeenCalledWith('/api/notas-servico/21/emissao', null));
+  it('mantém as contas da nota emitida acessíveis a partir da ordem', async () => {
+    vi.spyOn(api, 'get').mockResolvedValue({ data: { nota: { ...note, situacao: 'EMITIDA' },
+      contas: [{ id: 61, numeroParcela: 1, totalParcelas: 1, valorTotal: 100,
+        valorOriginal: 100, valorRecebido: 0, dataVencimento: '2026-09-20', situacao: 'PENDENTE' }] } });
+    mount();
     expect(await screen.findByRole('link', { name: /Parcela 1\/1/ })).toHaveAttribute('href', '/app/contas-receber?detail=61');
-    expect(screen.queryByRole('button', { name: 'Emitir internamente' })).not.toBeInTheDocument();
-    expect(invalidate).toHaveBeenCalledWith({ queryKey: ['tenant', 2, 'financial-accounts'] });
-    expect(invalidate).toHaveBeenCalledWith({ queryKey: ['tenant', 2, 'financial-summary'] });
   });
-  it('não reenvia emissão após timeout antes de consultar a situação', async () => {
-    let emitted = false;
-    const get = vi.spyOn(api, 'get').mockImplementation(async () => ({ data: { nota: { ...note, situacao: emitted ? 'EMITIDA' : 'PENDENTE' }, contas: [] } }));
-    const post = vi.spyOn(api, 'post').mockImplementation(async () => { emitted = true; throw { code: 'ECONNABORTED' }; }); mount();
-    fireEvent.click(await screen.findByRole('button', { name: 'Emitir internamente' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Confirmar emissão interna' }));
-    expect(await screen.findByText('Emitida')).toBeInTheDocument();
-    expect(post).toHaveBeenCalledTimes(1);
-    expect(get).toHaveBeenCalledTimes(2);
+  it('encaminha o rascunho para conferência sem emitir direto pela ordem', async () => {
+    vi.spyOn(api, 'get').mockResolvedValue({ data: { nota: note, contas: [] } }); mount();
+    expect(await screen.findByRole('link', { name: 'Conferir nota NS-21' }))
+      .toHaveAttribute('href', '/app/notas-servico/21');
+    expect(screen.queryByRole('button', { name: 'Emitir internamente' })).not.toBeInTheDocument();
   });
   it('erro de leitura não vira documento inexistente e sem permissão não exibe comandos', async () => {
     vi.spyOn(api, 'get').mockRejectedValue(new Error('Não foi possível consultar o faturamento.')); mount(['service_orders:read']);

@@ -43,6 +43,8 @@ export function AppHeader({
       sx={{
         width: '100%', bgcolor: colors.appBar, color: colors.text,
         borderBottom: `1px solid ${colors.border}`,
+        boxShadow: mode === 'dark' ? '0 8px 28px rgba(0,0,0,0.2)' : '0 8px 28px rgba(27,33,64,0.07)',
+        backdropFilter: 'blur(14px)',
         pt: 'env(safe-area-inset-top)',
       }}
     >

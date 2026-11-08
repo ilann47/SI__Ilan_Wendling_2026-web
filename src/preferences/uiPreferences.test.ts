@@ -34,4 +34,17 @@ describe('uiPreferences', () => {
     expect(rememberRecentPath([], '/app')).toEqual([]);
     expect(toggleFavoritePath(['/app/patio'], '/app/patio')).toEqual([]);
   });
+
+  it('ignora atalhos locais antigos de Pedido de Venda sem afetar pedidos de evento', () => {
+    const removed = '/app/vendas-administrativas?detail=7';
+    const existing = '/app/vendas?tab=pedidos';
+    localStorage.setItem(uiPreferencesKey(8, 'operador'), JSON.stringify({
+      favoritePaths: [removed, existing], recentPaths: [removed, existing],
+    }));
+    expect(readUiPreferences(8, 'operador')).toMatchObject({
+      favoritePaths: [existing], recentPaths: [existing],
+    });
+    expect(rememberRecentPath([existing], removed)).toEqual([existing]);
+    expect(toggleFavoritePath([existing], removed)).toEqual([existing]);
+  });
 });

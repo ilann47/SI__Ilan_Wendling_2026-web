@@ -11,6 +11,8 @@ export function ErrorState({ message, onRetry }: Props) {
     <Alert
       severity="error"
       role="alert"
+      variant="outlined"
+      sx={{ py: 1, px: 1.5 }}
       action={onRetry ? (
         <Button color="inherit" size="small" startIcon={<ReplayOutlinedIcon />} onClick={onRetry}>
           Tentar novamente

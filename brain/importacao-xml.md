@@ -2,6 +2,23 @@
 
 # Importação operacional de XML
 
+## Fluxo vigente PARK-0003 (2026-10-16)
+
+XML novo cria e confere somente Nota de Entrada. A conciliação continua persistida,
+com produto/unidade/fator, local/fornecedor/condição e contagem física. Não existe
+seleção, regularização ou reaproveitamento de Ordem/Recebimento anterior.
+Fator, preço conciliado e contagem física aceitam até seis casas.
+
+Após CONFERIDA, GET /api/notas-entrada/importacoes/{id}/previa fornece a mesma
+composição de Nota/custo/obrigação/parcelas do fluxo manual, usando datas do XML e
+da conferência persistida. Só depois da prévia é liberada a confirmação versionada.
+Falha incerta bloqueia repetição até recarregar o mesmo registro. Confirmação
+invalida estoque/financeiro/home do tenant, sem usar o preview existente ou DB real.
+Upload mantém bytes/limite de 2MB e validações do backend. Importação não afirma
+autorização/assinatura fiscal nem efetua transmissão ou pagamento externo.
+As descrições históricas anteriores de OC foram substituídas por este fluxo.
+
+
 ## Objetivo
 Registrar documentos de fornecedores e conferir mercadoria sem redigitar produtos nem duplicar estoque ou contas.
 
@@ -35,12 +52,13 @@ Vitest cobre upload e limites, preservação de bytes, `If-Match`, recuperação
 
 ## Decisões Técnicas
 - Cache começa por tenant; GET detalhado somente para a importação selecionada. A lista não carrega XMLs completos.
-- Fornecedor, produto, local, condição, pedido e itens usam seletores pesquisáveis existentes. Nenhum ID é digitado.
-- `fiscal:read` permite consulta; `fiscal:manage` permite gravações. Conciliação exige consultas de fornecedores/catálogo/estoque. Referências de pagamento/compra respeitam suas permissões.
+- Fornecedor, produto, local, condição e itens usam seletores pesquisáveis existentes. Nenhum ID é digitado.
+- `fiscal:read` permite consulta; `fiscal:manage` permite gravações. Conciliação exige consultas de fornecedores/catálogo/estoque. Referências de pagamento respeitam suas permissões.
 - O usuário informa o fator de conversão e confere a unidade do cadastro antes de salvar. Não inferimos conversão pelo nome do produto.
 - O backend aceita NF-e 4.00, modelo 55, de saída normal do fornecedor; devolução, complemento, ajuste e totais não representáveis no domínio atual são bloqueados. A interface apresenta a divergência retornada, sem alterar valores para forçar confirmação.
-- Vincular uma compra sem recebimento exige checkbox explícito `registrarNovoRecebimento`; se a mercadoria já entrou, o recebimento existente deve ser escolhido. Registrar novo recebimento requer `purchases:manage` no comando final.
+- A importação cria somente Nota de Entrada; não aceita vínculos de Ordem ou Recebimento de Compra.
 - Campos editados da conciliação bloqueiam a contagem/confirmar até salvar; alterar uma contagem já conferida também bloqueia confirmação até registrar a nova contagem. O retorno bem-sucedido limpa esse bloqueio mesmo quando reenviar a mesma contagem não altera a versão do registro.
+- Fator de conversão, valor unitário e contagem física usam o campo numérico compartilhado, com bloqueio de negativos e mensagens consistentes.
 
 ## Módulos relacionados
 [[fiscal-financeiro]], [[estoque]], [[fornecedores]], [[conveniencia]], [[pagamentos]], [[auth]].
@@ -48,5 +66,8 @@ Vitest cobre upload e limites, preservação de bytes, `If-Match`, recuperação
 ## Histórico
 | Data | Ação |
 |---|---|
+| 2026-11-08 | Entrada com XML preserva o total do fornecedor e exibe até seis casas na conciliação e na conferência. |
+| 2026-10-30 | Remove os vínculos de Ordem/Recebimento; XML confirma somente Nota de Entrada direta. |
+| 2026-10-24 | QA padroniza os campos numéricos da conciliação e conferência com o componente compartilhado. |
 | 2026-09-12 | Implementa importação, conciliação, conferência e confirmação em página única com RBAC e recuperação segura. |
 | 2026-09-12 | Registra validação real da consulta local e distingue cobertura automatizada completa da navegação sem lançamentos nos dados demo. |

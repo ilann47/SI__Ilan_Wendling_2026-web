@@ -16,7 +16,6 @@ import { AppDialog } from '../components/common/AppDialog';
 import { FilterBar } from '../components/crud/FilterBar';
 import { hasResourceActionPermission, type FilterConfig } from '../components/crud/resourceConfig';
 import { ResourceFormDialog } from '../components/form/ResourceFormDialog';
-import { NumberField } from '../components/form/NumberField';
 import { AppliedFilterChips } from '../components/listing/AppliedFilterChips';
 import { DetailDrawer } from '../components/listing/DetailDrawer';
 import { EmptyState } from '../components/listing/EmptyState';
@@ -28,10 +27,11 @@ import { SecondaryActionsMenu, type SecondaryAction } from '../components/listin
 import { useSnackbar } from '../components/SnackbarProvider';
 import { useLinkedDetail } from '../hooks/useLinkedDetail';
 import { contaPagarConfig, contaReceberConfig } from '../resources/financeiro';
-import { formatCurrency, formatDate, formatStatusLabel } from '../utils/format';
+import { formatCurrencyMicros as moeda, formatDate, formatStatusLabel } from '../utils/format';
+import { exactDecimal } from '../utils/fixedDecimal';
 
 const filterNames = ['search', 'situacao', 'fornecedorId', 'clienteId', 'dataVencimentoDe', 'dataVencimentoAte',
-  'origem', 'notaEntradaId', 'notaSaidaId', 'notaServicoId', 'vendaAdministrativaId'];
+  'origem', 'notaEntradaId', 'notaSaidaId', 'notaServicoId'];
 const settlementDate = () => {
   const now = new Date();
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
@@ -41,6 +41,7 @@ const settlementDate = () => {
 export function FinancialAccountsPage({ tipo }: { tipo: FinancialAccountType }) {
   const pagar = tipo === 'pagar';
   const config = pagar ? contaPagarConfig : contaReceberConfig;
+  const precisaoBaixa = 0.000001;
   const { activeOrganization, permissions, user } = useAuth();
   const org = activeOrganization?.organizationId;
   const canRead = !!org && permissions.includes('finance:read');
@@ -51,7 +52,12 @@ export function FinancialAccountsPage({ tipo }: { tipo: FinancialAccountType }) 
   const { notify } = useSnackbar();
   const [params, setParams] = useSearchParams();
   const isMobile = useMediaQuery(useTheme().breakpoints.down('md'));
-  const filters = Object.fromEntries(filterNames.filter((key) => params.get(key)).map((key) => [key, params.get(key)!]));
+  const origins = Object.entries(financialOriginLabels)
+    .filter(([key]) => pagar ? ['MANUAL', 'NOTA_ENTRADA'].includes(key) : key !== 'NOTA_ENTRADA')
+    .map(([value, label]) => ({ value, label }));
+  const filters = Object.fromEntries(filterNames
+    .filter((key) => key === 'origem' ? origins.some(({ value }) => value === params.get(key)) : params.get(key))
+    .map((key) => [key, params.get(key)!]));
   const [page, setPage] = useState(0);
   const [size, setSize] = useState(10);
   const [sort, setSort] = useState('dataVencimento,asc');
@@ -100,9 +106,12 @@ export function FinancialAccountsPage({ tipo }: { tipo: FinancialAccountType }) 
   };
   const beginSettlement = () => {
     if (!settling || !canManage) return;
-    const amount = Number(valor);
-    if (!attempt && (!Number.isFinite(amount) || amount <= 0 || amount > settling.saldo || !/^\d+(\.\d{1,2})?$/.test(valor))) {
-      setLocalError('Informe um valor positivo, com até duas casas decimais, que não exceda o saldo.'); return;
+    let amount: number;
+    try {
+      amount = attempt?.body.valor ?? exactDecimal(valor, 'Valor', true);
+      if (!attempt && amount > settling.saldo) throw new Error('O valor não pode exceder o saldo.');
+    } catch (error) {
+      setLocalError(error instanceof Error ? error.message : 'Valor inválido.'); return;
     }
     setLocalError(null);
     const next = attempt ?? { key: crypto.randomUUID(), body: { valor: amount, ...(data ? { data } : {}) } };
@@ -125,9 +134,7 @@ export function FinancialAccountsPage({ tipo }: { tipo: FinancialAccountType }) 
       reference: { basePath: '/api/clientes', labelField: 'nome' } }] : []),
     { name: 'dataVencimentoDe', label: 'Vencimento de', type: 'text' },
     { name: 'dataVencimentoAte', label: 'Vencimento até', type: 'text' },
-    { name: 'origem', label: 'Origem', type: 'select', options: Object.entries(financialOriginLabels)
-      .filter(([key]) => pagar ? ['MANUAL', 'NOTA_ENTRADA'].includes(key) : key !== 'NOTA_ENTRADA')
-      .map(([value, label]) => ({ value, label })) },
+    { name: 'origem', label: 'Origem', type: 'select', options: origins },
   ];
   const origin = (row: FinancialAccount) => {
     const source = row.origem;
@@ -155,7 +162,7 @@ export function FinancialAccountsPage({ tipo }: { tipo: FinancialAccountType }) 
     {summary.isError ? <ErrorState message={describeError(summary.error)} onRetry={() => { void summary.refetch(); }} /> : summary.isPending ? <ListingSkeleton />
       : <Stack direction={{ xs: 'column', sm: 'row' }} gap={2} sx={{ mb: 2 }}>
         {[['Valor dos títulos', summary.data.valorTotal], [pagar ? 'Pago' : 'Recebido', summary.data.valorBaixado], ['Saldo em aberto', summary.data.saldo]].map(([label, value]) =>
-          <Card key={String(label)} sx={{ p: 2, flex: 1 }}><Typography variant="body2" color="text.secondary">{label}</Typography><Typography variant="h6">{formatCurrency(Number(value))}</Typography></Card>)}
+          <Card key={String(label)} sx={{ p: 2, flex: 1 }}><Typography variant="body2" color="text.secondary">{label}</Typography><Typography variant="h6">{moeda(Number(value))}</Typography></Card>)}
       </Stack>}
     <Typography variant="caption" color="text.secondary">Totais de todos os títulos filtrados. O saldo em aberto desconsidera cancelados.</Typography>
     <Box sx={{ my: 2 }}><TextField select size="small" label="Ordenar por" value={sort} onChange={(e) => { setSort(e.target.value); setPage(0); }}>
@@ -166,14 +173,14 @@ export function FinancialAccountsPage({ tipo }: { tipo: FinancialAccountType }) 
       : !list.data.content.length ? <EmptyState title="Nenhum título encontrado" description="Revise os filtros ou registre um novo lançamento." />
         : isMobile ? <ListingCards rows={list.data.content} getKey={(r) => r.id} getTitle={(r) => r.fornecedorNome ?? r.clienteNome}
           onOpen={open} getActions={actions} getFields={(r) => [{ label: 'Parcela', value: `${r.numeroParcela}/${r.totalParcelas}` },
-            { label: 'Vencimento', value: formatDate(r.dataVencimento) }, { label: 'Saldo', value: formatCurrency(r.saldo) }, { label: 'Situação', value: formatStatusLabel(r.situacao) }]} />
+            { label: 'Vencimento', value: formatDate(r.dataVencimento) }, { label: 'Saldo', value: moeda(r.saldo) }, { label: 'Situação', value: formatStatusLabel(r.situacao) }]} />
           : <TableContainer component={Card}><Table size="small" stickyHeader aria-label={pagar ? 'Títulos a pagar' : 'Títulos a receber'}>
             <TableHead><TableRow>{[pagar ? 'Fornecedor' : 'Cliente', 'Origem', 'Parcela', 'Vencimento', 'Original', pagar ? 'Pago' : 'Recebido', 'Saldo', 'Situação', 'Ações'].map((h) => <TableCell key={h}>{h}</TableCell>)}</TableRow></TableHead>
             <TableBody>{list.data.content.map((r) => <TableRow key={r.id} hover onClick={() => open(r)} tabIndex={0}
               onKeyDown={(e) => { if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); open(r); } }} sx={{ cursor: 'pointer' }}>
               <TableCell>{r.fornecedorNome ?? r.clienteNome}</TableCell><TableCell>{origin(r)}</TableCell><TableCell>{r.numeroParcela}/{r.totalParcelas}</TableCell>
-              <TableCell>{formatDate(r.dataVencimento)}</TableCell><TableCell>{formatCurrency(r.valorOriginal)}</TableCell>
-              <TableCell>{formatCurrency(r.valorPago ?? r.valorRecebido)}</TableCell><TableCell>{formatCurrency(r.saldo)}</TableCell>
+              <TableCell>{formatDate(r.dataVencimento)}</TableCell><TableCell>{moeda(r.valorOriginal)}</TableCell>
+              <TableCell>{moeda(r.valorPago ?? r.valorRecebido)}</TableCell><TableCell>{moeda(r.saldo)}</TableCell>
               <TableCell><Chip label={formatStatusLabel(r.situacao)} size="small" /></TableCell><TableCell><SecondaryActionsMenu actions={actions(r)} /></TableCell>
             </TableRow>)}</TableBody></Table></TableContainer>}
     <TablePagination component="div" count={list.data?.totalElements ?? 0} page={page} rowsPerPage={size} rowsPerPageOptions={[10, 25, 50]}
@@ -182,17 +189,17 @@ export function FinancialAccountsPage({ tipo }: { tipo: FinancialAccountType }) 
     <DetailDrawer open={linked.requested} title={detail ? `Título ${detail.id} — ${detail.fornecedorNome ?? detail.clienteNome}` : 'Detalhes do título'}
       onClose={linked.close} actions={detail && <Stack direction="row" gap={1}>{actions(detail).map((a) => <Button key={a.key} variant={a.danger ? 'outlined' : 'contained'} color={a.danger ? 'error' : 'primary'} onClick={a.onClick}>{a.label}</Button>)}</Stack>}>
       {linked.isError ? <ErrorState message={describeError(linked.error)} onRetry={() => { void linked.refetch(); }} /> : !detail ? <ListingSkeleton /> : <>
-        <Chip label={formatStatusLabel(detail.situacao)} sx={{ alignSelf: 'start' }} /><Typography variant="h5">Saldo: {formatCurrency(detail.saldo)}</Typography>
+        <Chip label={formatStatusLabel(detail.situacao)} sx={{ alignSelf: 'start' }} /><Typography variant="h5">Saldo: {moeda(detail.saldo)}</Typography>
         <Typography>Parcela {detail.numeroParcela} de {detail.totalParcelas} · Vence em {formatDate(detail.dataVencimento)}</Typography>
         <Box>{origin(detail)}</Box>
-        <Stack gap={0.5}><Typography>Original: {formatCurrency(detail.valorOriginal)}</Typography><Typography>Desconto: {formatCurrency(detail.valorDesconto)}</Typography>
-          <Typography>Juros e multa: {formatCurrency(Number(detail.valorJuros ?? 0) + Number(detail.valorMulta ?? 0))}</Typography>
-          <Typography>Total: {formatCurrency(detail.valorTotal)}</Typography><Typography>Baixado: {formatCurrency(detail.valorPago ?? detail.valorRecebido)}</Typography></Stack>
+        <Stack gap={0.5}><Typography>Original: {moeda(detail.valorOriginal)}</Typography><Typography>Desconto: {moeda(detail.valorDesconto)}</Typography>
+          <Typography>Juros e multa: {moeda(Number(detail.valorJuros ?? 0) + Number(detail.valorMulta ?? 0))}</Typography>
+          <Typography>Total: {moeda(detail.valorTotal)}</Typography><Typography>Baixado: {moeda(detail.valorPago ?? detail.valorRecebido)}</Typography></Stack>
         {detail.observacao && <Typography>{detail.observacao}</Typography>}
         <Typography variant="h6">Histórico de {pagar ? 'pagamentos' : 'recebimentos'}</Typography>
         {history.isError ? <ErrorState message={describeError(history.error)} onRetry={() => { void history.refetch(); }} /> : history.isPending ? <ListingSkeleton />
           : history.data.length === 0 ? <Typography color="text.secondary">Nenhuma baixa registrada.</Typography> : history.data.map((h) => <Card key={h.id} variant="outlined" sx={{ p: 2 }}>
-            <Typography fontWeight={700}>{formatCurrency(h.valor)}</Typography><Typography>{h.data ? formatDate(h.data) : 'Data anterior não disponível'}</Typography>
+            <Typography fontWeight={700}>{moeda(h.valor)}</Typography><Typography>{h.data ? formatDate(h.data) : 'Data anterior não disponível'}</Typography>
             <Typography variant="body2" color="text.secondary">{h.saldoAnterior ? 'Saldo acumulado anterior ao histórico detalhado; pagamentos individuais não disponíveis.' : h.atorNome ?? 'Autor não informado'}</Typography>
           </Card>)}
       </>}
@@ -207,9 +214,10 @@ export function FinancialAccountsPage({ tipo }: { tipo: FinancialAccountType }) 
       </>}>
         <Alert severity="info" sx={{ mb: 2 }}>Esta ação registra uma baixa no sistema; não executa uma transferência bancária.</Alert>
         {attempt && !settle.isError && <Alert severity="info" sx={{ mb: 2 }}>Esta tentativa está preservada. A confirmação utiliza os mesmos dados para evitar duplicidade.</Alert>}
-        {settling && <Typography sx={{ mb: 2 }}>Saldo atual: {formatCurrency(settling.saldo)}</Typography>}
-        <Stack gap={2}><NumberField label="Valor da baixa" value={valor} disabled={!!attempt}
-          min={0.01} step={0.01} onValueChange={setValor}
+        {settling && <Typography sx={{ mb: 2 }}>Saldo atual: {moeda(settling.saldo)}</Typography>}
+        <Stack gap={2}><TextField label="Valor da baixa" type="number" value={valor} disabled={!!attempt}
+          error={!!localError} inputProps={{ min: precisaoBaixa, step: precisaoBaixa, inputMode: 'decimal' }}
+          onChange={(event) => { setValor(event.target.value); setLocalError(null); }}
           InputProps={{ startAdornment: <InputAdornment position="start">R$</InputAdornment> }} />
           <TextField label="Data da baixa" value={data} type="date" disabled={!!attempt} onChange={(e) => setData(e.target.value)} InputLabelProps={{ shrink: true }} /></Stack>
         {(localError || settle.isError) && <Alert severity="error" sx={{ mt: 2 }}>{localError ?? describeError(settle.error)}</Alert>}

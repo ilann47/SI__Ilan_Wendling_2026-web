@@ -355,6 +355,12 @@ describe('ResourceConfig tenant-aware do catalogo de conveniencia', () => {
     expect(disabled).toEqual(['valorCompra', 'custo', 'percentualLucro']);
     expect(produtosConfig.columns.some((column) => column.field === 'quantidade')).toBe(false);
     expect(produtosConfig.columns.some((column) => column.field === 'quantidadeMinima')).toBe(true);
+    expect(productFields.get('quantidadeMinima')?.step).toBe(0.000001);
+    expect(productFields.get('valorVenda')?.step).toBe(0.000001);
+    const pagamento = new Map(condicoesPagamentoConfig.fields.map((field) => [field.name, field]));
+    expect(pagamento.get('percentualJuros')?.step).toBe(0.000001);
+    expect(pagamento.get('parcelas')?.subFields?.find((field) => field.name === 'percentual')?.step)
+      .toBe(0.000001);
     expect(forbiddenTenantFields.some((field) => productFields.has(field))).toBe(false);
     expect(productFields.has('status')).toBe(false);
   });

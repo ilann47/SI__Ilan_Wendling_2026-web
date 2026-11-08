@@ -51,9 +51,15 @@ import {
 
 const gridLocale = ptBR.components.MuiDataGrid.defaultProps.localeText;
 
-const idFilter: FilterConfig = { name: 'id', label: 'ID', type: 'number' };
-
 type ResourceRow = Record<string, unknown> & { id: number };
+
+export function operationalColumns(columns: GridColDef[]): GridColDef[] {
+  return columns.filter((column) => column.field !== 'id');
+}
+
+export function operationalFilters(filters: FilterConfig[]): FilterConfig[] {
+  return filters.filter((filter) => filter.name !== 'id');
+}
 
 function pageVazia(size: number): Page<ResourceRow> {
   return {
@@ -92,7 +98,10 @@ export async function loadResourcePageById(
   }
 }
 
-export function CrudResourcePage({ config }: { config: ResourceConfig }) {
+export function CrudResourcePage({ config, onOpenDetail }: {
+  config: ResourceConfig;
+  onOpenDetail?: (id: number) => void;
+}) {
   const queryClient = useQueryClient();
   const { notify } = useSnackbar();
   const { activeOrganization, permissions } = useAuth();
@@ -126,6 +135,7 @@ export function CrudResourcePage({ config }: { config: ResourceConfig }) {
   const [deleteConflict, setDeleteConflict] = useState(false);
   const [running, setRunning] = useState<{ action: RowAction; row: ResourceRow } | null>(null);
   const [selectedDetail, setDetail] = useState<ResourceRow | null>(null);
+  const openDetail = (row: ResourceRow) => onOpenDetail ? onOpenDetail(row.id) : setDetail(row);
   const linked = useLinkedDetail(activeOrganization?.organizationId, config.key, resource.get,
     hasResourceActionPermission(config, 'read', permissions));
   const detail = selectedDetail ?? linked.data ?? null;
@@ -142,19 +152,19 @@ export function CrudResourcePage({ config }: { config: ResourceConfig }) {
   const canDelete = config.canDelete !== false
     && hasResourceActionPermission(config, 'delete', permissions);
 
-  const filtersWithId = useMemo<FilterConfig[]>(
-    () => [idFilter, ...(config.filters ?? [])],
+  const operationalFilterConfigs = useMemo<FilterConfig[]>(
+    () => operationalFilters(config.filters ?? []),
     [config.filters],
   );
   const searchFilter = useMemo(
     () => config.searchFilter
-      ? filtersWithId.find((filter) => filter.name === config.searchFilter)
-      : primarySearchFilter(filtersWithId),
-    [config.searchFilter, filtersWithId],
+      ? operationalFilterConfigs.find((filter) => filter.name === config.searchFilter)
+      : primarySearchFilter(operationalFilterConfigs),
+    [config.searchFilter, operationalFilterConfigs],
   );
   const advancedFilters = useMemo(
-    () => filtersWithId.filter((filter) => filter.name !== searchFilter?.name),
-    [filtersWithId, searchFilter],
+    () => operationalFilterConfigs.filter((filter) => filter.name !== searchFilter?.name),
+    [operationalFilterConfigs, searchFilter],
   );
 
   useEffect(() => {
@@ -284,19 +294,18 @@ export function CrudResourcePage({ config }: { config: ResourceConfig }) {
         }
         return;
       }
-      if (config.optimisticLocking) {
-        await resource.createVersioned(values);
-      } else {
-        await resource.create(values);
-      }
+      return config.optimisticLocking
+        ? (await resource.createVersioned(values)).data
+        : await resource.create(values);
     },
-    onSuccess: () => {
+    onSuccess: (created) => {
       notify(`${config.singular} salvo com sucesso.`, 'success');
       setFormOpen(false);
       setEditing(null);
       setEditingVersion(null);
       setEditConflict(null);
       invalidate();
+      if (created && onOpenDetail) onOpenDetail(created.id);
     },
     onError: (error) => {
       if (config.optimisticLocking && editing && isResourcePreconditionConflict(error)) {
@@ -394,10 +403,10 @@ export function CrudResourcePage({ config }: { config: ResourceConfig }) {
       <SecondaryActionsMenu actions={visibleActions(params.row as ResourceRow)} />
     ),
   };
-  const temIdCol = config.columns.some((column) => column.field === 'id');
-  const columns: GridColDef[] = temIdCol
-    ? [...config.columns, actionsCol]
-    : [{ field: 'id', headerName: 'ID', width: 80 } as GridColDef, ...config.columns, actionsCol];
+  const columns: GridColDef[] = [
+    ...operationalColumns(config.columns),
+    ...(!onOpenDetail || canEdit || canDelete || config.rowActions?.length ? [actionsCol] : []),
+  ];
 
   const rows = listQuery.data?.content ?? [];
   const appliedFilters = { ...filters, ...(searchFilter && debouncedSearch ? { [searchFilter.name]: debouncedSearch } : {}) };
@@ -461,7 +470,7 @@ export function CrudResourcePage({ config }: { config: ResourceConfig }) {
         onClear={clearFilters}
       />
       <AppliedFilterChips
-        filters={filtersWithId}
+        filters={operationalFilterConfigs}
         values={appliedFilters}
         onRemove={removeFilter}
         onClear={clearFilters}
@@ -491,10 +500,10 @@ export function CrudResourcePage({ config }: { config: ResourceConfig }) {
           <ListingCards
             rows={rows}
             getKey={(row) => row.id}
-            getTitle={(row) => String(row.nome ?? row.numero ?? row.placa ?? row.descricao ?? `#${row.id}`)}
+            getTitle={(row) => String(row.nome ?? row.numero ?? row.placa ?? row.descricao ?? config.singular)}
             getFields={cardFields}
             getActions={visibleActions}
-            onOpen={setDetail}
+            onOpen={openDetail}
           />
           <Card sx={{ display: { xs: 'none', md: 'block' } }}>
             <DataGrid
@@ -512,7 +521,7 @@ export function CrudResourcePage({ config }: { config: ResourceConfig }) {
               pageSizeOptions={[10, 25, 50]}
               disableRowSelectionOnClick
               disableColumnMenu
-              onRowClick={(params) => setDetail(params.row as ResourceRow)}
+              onRowClick={(params) => openDetail(params.row as ResourceRow)}
               sx={{
                 border: 0,
                 '--DataGrid-overlayHeight': '280px',
@@ -548,8 +557,10 @@ export function CrudResourcePage({ config }: { config: ResourceConfig }) {
 
       <DetailDrawer
         open={!!detail}
-        title={detail ? `${config.singular} #${detail.id}` : config.singular}
-        subtitle={detail ? String(detail.nome ?? detail.numero ?? detail.placa ?? '') : undefined}
+        title={detail
+          ? String(detail.nome ?? detail.numero ?? detail.placa ?? detail.descricao ?? config.singular)
+          : config.singular}
+        subtitle={detail ? `Código interno ${detail.id}` : undefined}
         onClose={closeDetail}
         actions={detail ? (
           <Stack direction="row" spacing={1} flexWrap="wrap">

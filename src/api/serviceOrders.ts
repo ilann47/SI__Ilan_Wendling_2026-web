@@ -1,6 +1,6 @@
 import { api, ifMatchHeaders } from './client';
 import type { Page, PageParams } from './resource';
-import type { SaleReceivable } from './administrativeSales';
+import { exactDecimal } from '../utils/fixedDecimal';
 
 export type ServiceOrderStatus = 'RASCUNHO' | 'EM_EXECUCAO' | 'CONCLUIDA' | 'CANCELADA';
 export interface ServiceOrderItem {
@@ -24,7 +24,12 @@ export interface ServiceOrderNote {
   id: number; numero: string; modelo?: string; serie?: string;
   situacao: 'PENDENTE' | 'EMITIDA' | 'CANCELADA'; valorTotal: number; ordemServicoId?: number;
 }
-export interface ServiceOrderDocumentsResponse { nota: ServiceOrderNote | null; contas: SaleReceivable[] | null }
+export interface ServiceOrderReceivable {
+  id: number; numeroParcela: number; totalParcelas: number;
+  dataVencimento: string; valorOriginal: number; valorRecebido: number;
+  valorTotal: number; situacao: string;
+}
+export interface ServiceOrderDocumentsResponse { nota: ServiceOrderNote | null; contas: ServiceOrderReceivable[] | null }
 export interface ServiceOrderNoteRequest {
   numero: string; modelo?: string; serie?: string; dataEmissao?: string;
   condicaoPagamentoId?: number; formaPagamentoId?: number; aliquotaIss?: number;
@@ -42,8 +47,8 @@ export function buildServiceOrderNotePayload(values: Record<string, unknown>): S
     if (values[field] !== '' && values[field] != null) body[field] = positiveId(values[field], 'Pagamento selecionado');
   }
   if (values.aliquotaIss !== '' && values.aliquotaIss != null) {
-    const rate = Number(values.aliquotaIss);
-    if (!Number.isFinite(rate) || rate < 0 || rate > 100) throw new Error('Alíquota ISS deve estar entre 0 e 100.');
+    const rate = exactDecimal(values.aliquotaIss, 'Alíquota ISS');
+    if (rate > 100) throw new Error('Alíquota ISS deve estar entre 0 e 100.');
     body.aliquotaIss = rate;
   }
   return body;
@@ -52,13 +57,6 @@ export function buildServiceOrderNotePayload(values: Record<string, unknown>): S
 const positiveId = (value: unknown, label: string) => {
   const parsed = Number(value);
   if (!Number.isSafeInteger(parsed) || parsed <= 0) throw new Error(`${label} invalido.`);
-  return parsed;
-};
-const number = (value: unknown, label: string, positive = false) => {
-  const parsed = value === '' || value == null ? 0 : Number(value);
-  if (!Number.isFinite(parsed) || parsed < 0 || (positive && parsed === 0)) {
-    throw new Error(`${label} invalido.`);
-  }
   return parsed;
 };
 const optional = (value: unknown) => typeof value === 'string' && value.trim()
@@ -76,13 +74,13 @@ export function buildServiceOrderPayload(values: Record<string, unknown>): Servi
     ...(optional(values.previsaoConclusao)
       ? { previsaoConclusao: optional(values.previsaoConclusao) } : {}),
     moeda: (optional(values.moeda) ?? 'BRL').toUpperCase(),
-    valorDesconto: number(values.valorDesconto, 'Desconto'),
+    valorDesconto: exactDecimal(values.valorDesconto, 'Desconto'),
     ...(optional(values.observacao) ? { observacao: optional(values.observacao) } : {}),
     itens: (values.itens as Array<Record<string, unknown>>).map((item) => ({
       servicoId: positiveId(item.servicoId, 'Servico'),
-      quantidade: number(item.quantidade, 'Quantidade', true),
-      valorUnitario: number(item.valorUnitario, 'Valor unitario'),
-      valorDesconto: number(item.valorDesconto, 'Desconto do item'),
+      quantidade: exactDecimal(item.quantidade, 'Quantidade', true),
+      valorUnitario: exactDecimal(item.valorUnitario, 'Valor unitário'),
+      valorDesconto: exactDecimal(item.valorDesconto, 'Desconto do item'),
     })),
   };
 }
@@ -93,8 +91,6 @@ export const serviceOrdersApi = {
   serviceNote: (id: number, body: ServiceOrderNoteRequest, key: string) => api.post<ServiceOrderNote>(
     `/api/v1/service-orders/${id}/service-note`, body,
     { headers: { 'Idempotency-Key': key } }).then((response) => response.data),
-  issueNote: (id: number) => api.post<ServiceOrderNote>(`/api/notas-servico/${id}/emissao`, null)
-    .then((response) => response.data),
   get: (id: number) => api.get<ServiceOrder>(`/api/v1/service-orders/${id}`).then((response) => response.data),
   list: (params: PageParams = {}) => api.get<Page<ServiceOrder>>(
     '/api/v1/service-orders', { params }).then((response) => response.data),

@@ -6,7 +6,7 @@ import { ColorModeProvider } from '../context/ColorModeContext';
 import { createTheme } from '@mui/material/styles';
 import { HeaderAreaNavigation } from './HeaderAreaNavigation';
 
-const state = vi.hoisted(() => ({ permissions: ['purchases:read', 'stock:read', 'fiscal:read'], mobile: false }));
+const state = vi.hoisted(() => ({ permissions: ['stock:read', 'fiscal:read'], mobile: false }));
 vi.mock('../auth/AuthContext', () => ({ useAuth: () => ({ permissions: state.permissions }) }));
 vi.mock('@mui/material', async (importOriginal) => ({
   ...await importOriginal<typeof import('@mui/material')>(),
@@ -28,7 +28,7 @@ function setup() {
 
 describe('navegação por áreas no cabeçalho', () => {
   beforeEach(() => {
-    state.permissions = ['purchases:read', 'stock:read', 'fiscal:read'];
+    state.permissions = ['stock:read', 'fiscal:read'];
     state.mobile = false;
   });
 
@@ -39,7 +39,7 @@ describe('navegação por áreas no cabeçalho', () => {
     const layer = Number(getComputedStyle(panel.closest('.MuiPopper-root')!).zIndex);
     expect(layer).toBeGreaterThan(createTheme().zIndex.appBar);
     expect(layer).toBeLessThan(createTheme().zIndex.modal);
-    expect(within(panel).getByText('Compras')).toBeInTheDocument();
+    expect(within(panel).getByText('Entradas')).toBeInTheDocument();
     expect(within(panel).getByRole('link', { name: 'Notas de Entrada' })).toHaveAttribute('href', '/app/notas-entrada');
     expect(within(panel).queryByRole('link', { name: /Ver área/ })).not.toBeInTheDocument();
     expect(screen.getByLabelText('Rota atual')).toHaveTextContent('/app');
@@ -55,7 +55,7 @@ describe('navegação por áreas no cabeçalho', () => {
     expect(screen.queryByRole('button', { name: 'Fiscal' })).not.toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Estoque' }));
     const panel = screen.getByRole('region', { name: 'Processos de Estoque' });
-    expect(within(panel).queryByText('Compras')).not.toBeInTheDocument();
+    expect(within(panel).queryByText('Entradas')).not.toBeInTheDocument();
     expect(within(panel).queryByRole('link', { name: 'Notas de Entrada' })).not.toBeInTheDocument();
     expect(within(panel).getByRole('link', { name: 'Posição de Estoque' })).toBeInTheDocument();
   });
@@ -65,7 +65,7 @@ describe('navegação por áreas no cabeçalho', () => {
     const trigger = screen.getByRole('button', { name: 'Estoque' });
     trigger.focus();
     fireEvent.keyDown(trigger, { key: 'ArrowDown' });
-    await waitFor(() => expect(screen.getByRole('link', { name: 'Ordens de Compra' })).toHaveFocus());
+    await waitFor(() => expect(screen.getByRole('link', { name: 'Notas de Entrada' })).toHaveFocus());
     await user.keyboard('{Escape}');
     expect(trigger).toHaveFocus();
     expect(trigger).toHaveAttribute('aria-expanded', 'false');

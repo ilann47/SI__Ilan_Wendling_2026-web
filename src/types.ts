@@ -690,6 +690,9 @@ export interface ItemNotaEntradaResponse {
   rateioSeguro: number;
   rateioOutras: number;
   custoPrecoFinal: number;
+  custoTotal?: number;
+  unidadeMedida?: string;
+  codigoProdutoFornecedor?: string;
 }
 export interface NotaEntradaResponse {
   id: number;
@@ -702,12 +705,11 @@ export interface NotaEntradaResponse {
   fornecedorNome: string;
   condicaoPagamentoId?: number;
   condicaoPagamentoNome?: string;
+  transportadoraId?: number;
+  transportadoraNome?: string;
+  observacaoInterna?: string;
   localEstoqueId?: number;
   localEstoqueNome?: string;
-  /** Presentes somente se a API devolver o vínculo (hoje opcional / frequentemente ausente). */
-  recebimentoCompraId?: number;
-  ordemCompraId?: number;
-  ordemCompraNumero?: string;
   dataEmissao: string;
   dataChegada?: string;
   tipoFrete: TipoFrete;
@@ -718,6 +720,8 @@ export interface NotaEntradaResponse {
   valorDesconto: number;
   valorTotal: number;
   situacao: SituacaoNota;
+  revertidaEm?: string | null;
+  motivoReversao?: string | null;
   observacao?: string;
   itens: ItemNotaEntradaResponse[];
   createdAt: string;
@@ -736,9 +740,9 @@ export interface NotaEntradaRequest {
   serie?: string;
   fornecedorId: number;
   condicaoPagamentoId?: number;
+  transportadoraId?: number;
+  observacaoInterna?: string;
   localEstoqueId: number;
-  /** Vincula um recebimento de OC já existente para evitar duplicar estoque (campo aceito no create legado). */
-  recebimentoCompraId?: number;
   dataEmissao?: string;
   dataChegada?: string;
   tipoFrete?: TipoFrete;
@@ -774,6 +778,7 @@ export interface NotaSaidaResponse {
   serie: string;
   clienteId: number;
   clienteNome: string;
+  cronogramaDefinido?: boolean;
   condicaoPagamentoId?: number;
   condicaoPagamentoNome?: string;
   localEstoqueId?: number;
@@ -788,6 +793,8 @@ export interface NotaSaidaResponse {
   valorDesconto: number;
   valorTotal: number;
   situacao: SituacaoNota;
+  revertidaEm?: string | null;
+  motivoReversao?: string | null;
   observacao?: string;
   itens: ItemNotaSaidaResponse[];
   createdAt: string;
@@ -828,6 +835,7 @@ export interface NotaServicoResponse {
   clienteId: number;
   clienteNome: string;
   servicoId?: number;
+  ordemServicoId?: number | null;
   movimentacaoId?: number;
   mensalistaId?: number;
   condicaoPagamentoId?: number;
@@ -840,6 +848,17 @@ export interface NotaServicoResponse {
   valorTotal: number;
   situacao: SituacaoNotaServico;
   observacao?: string;
+  itens: Array<{
+    sequencia: number; servicoId: number; descricao: string; quantidade: number;
+    valorUnitario: number; valorDesconto: number; valorTotal: number;
+  }>;
+  parcelas: Array<{
+    numeroParcela: number; totalParcelas: number; valor: number; dataVencimento: string;
+    formaPagamentoId: number | null; formaPagamentoNome: string | null;
+  }>;
+  cronogramaDefinido: boolean;
+  motivoCancelamento?: string | null;
+  canceladaEm?: string | null;
   createdAt: string;
   updatedAt: string;
 }

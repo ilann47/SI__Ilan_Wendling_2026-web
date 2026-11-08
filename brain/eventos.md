@@ -2,6 +2,8 @@
 
 # Eventos e Ofertas
 
+O preço do lote permite até seis casas decimais e o catálogo de lotes mantém essa precisão na apresentação. Vagas continuam unidades inteiras.
+
 ## Objetivo
 
 Operar o nucleo configuravel de eventos: evento, alocacao de patio, produto,
@@ -76,6 +78,13 @@ durante o Vitest. Esta manutenção de testes não altera o comportamento da tel
   em telas estreitas sem esconder etapas.
 - Capacidade, cota, preco, quantidade, prioridade e versao usam a validacao
   numerica compartilhada, sem negativos indevidos ou zeros a esquerda.
+- Referências recentes são escolhidas pelo nome. O código interno aparece
+  somente como alternativa quando o contrato não oferece catálogo.
+- Tabelas e resultados não expõem ID/versão como conteúdo principal; fuso,
+  referência externa, situação e revisão usam linguagem operacional.
+- O cadastro curto de Evento abre em `OperationalFormDialog`; catálogo e ciclo
+  de vida permanecem na página por serem consulta e operação contínua. Essa
+  separação evita misturar criação modal com transições encadeadas.
 
 ## Modulos relacionados
 
@@ -89,6 +98,8 @@ durante o Vitest. Esta manutenção de testes não altera o comportamento da tel
 
 | Data | Acao |
 |---|---|
+| 2026-11-08 | Preço de lote valida até seis casas antes do envio e é apresentado sem ocultar milionésimos. |
+| 2026-10-24 | QA ponta a ponta simplifica seletores, tabela, ciclo de vida e resultados e remove metadados técnicos da leitura principal. |
 | 2026-08-03 | Implementa configuracao, ciclo de vida, oferta e disponibilidade. |
 | 2026-08-03 | Alinha abas e acoes as permissoes contextuais do backend. |
 | 2026-08-03 | Herda periodo e quota da alocacao ao configurar produto. |
@@ -97,3 +108,4 @@ durante o Vitest. Esta manutenção de testes não altera o comportamento da tel
 | 2026-09-28 | Valida evento, alocação, produto, lote e disponibilidade no navegador e apresenta categoria, preço e estados em linguagem operacional. |
 | 2026-09-29 | Adapta catalogos e etapas de eventos ao mobile com cards, rotulos acessiveis e abas rolaveis. |
 | 2026-09-29 | Unifica a validacao dos campos numericos do ciclo de eventos. |
+| 2026-10-30 | Move a criação de evento para o diálogo compartilhado sem alterar catálogo, idempotência ou ciclo de vida. |

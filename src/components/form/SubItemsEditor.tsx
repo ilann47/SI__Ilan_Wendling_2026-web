@@ -5,7 +5,7 @@ import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import type { FieldConfig } from './fieldConfig';
 import { FieldRenderer } from './FieldRenderer';
 import { defaultValueFor } from './fieldConfig';
-import { calculatePurchaseCosts } from '../purchases/purchaseCosts';
+import { calculateInboundNoteCosts } from '../inboundNotes/inboundNoteCosts';
 import { formatCurrency, formatNumber } from '../../utils/format';
 
 interface Props {
@@ -16,13 +16,13 @@ interface Props {
   disabled?: boolean;
 }
 
-export function PurchaseCostsSummary() {
+export function InboundNoteCostsSummary() {
   const { control } = useFormContext();
   const [rows, valorFrete, valorSeguro, outrasDespesas] = useWatch({
     control,
     name: ['itens', 'valorFrete', 'valorSeguro', 'outrasDespesas'],
   }) as [Array<Record<string, unknown>> | undefined, unknown, unknown, unknown];
-  const purchaseCosts = calculatePurchaseCosts(
+  const inboundNoteCosts = calculateInboundNoteCosts(
     rows ?? [],
     { valorFrete, valorSeguro, outrasDespesas },
   );
@@ -35,20 +35,20 @@ export function PurchaseCostsSummary() {
       <Divider sx={{ mb: 1.5 }} />
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 1fr', md: 'repeat(4, 1fr)' }, gap: 2 }}>
         <Box><Typography variant="caption" color="text.secondary">Quantidade total</Typography>
-          <Typography fontWeight={700}>{formatNumber(purchaseCosts.quantidadeTotal)}</Typography></Box>
+          <Typography fontWeight={700}>{formatNumber(inboundNoteCosts.quantidadeTotal, 0, 6)}</Typography></Box>
         <Box><Typography variant="caption" color="text.secondary">Produtos antes dos descontos</Typography>
-          <Typography fontWeight={700}>{formatCurrency(purchaseCosts.valorProdutosBruto)}</Typography></Box>
+          <Typography fontWeight={700}>{formatCurrency(inboundNoteCosts.valorProdutosBruto)}</Typography></Box>
         <Box><Typography variant="caption" color="text.secondary">Descontos nos itens</Typography>
-          <Typography fontWeight={700}>{formatCurrency(purchaseCosts.descontoItens)}</Typography></Box>
+          <Typography fontWeight={700}>{formatCurrency(inboundNoteCosts.descontoItens)}</Typography></Box>
         <Box><Typography variant="caption" color="text.secondary">Subtotal dos produtos</Typography>
-          <Typography fontWeight={700}>{formatCurrency(purchaseCosts.subtotalProdutos)}</Typography></Box>
+          <Typography fontWeight={700}>{formatCurrency(inboundNoteCosts.subtotalProdutos)}</Typography></Box>
         <Box><Typography variant="caption" color="text.secondary">Frete, seguro e outras despesas</Typography>
-          <Typography fontWeight={700}>{formatCurrency(purchaseCosts.valorFrete
-            + purchaseCosts.valorSeguro + purchaseCosts.outrasDespesas)}</Typography></Box>
+          <Typography fontWeight={700}>{formatCurrency(inboundNoteCosts.valorFrete
+            + inboundNoteCosts.valorSeguro + inboundNoteCosts.outrasDespesas)}</Typography></Box>
         <Box sx={{ gridColumn: { xs: 'span 2', md: 'span 2' } }}>
-          <Typography variant="caption" color="text.secondary">Total estimado da ordem</Typography>
+          <Typography variant="caption" color="text.secondary">Total estimado da nota</Typography>
           <Typography variant="h6" fontWeight={800} color="primary.main">
-            {formatCurrency(purchaseCosts.valorTotal)}
+            {formatCurrency(inboundNoteCosts.valorTotal)}
           </Typography>
         </Box>
       </Box>
@@ -64,8 +64,8 @@ export function SubItemsEditor({ name, label, subFields, summary, disabled }: Pr
     control,
     name: ['valorFrete', 'valorSeguro', 'outrasDespesas'],
   });
-  const purchaseCosts = summary === 'purchase-costs'
-    ? calculatePurchaseCosts(rows ?? [], { valorFrete, valorSeguro, outrasDespesas })
+  const inboundNoteCosts = summary === 'inbound-note-costs'
+    ? calculateInboundNoteCosts(rows ?? [], { valorFrete, valorSeguro, outrasDespesas })
     : null;
 
   const emptyRow = () => {
@@ -112,16 +112,16 @@ export function SubItemsEditor({ name, label, subFields, summary, disabled }: Pr
                 </IconButton>
               </Box>
             </Box>
-            {purchaseCosts?.itens[index] && (
+            {inboundNoteCosts?.itens[index] && (
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ mt: 1.5 }}>
-                <Chip size="small" label={`Total do item: ${formatCurrency(purchaseCosts.itens[index].valorTotal)}`} />
+                <Chip size="small" label={`Total do item: ${formatCurrency(inboundNoteCosts.itens[index].valorTotal)}`} />
                 <Chip size="small" label={`Despesas rateadas: ${formatCurrency(
-                  purchaseCosts.itens[index].rateioFrete
-                    + purchaseCosts.itens[index].rateioSeguro
-                    + purchaseCosts.itens[index].rateioOutrasDespesas,
+                  inboundNoteCosts.itens[index].rateioFrete
+                    + inboundNoteCosts.itens[index].rateioSeguro
+                    + inboundNoteCosts.itens[index].rateioOutrasDespesas,
                 )}`} />
                 <Chip size="small" color="primary" variant="outlined"
-                  label={`Custo unitário: ${formatCurrency(purchaseCosts.itens[index].custoUnitarioFinal)}`} />
+                  label={`Custo unitário: ${formatCurrency(inboundNoteCosts.itens[index].custoUnitarioFinal)}`} />
               </Stack>
             )}
           </Paper>

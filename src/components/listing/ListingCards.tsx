@@ -26,10 +26,10 @@ export function ListingCards<T>({
       {rows.map((row) => {
         const actions = getActions?.(row) ?? [];
         const body = (
-          <Stack spacing={0.85} sx={{ mt: 1.25 }}>
+          <Stack spacing={1} sx={{ mt: 1.5 }}>
             {getFields(row).map((field) => (
               <Stack key={field.label} direction="row" justifyContent="space-between" gap={2} alignItems="flex-start">
-                <Typography variant="caption" color="text.secondary" sx={{ flexShrink: 0 }}>
+                <Typography variant="caption" color="text.secondary" sx={{ flexShrink: 0, fontWeight: 700 }}>
                   {field.label}
                 </Typography>
                 <Typography component="div" variant="body2" textAlign="right" sx={{ wordBreak: 'break-word' }}>
@@ -40,14 +40,14 @@ export function ListingCards<T>({
           </Stack>
         );
         return (
-          <Card key={getKey(row)} sx={{ overflow: 'hidden' }}>
+          <Card key={getKey(row)} sx={{ overflow: 'hidden', borderRadius: 3 }}>
             <Stack direction="row" alignItems="stretch">
               <Box sx={{ flex: 1, minWidth: 0 }}>
                 {onOpen ? (
                   <CardActionArea
                     onClick={() => onOpen(row)}
                     aria-label={getOpenLabel?.(row) ?? 'Abrir detalhes'}
-                    sx={{ minHeight: 72, alignItems: 'stretch' }}
+                    sx={{ minHeight: 88, alignItems: 'stretch', '&:focus-visible': { outlineOffset: -3 } }}
                   >
                     <CardContent sx={{ py: 1.75 }}>
                       <Typography variant="subtitle1" sx={{ fontWeight: 800, lineHeight: 1.25 }}>

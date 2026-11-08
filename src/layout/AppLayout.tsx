@@ -32,7 +32,11 @@ export function AppLayout() {
   }, [location.pathname, location.search, rememberPath]);
 
   return (
-    <Box sx={{ minHeight: '100dvh', bgcolor: colors.background, overflowX: 'hidden' }}>
+    <Box sx={{
+      minHeight: '100dvh', bgcolor: colors.background, overflowX: 'hidden',
+      backgroundImage: mode === 'light' ? 'radial-gradient(circle at 92% 8%, rgba(107,70,254,0.07), transparent 24%)' : 'none',
+      backgroundAttachment: 'fixed',
+    }}>
       <Box component="a" href="#conteudo-principal" sx={{
         position: 'fixed', top: 8, left: 8, zIndex: theme.zIndex.tooltip + 1,
         px: 2, py: 1, bgcolor: 'background.paper', color: 'primary.main', borderRadius: 1,
@@ -51,7 +55,7 @@ export function AppLayout() {
         <Box sx={{ display: { xs: 'block', lg: 'none' }, px: { xs: 1.5, sm: 2 }, pt: 1, pb: 0.5 }}>
           <ContextSelector />
         </Box>
-        <Box sx={{ p: { xs: 1.5, sm: 2, md: 3 }, minWidth: 0 }}>
+      <Box sx={{ width: '100%', maxWidth: 1920, mx: 'auto', p: { xs: 1.5, sm: 2.5, md: 3 }, minWidth: 0 }}>
           <Outlet context={{ openArea: setRequestedArea } satisfies AppLayoutContext} />
         </Box>
       </Box>

@@ -40,11 +40,11 @@ export const hubModules: HubModule[] = [
   {
     id: 'estoque',
     label: 'Estoque',
-    description: 'Compras, notas de entrada e posição de estoque',
+    description: 'Notas de entrada, produtos e posição de estoque',
     icon: <Inventory2OutlinedIcon />,
     homePath: '/app/areas/estoque',
     groupLabel: 'Estoque',
-    flowSummary: 'Ordem → Recebimento → Nota → Conta',
+    flowSummary: 'Nota → Conferência → Estoque e contas',
   },
   {
     id: 'financeiro',

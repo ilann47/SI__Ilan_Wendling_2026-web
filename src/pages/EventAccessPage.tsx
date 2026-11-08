@@ -166,8 +166,8 @@ export function EventAccessPage() {
               />
               <QrScannerButton onScan={setQrToken} />
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-                <ResourceIdField label="ID do evento" value={eventId} onChange={setEventId} recent={recent('event')} />
-                <ResourceIdField label="ID do patio" value={parkingFacilityId} onChange={setParkingFacilityId} recent={recent('facility')} />
+                <ResourceIdField label="Evento" value={eventId} onChange={setEventId} recent={recent('event')} />
+                <ResourceIdField label="Pátio" value={parkingFacilityId} onChange={setParkingFacilityId} recent={recent('facility')} />
               </Stack>
               <TextField
                 label="Faixa/portão"

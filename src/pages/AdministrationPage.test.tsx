@@ -19,7 +19,7 @@ vi.mock('../components/form/ReferenceSelect', () => ({
 afterEach(() => vi.restoreAllMocks());
 
 describe('AdministrationPage', () => {
-  it('nao oferece consulta ou alteracao para quem pode apenas convidar', () => {
+  it('abre a inclusao de usuario no dialogo padrao sem expor operacoes administrativas indevidas', async () => {
     vi.mocked(useOperationalWorkspace).mockReturnValue({ recent: () => [], remember: vi.fn() } as unknown as ReturnType<typeof useOperationalWorkspace>);
     vi.mocked(useAuth).mockReturnValue({
       activeOrganization: { organizationId: 9, legalName: 'Kaneko' },
@@ -29,6 +29,9 @@ describe('AdministrationPage', () => {
     render(<AdministrationPage />);
 
     expect(screen.getByText(/Selecione o usuário pelo cadastro global/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Criar vínculo' })).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Adicionar usuário' }));
+    expect(screen.getByRole('dialog', { name: 'Adicionar usuário' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Criar vínculo' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Consultar' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Alterar estado' })).not.toBeInTheDocument();

@@ -1,3 +1,5 @@
+> Links: [[core]] · [[acesso]] · [[dashboard]]
+
 # Autenticacao
 
 ## Objetivo
@@ -72,6 +74,10 @@ Backend Spring Boot via `VITE_BACKEND_URL` (proxy Vite `/api`).
 - Troca de tenant falha: preserva JWT anterior.
 - `describeError` nunca expoe mensagens tecnicas do Axios; prioriza ProblemDetail,
   depois status amigavel, timeout e servidor inacessivel.
+- Login vazio sinaliza cada campo junto ao controle e move o foco para o primeiro
+  problema. Durante a autenticacao, o botao informa progresso e bloqueia reenvio.
+- Espacos externos do login sao normalizados antes do envio; a senha permanece
+  literal. Caps Lock recebe aviso local sem bloquear a digitacao.
 ## Testes
 
 `RegisterPage.test.tsx`, `AuthContext.test.tsx`, `NoOrganizationAccessPage.test.tsx`,
@@ -93,6 +99,9 @@ chamada ainda estiver pendente. Nenhuma alteração de autenticação em produç
 - Entrada na org e sempre explicita (“Entrar” / “Entrar nesta organização”).
 - Login e cadastro compartilham `establishSession` no AuthContext.
 - Nao se registra senha ou token em console, telemetria ou UI.
+- A validacao do login e apresentada junto ao campo, sem depender de alerta geral.
+- Nao existe recuperacao publica de senha no contrato atual; a interface nao cria
+  um atalho sem comportamento real.
 
 ## Modulos relacionados
 
@@ -103,6 +112,7 @@ chamada ainda estiver pendente. Nenhuma alteração de autenticação em produç
 
 | Data | Acao |
 |---|---|
+| 2026-10-30 | Redesenha o login com painel de identidade Kaneko, hierarquia editorial, cartão destacado e experiência mobile com cabeçalho de marca, sem alterar o contrato de autenticação. |
 | 2026-08-01 | Implementa descoberta e selecao de organizacao com JWT contextual. |
 | 2026-08-02 | Isola o cache remoto no logout e na troca de organizacao. |
 | 2026-08-02 | Torna a troca de tenant atomica e fecha rotas por permissao efetiva. |
@@ -114,3 +124,4 @@ chamada ainda estiver pendente. Nenhuma alteração de autenticação em produç
 | 2026-09-10 | Self-service USUARIO via `/api/v1/me/organizations`; seletor unificado sem auto-ativar. |
 | 2026-09-11 | Centraliza mensagens amigaveis em `describeError` e isenta login/cadastro do logout 401. |
 | 2026-09-12 | Estabiliza testes de perfil OPERADOR e falha de ativação contextual, cobrindo consultas e evitando requisições não simuladas ao encerrar o teste. |
+| 2026-10-30 | Aplica validacao local por campo, foco no primeiro erro, normalizacao do login, aviso de Caps Lock e progresso acessivel no envio. |

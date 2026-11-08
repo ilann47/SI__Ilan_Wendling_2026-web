@@ -7,7 +7,6 @@ import {
   Box,
   Button,
   Checkbox,
-  CircularProgress,
   FormControl,
   InputLabel,
   ListItemText,
@@ -22,11 +21,11 @@ import { useEffect, useState, type Dispatch, type FormEvent, type ReactNode, typ
 import { api, describeError } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
 import { PageHeader } from '../components/common/PageHeader';
-import { OperationCard } from '../components/enterprise/OperationCard';
 import { ResourceIdField } from '../components/enterprise/ResourceIdField';
-import { ResourceSnapshot } from '../components/enterprise/ResourceSnapshot';
+import { OperationalFormDialog } from '../components/form/OperationalFormDialog';
 import { ReferenceSelect } from '../components/form/ReferenceSelect';
 import { NumberField } from '../components/form/NumberField';
+import { useSnackbar } from '../components/SnackbarProvider';
 import { facilityCategories, facilityCategoryLabel, parseSpacesText, type FacilityCategory } from '../features/facilities/spaceImport';
 import { useOperationalWorkspace } from '../workspace/OperationalWorkspaceContext';
 
@@ -51,6 +50,10 @@ interface SpaceBatchResponse {
 const blankAddress = {
   name: '', address: '', number: '', complement: '', district: '', postalCode: '', cityId: '',
 };
+const venueInitial = { ...blankAddress, timeZone: 'America/Sao_Paulo' };
+const facilityInitial = { ...blankAddress, physicalCapacity: '100', operationalCapacity: '100', notes: '', active: true };
+const sectorInitial = { code: '', name: '', capacity: '50', categories: ['COMUM'] as FacilityCategory[] };
+const spacesInitial = 'A-01;COMUM;não;\nA-02;PCD;sim;Próxima ao acesso';
 
 function AddressFields({ form, setForm, withTimeZone = false }: {
   form: typeof blankAddress & { timeZone?: string };
@@ -79,15 +82,15 @@ function AddressFields({ form, setForm, withTimeZone = false }: {
           />
         </Box>
       </Stack>
-      {withTimeZone && <TextField label="Fuso horário IANA" value={form.timeZone ?? ''} onChange={(event) => update('timeZone', event.target.value)} required />}
+      {withTimeZone && <TextField label="Fuso horário" value={form.timeZone ?? ''} onChange={(event) => update('timeZone', event.target.value)} required helperText="Ex.: America/Sao_Paulo" />}
     </Stack>
   );
 }
 
-function VenueForm() {
+function VenueForm({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { remember } = useOperationalWorkspace();
-  const [form, setForm] = useState({ ...blankAddress, timeZone: 'America/Sao_Paulo' });
-  const [result, setResult] = useState<VenueResponse | null>(null);
+  const { notify } = useSnackbar();
+  const [form, setForm] = useState({ ...venueInitial });
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const submit = async (event: FormEvent) => {
@@ -96,24 +99,26 @@ function VenueForm() {
       const response = await api.post<VenueResponse>('/api/v1/venues', {
         ...form, cityId: Number(form.cityId), number: form.number || null, complement: form.complement || null,
       });
-      setResult(response.data);
       remember('venue', { id: response.data.id, label: response.data.name, version: response.data.version, snapshot: { ...response.data } });
+      notify('Local cadastrado com sucesso.', 'success');
+      setForm({ ...venueInitial });
+      onClose();
     } catch (cause) { setError(describeError(cause)); } finally { setLoading(false); }
   };
   return (
-    <OperationCard title="Novo local de evento" description="O local representa o endereço principal onde o evento acontece." error={error} result={result ? <ResourceSnapshot data={{ id: result.id, name: result.name, type: result.type, cityId: result.cityId, timeZone: result.timeZone, version: result.version }} /> : undefined}>
-      <Stack component="form" spacing={2} onSubmit={(event) => void submit(event)}>
-        <AddressFields form={form} setForm={setForm} withTimeZone />
-        <Button type="submit" variant="contained" disabled={loading} startIcon={loading ? <CircularProgress size={18} color="inherit" /> : <DomainAddOutlinedIcon />} sx={{ alignSelf: 'flex-start' }}>Criar local</Button>
-      </Stack>
-    </OperationCard>
+    <OperationalFormDialog open={open} onClose={onClose} title="Novo local de evento"
+      description="Cadastre o endereço principal onde o evento acontece." formId="venue-create-form"
+      submitLabel="Criar local" submitting={loading} error={error}
+      dirty={JSON.stringify(form) !== JSON.stringify(venueInitial)} onSubmit={(event) => void submit(event)}>
+      <AddressFields form={form} setForm={setForm} withTimeZone />
+    </OperationalFormDialog>
   );
 }
 
-function FacilityForm() {
+function FacilityForm({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { remember } = useOperationalWorkspace();
-  const [form, setForm] = useState({ ...blankAddress, physicalCapacity: '100', operationalCapacity: '100', notes: '', active: true });
-  const [result, setResult] = useState<FacilityResponse | null>(null);
+  const { notify } = useSnackbar();
+  const [form, setForm] = useState({ ...facilityInitial });
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const submit = async (event: FormEvent) => {
@@ -128,32 +133,34 @@ function FacilityForm() {
         complement: form.complement || null,
         notes: form.notes || null,
       });
-      setResult(response.data);
       remember('facility', { id: response.data.id, label: response.data.name, version: response.data.version, snapshot: { ...response.data } });
+      notify('Pátio cadastrado com sucesso.', 'success');
+      setForm({ ...facilityInitial });
+      onClose();
     } catch (cause) { setError(describeError(cause)); } finally { setLoading(false); }
   };
   return (
-    <OperationCard title="Novo pátio" description="A capacidade operacional não pode superar a capacidade física." error={error} result={result ? <ResourceSnapshot data={{ id: result.id, name: result.name, physicalCapacity: result.physicalCapacity, operationalCapacity: result.operationalCapacity, active: result.active, version: result.version }} /> : undefined}>
-      <Stack component="form" spacing={2} onSubmit={(event) => void submit(event)}>
-        <AddressFields form={form} setForm={setForm} />
-        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-          <NumberField label="Capacidade física" value={form.physicalCapacity} min={1} required fullWidth
-            onValueChange={(physicalCapacity) => setForm((current) => ({ ...current, physicalCapacity }))} />
-          <NumberField label="Capacidade operacional" value={form.operationalCapacity} min={0} required fullWidth
-            onValueChange={(operationalCapacity) => setForm((current) => ({ ...current, operationalCapacity }))} />
-        </Stack>
-        <TextField label="Observacoes" value={form.notes} onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))} multiline minRows={2} inputProps={{ maxLength: 255 }} />
-        <Button type="submit" variant="contained" disabled={loading} startIcon={loading ? <CircularProgress size={18} color="inherit" /> : <LocalParkingOutlinedIcon />} sx={{ alignSelf: 'flex-start' }}>Criar pátio</Button>
+    <OperationalFormDialog open={open} onClose={onClose} title="Novo pátio"
+      description="A capacidade operacional não pode superar a capacidade física." formId="facility-create-form"
+      submitLabel="Criar pátio" submitting={loading} error={error}
+      dirty={JSON.stringify(form) !== JSON.stringify(facilityInitial)} onSubmit={(event) => void submit(event)}>
+      <AddressFields form={form} setForm={setForm} />
+      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+        <NumberField label="Capacidade física" value={form.physicalCapacity} min={1} required fullWidth
+          onValueChange={(physicalCapacity) => setForm((current) => ({ ...current, physicalCapacity }))} />
+        <NumberField label="Capacidade operacional" value={form.operationalCapacity} min={0} required fullWidth
+          onValueChange={(operationalCapacity) => setForm((current) => ({ ...current, operationalCapacity }))} />
       </Stack>
-    </OperationCard>
+      <TextField label="Observações" value={form.notes} onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))} multiline minRows={2} inputProps={{ maxLength: 255 }} />
+    </OperationalFormDialog>
   );
 }
 
-function SectorForm() {
+function SectorForm({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { recent, remember } = useOperationalWorkspace();
+  const { notify } = useSnackbar();
   const [facilityId, setFacilityId] = useState('');
-  const [form, setForm] = useState({ code: '', name: '', capacity: '50', categories: ['COMUM'] as FacilityCategory[] });
-  const [result, setResult] = useState<SectorResponse | null>(null);
+  const [form, setForm] = useState({ ...sectorInitial });
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const submit = async (event: FormEvent) => {
@@ -162,37 +169,40 @@ function SectorForm() {
       const response = await api.post<SectorResponse>(`/api/v1/parking-facilities/${Number(facilityId)}/sectors`, {
         ...form, code: form.code.toUpperCase(), capacity: Number(form.capacity),
       });
-      setResult(response.data);
       remember('sector', { id: response.data.id, label: response.data.name, version: response.data.version, snapshot: { ...response.data } });
+      notify('Setor cadastrado com sucesso.', 'success');
+      setFacilityId('');
+      setForm({ ...sectorInitial });
+      onClose();
     } catch (cause) { setError(describeError(cause)); } finally { setLoading(false); }
   };
   return (
-    <OperationCard title="Novo setor" description="As categorias definem os tipos de vaga aceitos no setor." error={error} result={result ? <ResourceSnapshot data={{ id: result.id, parkingFacilityId: result.parkingFacilityId, code: result.code, name: result.name, capacity: result.capacity, categories: result.categories, version: result.version }} /> : undefined}>
-      <Stack component="form" spacing={2} onSubmit={(event) => void submit(event)}>
-        <ResourceIdField label="Pátio" value={facilityId} onChange={setFacilityId} recent={recent('facility')} />
-        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-          <TextField label="Codigo" value={form.code} onChange={(event) => setForm((current) => ({ ...current, code: event.target.value }))} required fullWidth />
-          <TextField label="Nome" value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} required fullWidth />
-          <NumberField label="Capacidade" value={form.capacity} min={1} required fullWidth
-            onValueChange={(capacity) => setForm((current) => ({ ...current, capacity }))} />
-        </Stack>
-        <FormControl>
-          <InputLabel id="sector-categories-label">Categorias</InputLabel>
-          <Select multiple labelId="sector-categories-label" label="Categorias" value={form.categories} onChange={(event) => setForm((current) => ({ ...current, categories: event.target.value as FacilityCategory[] }))} renderValue={(selected) => selected.map(facilityCategoryLabel).join(', ')}>
-            {facilityCategories.map((category) => <MenuItem key={category} value={category}><Checkbox checked={form.categories.includes(category)} /><ListItemText primary={facilityCategoryLabel(category)} /></MenuItem>)}
-          </Select>
-        </FormControl>
-        <Button type="submit" variant="contained" disabled={loading || form.categories.length === 0} startIcon={loading ? <CircularProgress size={18} color="inherit" /> : <AddLocationAltOutlinedIcon />} sx={{ alignSelf: 'flex-start' }}>Criar setor</Button>
+    <OperationalFormDialog open={open} onClose={onClose} title="Novo setor"
+      description="Defina a capacidade e as categorias de vaga aceitas neste setor." formId="sector-create-form"
+      submitLabel="Criar setor" submitting={loading} error={error}
+      dirty={facilityId !== '' || JSON.stringify(form) !== JSON.stringify(sectorInitial)} onSubmit={(event) => void submit(event)}>
+      <ResourceIdField label="Pátio" value={facilityId} onChange={setFacilityId} recent={recent('facility')} />
+      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+        <TextField label="Código" value={form.code} onChange={(event) => setForm((current) => ({ ...current, code: event.target.value }))} required fullWidth />
+        <TextField label="Nome" value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} required fullWidth />
+        <NumberField label="Capacidade" value={form.capacity} min={1} required fullWidth
+          onValueChange={(capacity) => setForm((current) => ({ ...current, capacity }))} />
       </Stack>
-    </OperationCard>
+      <FormControl>
+        <InputLabel id="sector-categories-label">Categorias</InputLabel>
+        <Select multiple labelId="sector-categories-label" label="Categorias" value={form.categories} onChange={(event) => setForm((current) => ({ ...current, categories: event.target.value as FacilityCategory[] }))} renderValue={(selected) => selected.map(facilityCategoryLabel).join(', ')}>
+          {facilityCategories.map((category) => <MenuItem key={category} value={category}><Checkbox checked={form.categories.includes(category)} /><ListItemText primary={facilityCategoryLabel(category)} /></MenuItem>)}
+        </Select>
+      </FormControl>
+    </OperationalFormDialog>
   );
 }
 
-function SpaceImportForm() {
+function SpaceImportForm({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { recent, remember } = useOperationalWorkspace();
+  const { notify } = useSnackbar();
   const [sectorId, setSectorId] = useState('');
-  const [text, setText] = useState('A-01;COMUM;não;\nA-02;PCD;sim;Próxima ao acesso');
-  const [result, setResult] = useState<SpaceBatchResponse | null>(null);
+  const [text, setText] = useState(spacesInitial);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const submit = async (event: FormEvent) => {
@@ -200,43 +210,67 @@ function SpaceImportForm() {
     try {
       const spaces = parseSpacesText(text);
       const response = await api.post<SpaceBatchResponse>(`/api/v1/sectors/${Number(sectorId)}/spaces:batch`, { spaces });
-      setResult(response.data);
       response.data.items.filter((item) => item.id).forEach((item) => remember('space', {
         id: item.id!, label: `Vaga ${item.code}`, version: item.version, snapshot: { ...item },
       }));
+      notify(`${response.data.created} vaga(s) importada(s) com sucesso.`, 'success');
+      setSectorId('');
+      setText(spacesInitial);
+      onClose();
     } catch (cause) { setError(describeError(cause)); } finally { setLoading(false); }
   };
   return (
-    <OperationCard title="Importar vagas" description="Informe uma vaga por linha: código;categoria;sim|não;posição. Vagas já existentes serão informadas no resultado." error={error} result={result ? <ResourceSnapshot data={{ sectorId: result.sectorId, requested: result.requested, created: result.created, existing: result.existing, conflicts: result.conflicts }} /> : undefined}>
-      <Stack component="form" spacing={2} onSubmit={(event) => void submit(event)}>
-        <ResourceIdField label="Setor" value={sectorId} onChange={setSectorId} recent={recent('sector')} />
-        <TextField label="Vagas" value={text} onChange={(event) => setText(event.target.value)} multiline minRows={8} required helperText="Categorias: Comum, VIP, PCD, Equipe, Ônibus, Van ou Cortesia" />
-        <Button type="submit" variant="contained" disabled={loading} startIcon={loading ? <CircularProgress size={18} color="inherit" /> : <GridViewOutlinedIcon />} sx={{ alignSelf: 'flex-start' }}>Importar lote</Button>
-      </Stack>
-    </OperationCard>
+    <OperationalFormDialog open={open} onClose={onClose} title="Importar vagas"
+      description="Informe uma vaga por linha: código; categoria; acessível; posição." formId="spaces-import-form"
+      submitLabel="Importar lote" submitting={loading} error={error}
+      dirty={sectorId !== '' || text !== spacesInitial} onSubmit={(event) => void submit(event)}>
+      <ResourceIdField label="Setor" value={sectorId} onChange={setSectorId} recent={recent('sector')} />
+      <TextField label="Vagas" value={text} onChange={(event) => setText(event.target.value)} multiline minRows={8} required helperText="Categorias: Comum, VIP, PCD, Equipe, Ônibus, Van ou Cortesia" />
+    </OperationalFormDialog>
   );
 }
 
 export function FacilitiesPage() {
   const { permissions } = useAuth();
   const [tab, setTab] = useState(0);
+  const [openForm, setOpenForm] = useState<string | null>(null);
+  const closeForm = () => setOpenForm(null);
   const content = [
-    permissions.includes('organizations:admin') && { label: 'Locais', content: <VenueForm /> },
-    { label: 'Pátios', content: <FacilityForm /> },
-    { label: 'Setores', content: <SectorForm /> },
-    { label: 'Vagas', content: <SpaceImportForm /> },
-  ].filter(Boolean) as { label: string; content: ReactNode }[];
+    permissions.includes('organizations:admin') && {
+      key: 'venue', label: 'Locais', actionLabel: 'Novo local', icon: <DomainAddOutlinedIcon />,
+      description: 'Locais representam o endereço principal onde os eventos acontecem.',
+      content: <VenueForm open={openForm === 'venue'} onClose={closeForm} />,
+    },
+    {
+      key: 'facility', label: 'Pátios', actionLabel: 'Novo pátio', icon: <LocalParkingOutlinedIcon />,
+      description: 'Pátios controlam a capacidade física e operacional disponível.',
+      content: <FacilityForm open={openForm === 'facility'} onClose={closeForm} />,
+    },
+    {
+      key: 'sector', label: 'Setores', actionLabel: 'Novo setor', icon: <AddLocationAltOutlinedIcon />,
+      description: 'Setores organizam as vagas de um pátio por capacidade e categoria.',
+      content: <SectorForm open={openForm === 'sector'} onClose={closeForm} />,
+    },
+    {
+      key: 'spaces', label: 'Vagas', actionLabel: 'Importar vagas', icon: <GridViewOutlinedIcon />,
+      description: 'A importação em lote cria as vagas de um setor com uma linha por vaga.',
+      content: <SpaceImportForm open={openForm === 'spaces'} onClose={closeForm} />,
+    },
+  ].filter(Boolean) as Array<{ key: string; label: string; actionLabel: string; icon: ReactNode; description: string; content: ReactNode }>;
   useEffect(() => {
     if (tab >= content.length) setTab(0);
   }, [content.length, tab]);
+  const active = content[tab];
   return (
     <Box>
-      <PageHeader title="Instalações" subtitle="Cadastre a estrutura física usada pelos eventos, do local até as vagas." />
+      <PageHeader title="Instalações" subtitle="Cadastre a estrutura física usada pelos eventos, do local até as vagas."
+        action={active ? <Button variant="contained" startIcon={active.icon} onClick={() => setOpenForm(active.key)}>{active.actionLabel}</Button> : undefined} />
       <Alert severity="info" sx={{ mb: 2 }}>A consulta completa das instalações ainda não está disponível. Os cadastros confirmados nesta sessão ficam acessíveis como referências recentes da organização.</Alert>
-      <Tabs value={tab} onChange={(_, value) => setTab(value)} variant="scrollable" sx={{ mb: 2 }}>
+      <Tabs value={tab} onChange={(_, value) => { setTab(value); closeForm(); }} variant="scrollable" sx={{ mb: 2 }}>
         {content.map((item) => <Tab key={item.label} label={item.label} />)}
       </Tabs>
-      {content[tab]?.content}
+      {active && <Alert severity="info" variant="outlined">{active.description} Use <strong>{active.actionLabel}</strong> para abrir o cadastro.</Alert>}
+      {active?.content}
     </Box>
   );
 }

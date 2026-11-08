@@ -27,12 +27,14 @@ import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import { api, describeError, ifMatchHeaders } from '../api/client';
 import { PageHeader } from '../components/common/PageHeader';
 import { NumberField } from '../components/form/NumberField';
+import { OperationalFormDialog } from '../components/form/OperationalFormDialog';
 import { ListingCards } from '../components/listing/ListingCards';
 import { OperationCard } from '../components/enterprise/OperationCard';
 import { ResourceIdField } from '../components/enterprise/ResourceIdField';
 import { ResourceSnapshot } from '../components/enterprise/ResourceSnapshot';
 import { facilityCategories, facilityCategoryLabel, type FacilityCategory } from '../features/facilities/spaceImport';
 import { fromApiDateTime, fromNowLocalInput, toApiDateTime } from '../utils/dateTime';
+import { DECIMAL_STEP, exactDecimal } from '../utils/fixedDecimal';
 import { useOperationalWorkspace } from '../workspace/OperationalWorkspaceContext';
 import type { WorkspaceResource } from '../workspace/workspaceStore';
 import { useAuth } from '../auth/AuthContext';
@@ -73,10 +75,12 @@ function EventSetup({ catalog, loadingCatalog, catalogError, refreshCatalog }: {
     canOperate && { value: 'operation-closing', label: 'Encerrar operação' },
   ].filter(Boolean) as { value: string; label: string }[];
   const events = recent('event');
-  const [form, setForm] = useState({
+  const [formDefaults] = useState(() => ({
     name: '', venueId: '', startsAt: fromNowLocalInput(24 * 60), endsAt: fromNowLocalInput(27 * 60),
     timeZone: 'America/Sao_Paulo', externalId: '',
-  });
+  }));
+  const [form, setForm] = useState(formDefaults);
+  const [createOpen, setCreateOpen] = useState(false);
   const [eventRef, setEventRef] = useState({ id: '', version: '0', status: 'RASCUNHO', name: '' });
   const [reentryPolicy, setReentryPolicy] = useState('ENTRADA_UNICA');
   const [action, setAction] = useState(() => allowedActions[0]?.value ?? '');
@@ -105,6 +109,8 @@ function EventSetup({ catalog, loadingCatalog, catalogError, refreshCatalog }: {
       }, { headers: { 'Idempotency-Key': crypto.randomUUID() } });
       accept(response.data);
       refreshCatalog();
+      setForm(formDefaults);
+      setCreateOpen(false);
     } catch (cause) { setError(describeError(cause)); } finally { setLoading(false); }
   };
 
@@ -144,6 +150,10 @@ function EventSetup({ catalog, loadingCatalog, catalogError, refreshCatalog }: {
 
   return (
     <Stack spacing={2}>
+      {canCreate && <Button variant="contained" startIcon={<EventAvailableOutlinedIcon />}
+        onClick={() => { setError(null); setCreateOpen(true); }} sx={{ alignSelf: 'flex-start' }}>
+        Novo evento
+      </Button>}
       <Card>
         {loadingCatalog ? <Box sx={{ display: 'grid', placeItems: 'center', py: 5 }}><CircularProgress /></Box>
           : catalogError ? <Alert severity="error">{describeError(catalogError)}</Alert>
@@ -159,30 +169,30 @@ function EventSetup({ catalog, loadingCatalog, catalogError, refreshCatalog }: {
                 />
                 <TableContainer sx={{ display: { xs: 'none', md: 'block' } }}><Table size="small"><TableHead><TableRow>
                 <TableCell>Evento</TableCell><TableCell>Início</TableCell><TableCell>Situação</TableCell>
-                <TableCell>Versão</TableCell><TableCell>Ações</TableCell>
+                <TableCell>Ações</TableCell>
               </TableRow></TableHead><TableBody>{catalog.map((item) => <TableRow key={item.id} hover
                 selected={eventRef.id === String(item.id)}>
-                <TableCell>{item.name}<Typography variant="caption" display="block" color="text.secondary">#{item.id}</Typography></TableCell>
+                <TableCell>{item.name}</TableCell>
                 <TableCell>{new Date(item.startsAt).toLocaleString('pt-BR')}</TableCell>
-                <TableCell><Chip size="small" label={formatStatusLabel(item.status)} /></TableCell><TableCell>{item.version}</TableCell>
+                <TableCell><Chip size="small" label={formatStatusLabel(item.status)} /></TableCell>
                 <TableCell><Button size="small" onClick={() => accept(item)}>Selecionar</Button></TableCell>
               </TableRow>)}</TableBody></Table></TableContainer></>}
       </Card>
-      {canCreate && <OperationCard title="Criar evento" description="Cada tentativa de criação é protegida contra duplicidade." error={error}>
-        <Stack component="form" spacing={2} onSubmit={(event) => void create(event)}>
-          <TextField label="Nome do evento" value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} required />
-          <ResourceIdField label="Local do evento" value={form.venueId} onChange={(venueId) => setForm((current) => ({ ...current, venueId }))} recent={recent('venue')} />
-          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-            <TextField label="Início" type="datetime-local" value={form.startsAt} onChange={(event) => setForm((current) => ({ ...current, startsAt: event.target.value }))} InputLabelProps={{ shrink: true }} required fullWidth />
-            <TextField label="Fim" type="datetime-local" value={form.endsAt} onChange={(event) => setForm((current) => ({ ...current, endsAt: event.target.value }))} InputLabelProps={{ shrink: true }} required fullWidth />
-          </Stack>
-          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-            <TextField label="Fuso horário IANA" value={form.timeZone} onChange={(event) => setForm((current) => ({ ...current, timeZone: event.target.value }))} required fullWidth />
-            <TextField label="ID externo" value={form.externalId} onChange={(event) => setForm((current) => ({ ...current, externalId: event.target.value }))} fullWidth />
-          </Stack>
-          <Button type="submit" variant="contained" disabled={loading} startIcon={loading ? <CircularProgress size={18} color="inherit" /> : <EventAvailableOutlinedIcon />} sx={{ alignSelf: 'flex-start' }}>Criar evento</Button>
+      {canCreate && <OperationalFormDialog open={createOpen} onClose={() => setCreateOpen(false)}
+        title="Novo evento" description="Cadastre os dados básicos. A publicação e a abertura de vendas continuam no ciclo de vida do evento."
+        formId="event-create-form" submitLabel="Criar evento" submitting={loading} error={error}
+        dirty={JSON.stringify(form) !== JSON.stringify(formDefaults)} onSubmit={(event) => void create(event)}>
+        <TextField label="Nome do evento" value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} required />
+        <ResourceIdField label="Local do evento" value={form.venueId} onChange={(venueId) => setForm((current) => ({ ...current, venueId }))} recent={recent('venue')} />
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+          <TextField label="Início" type="datetime-local" value={form.startsAt} onChange={(event) => setForm((current) => ({ ...current, startsAt: event.target.value }))} InputLabelProps={{ shrink: true }} required fullWidth />
+          <TextField label="Fim" type="datetime-local" value={form.endsAt} onChange={(event) => setForm((current) => ({ ...current, endsAt: event.target.value }))} InputLabelProps={{ shrink: true }} required fullWidth />
         </Stack>
-      </OperationCard>}
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+          <TextField label="Fuso horário" value={form.timeZone} onChange={(event) => setForm((current) => ({ ...current, timeZone: event.target.value }))} required fullWidth helperText="Ex.: America/Sao_Paulo" />
+          <TextField label="Referência externa (opcional)" value={form.externalId} onChange={(event) => setForm((current) => ({ ...current, externalId: event.target.value }))} fullWidth />
+        </Stack>
+      </OperationalFormDialog>}
       {allowedActions.length > 0 && <OperationCard
         title="Ciclo de vida"
         description="Selecione um evento da listagem para executar as transições permitidas."
@@ -191,9 +201,9 @@ function EventSetup({ catalog, loadingCatalog, catalogError, refreshCatalog }: {
       >
         <ResourceIdField label="Evento" value={eventRef.id} onChange={chooseEvent} recent={events} />
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-          <NumberField label="Versão" value={eventRef.version} min={0} required fullWidth
+          <NumberField label="Revisão do registro" value={eventRef.version} min={0} required fullWidth
             onValueChange={(version) => setEventRef((current) => ({ ...current, version }))} />
-          <TextField label="Estado conhecido" value={eventRef.status} onChange={(event) => setEventRef((current) => ({ ...current, status: event.target.value }))} fullWidth />
+          <TextField label="Situação atual" value={formatStatusLabel(eventRef.status)} disabled fullWidth />
         </Stack>
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
           <TextField select label="Operação" value={action} onChange={(event) => setAction(event.target.value)} fullWidth>
@@ -313,7 +323,7 @@ function AllocationSetup({ events }: { events: EventResponse[] }) {
       </Stack>
       <Alert severity="info">Selecione uma alocação da listagem acima para alterar suas capacidades.</Alert>
       <ResourceIdField label="Alocação" value={allocationRef.id} onChange={choose} recent={allocations} />
-      <NumberField label="Versão da alocação" value={allocationRef.version} min={0} required
+      <NumberField label="Revisão da alocação" value={allocationRef.version} min={0} required
         onValueChange={(version) => setAllocationRef((current) => ({ ...current, version }))} />
       <Button variant="outlined" disabled={loading || !allocationRef.id} onClick={() => void update()} sx={{ alignSelf: 'flex-start' }}>Atualizar capacidades</Button>
     </OperationCard>}
@@ -432,7 +442,7 @@ function ProductSetup({ events }: { events: EventResponse[] }) {
         <Button type="submit" variant="contained" disabled={loading} startIcon={loading ? <CircularProgress size={18} color="inherit" /> : <PriceChangeOutlinedIcon />} sx={{ alignSelf: 'flex-start' }}>Criar produto</Button>
       </Stack>
       <ResourceIdField label="Produto para publicação" value={productRef.id} onChange={choose} recent={products} />
-      <NumberField label="Versão do produto" value={productRef.version} min={0} required
+      <NumberField label="Revisão do produto" value={productRef.version} min={0} required
         onValueChange={(version) => setProductRef((current) => ({ ...current, version }))} />
       <Button variant="outlined" disabled={loading || !productRef.id} onClick={() => void publish()} startIcon={<PublishOutlinedIcon />} sx={{ alignSelf: 'flex-start' }}>Publicar produto</Button>
     </OperationCard>}
@@ -464,7 +474,7 @@ function PriceTierSetup({ events }: { events: EventResponse[] }) {
     event.preventDefault(); setLoading(true); setError(null);
     try {
       const response = await api.post<PriceTierResponse>(`/api/v1/parking-products/${Number(productId)}/price-tiers`, {
-        name: form.name, price: Number(form.price), currency: form.currency.toUpperCase(),
+        name: form.name, price: exactDecimal(form.price, 'Preço'), currency: form.currency.toUpperCase(),
         salesStartsAt: toApiDateTime(form.salesStartsAt), salesEndsAt: toApiDateTime(form.salesEndsAt),
         quantity: Number(form.quantity), priority: Number(form.priority),
       }, { headers: { 'Idempotency-Key': crypto.randomUUID() } });
@@ -486,7 +496,7 @@ function PriceTierSetup({ events }: { events: EventResponse[] }) {
           ? <>
             <ListingCards rows={tiersCatalog.data} getKey={(item) => item.id} getTitle={(item) => item.name}
               getFields={(item) => [
-                { label: 'Preço', value: formatCurrency(Number(item.price), item.currency) },
+                { label: 'Preço', value: formatCurrency(Number(item.price), item.currency, 6) },
                 { label: 'Quantidade', value: item.quantity },
                 { label: 'Prioridade', value: item.priority },
               ]}
@@ -494,15 +504,16 @@ function PriceTierSetup({ events }: { events: EventResponse[] }) {
             <TableContainer sx={{ display: { xs: 'none', md: 'block' } }}><Table size="small"><TableHead><TableRow><TableCell>Lote</TableCell><TableCell>Preço</TableCell>
             <TableCell>Quantidade</TableCell><TableCell>Prioridade</TableCell></TableRow></TableHead><TableBody>
             {tiersCatalog.data.map((item) => <TableRow key={item.id} hover><TableCell>{item.name} #{item.id}</TableCell>
-              <TableCell>{formatCurrency(Number(item.price), item.currency)}</TableCell><TableCell>{item.quantity}</TableCell>
+              <TableCell>{formatCurrency(Number(item.price), item.currency, 6)}</TableCell><TableCell>{item.quantity}</TableCell>
               <TableCell>{item.priority}</TableCell></TableRow>)}</TableBody></Table></TableContainer></> : null}</Stack></Card>
     {canManage && <OperationCard title="Lote de preço" description="Janelas de venda, quantidade e prioridade determinam o lote vigente." error={error} result={result ? <ResourceSnapshot data={{ id: result.id, parkingProductId: result.parkingProductId, name: result.name, price: result.price, currency: result.currency, quantity: result.quantity, priority: result.priority, version: result.version }} /> : undefined}>
       <Stack component="form" spacing={2} onSubmit={(event) => void submit(event)}>
         <ResourceIdField label="Produto" value={productId} onChange={setProductId} recent={recent('product')} />
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
           <TextField label="Nome" value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} required fullWidth />
-          <NumberField label="Preço" value={form.price} min={0} step={0.01} required fullWidth
-            onValueChange={(price) => setForm((current) => ({ ...current, price }))} />
+          <TextField type="number" label="Preço" value={form.price} required fullWidth
+            inputProps={{ min: 0, step: DECIMAL_STEP, inputMode: 'decimal' }}
+            onChange={(event) => setForm((current) => ({ ...current, price: event.target.value }))} />
           <TextField label="Moeda" value={form.currency} onChange={(event) => setForm((current) => ({ ...current, currency: event.target.value }))} inputProps={{ maxLength: 3 }} required fullWidth />
         </Stack>
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
