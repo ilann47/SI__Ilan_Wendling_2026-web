@@ -61,7 +61,7 @@ export const veiculosConfig: ResourceConfig = {
   plural: 'Veículos',
   searchFilter: 'placa',
   subtitle: 'Placas vinculadas a clientes do contexto ativo.',
-  unavailableRelations: ['Movimentações do veículo', 'Mensalidade vigente'],
+  unavailableRelations: ['Movimentações do veículo'],
   defaultSort: 'placa,asc',
   columns: [
     cols.id(),
@@ -84,9 +84,10 @@ export const veiculosConfig: ResourceConfig = {
     { name: 'cor', label: 'Cor', type: 'text', cols: 3 },
     {
       name: 'clienteId',
-      label: 'Cliente (mensalista)',
+      label: 'Cliente',
       type: 'reference',
       cols: 6,
+      helperText: 'Opcional. Identifica o responsável pelo veículo.',
       reference: { basePath: '/api/clientes', labelField: 'nome' },
     },
     { name: 'ativo', label: 'Ativo', type: 'switch', cols: 3 },
@@ -110,7 +111,7 @@ export const mensalistasConfig: ResourceConfig = {
   },
   singular: 'Mensalista',
   plural: 'Mensalistas',
-  subtitle: 'Contratos mensais de vaga e veículo.',
+  subtitle: 'Contratos mensais de vaga e veículo. Para ativar um contrato de cliente cadastrado pela nota fiscal, informe telefone ou e-mail em Clientes.',
   unavailableRelations: ['Cobranças geradas', 'Movimentações do contrato'],
   filters: [
     { name: 'clienteId', label: 'Cliente', type: 'reference', reference: { basePath: '/api/clientes', labelField: 'nome' } },

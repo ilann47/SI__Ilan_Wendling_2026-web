@@ -2,6 +2,11 @@
 
 # Vendas de mercadorias, eventos e serviços
 
+O atalho **Vendas e credenciais** de eventos fica em **Operação → Eventos**.
+**Ordens de Serviço** fica em **Operação → Serviços**. O menu **Vendas** mantém
+**Notas de Saída** e **Notas de Serviço**. Quem tem leitura fiscal também pode
+abrir a nota vinculada a partir do detalhe da ordem.
+
 ## Objetivo
 
 Operar o funil real de reserva temporaria, pedido, confirmacao/cancelamento e
@@ -23,6 +28,13 @@ de pedidos e sempre limitada ao ator autenticado pelo backend.
 Disponibilidade -> Hold -> Pedido -> Confirmacao -> Credencial -> Token QR
                          \-> Cancelamento -> liberacao/bloqueio/reembolso pendente
 ```
+
+Reservas, pedidos e credenciais abrem o registro em subpágina, sem manter a
+listagem ou o formulário de busca embaixo. **Voltar** retorna para a aba de
+origem; pedidos preservam filtros e paginação na URL. Criar pedido também usa
+formulário em página; a confirmação de cancelamento continua em modal.
+Perfis com autorização de confirmar/cancelar mas sem leitura informam a revisão
+conhecida do pedido e não consultam nem exibem o registro pela API de leitura.
 
 ```text
 Nova Nota de Saída -> conferir rascunho -> confirmar (baixa estoque + gera recebíveis)
@@ -144,6 +156,9 @@ cobre conferência, reversão e links para os títulos e movimentos da nota.
 
 | Data | Acao |
 |---|---|
+| 2026-11-22 | Separa os detalhes de reserva, pedido e credencial da tela de Vendas, com retorno à aba e permissões independentes de leitura e operação. |
+| 2026-11-09 | Separa no menu as ordens operacionais dos documentos fiscais de serviço. |
+| 2026-11-09 | Move o atalho de vendas de eventos para Operação, sem alterar acesso ou rotas. |
 | 2026-11-08 | Valida e apresenta seis casas nos serviços, ISS e preços de eventos. |
 | 2026-11-05 | Retira a operação de Pedido de Venda de mercadorias e mantém Nota de Saída avulsa como o único novo fluxo; preserva histórico e pedidos de eventos. |
 | 2026-11-05 | Alinha o frontend à retirada completa do vínculo de Pedido de Venda; preserva os fluxos de eventos e ordens de serviço. |

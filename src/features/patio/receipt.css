@@ -1,0 +1,12 @@
+@media print {
+  body:has(#patio-receipt-print) * { visibility: hidden !important; }
+  #patio-receipt-print, #patio-receipt-print * { visibility: visible !important; }
+  #patio-receipt-print {
+    position: fixed !important;
+    inset: 0 !important;
+    color: #000 !important;
+    background: #fff !important;
+    padding: 16px !important;
+    margin: 0 !important;
+  }
+}
