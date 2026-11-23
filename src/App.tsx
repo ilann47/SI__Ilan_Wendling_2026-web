@@ -3,6 +3,7 @@ import { lazy, Suspense } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { OrganizationAccessBoundary } from './auth/OrganizationAccessBoundary';
 import { PermissionRoute } from './auth/PermissionRoute';
+import { inboundEditorAccess, outboundEditorAccess, patioReceiptAccess, resourceRouteAccess, routePolicies } from './auth/routeAccess';
 import { ProtectedRoute } from './auth/ProtectedRoute';
 import { AppLayout } from './layout/AppLayout';
 import { LoginPage } from './pages/LoginPage';
@@ -45,6 +46,8 @@ const OutboundNoteDocumentPage = lazy(() => import('./pages/OutboundNoteDocument
   .then((module) => ({ default: module.OutboundNoteDocumentPage })));
 const ServiceNotesPage = lazy(() => import('./pages/ServiceNotesPage')
   .then((module) => ({ default: module.ServiceNotesPage })));
+const ParkingFiscalDraftPage = lazy(() => import('./pages/ParkingFiscalDraftPage')
+  .then((module) => ({ default: module.ParkingFiscalDraftPage })));
 const ServiceNoteDocumentPage = lazy(() => import('./pages/ServiceNoteDocumentPage')
   .then((module) => ({ default: module.ServiceNoteDocumentPage })));
 const XmlInboundImportPage = lazy(() => import('./pages/XmlInboundImportPage')
@@ -88,91 +91,111 @@ export function App() {
           <Route path="areas/:areaId" element={<Navigate to="/app" replace />} />
           <Route path="visao-geral" element={<Navigate to="/app" replace />} />
           <Route path="acesso-eventos" element={
-            <PermissionRoute anyOf={['access:validate', 'access:checkin', 'access:checkout', 'credentials:block']}>
+            <PermissionRoute {...routePolicies['acesso-eventos']}>
               <EventAccessPage />
             </PermissionRoute>
           } />
           <Route path="tentativas-acesso" element={
-            <PermissionRoute anyOf={['audit:read']}><AccessAttemptsPage /></PermissionRoute>
+            <PermissionRoute {...routePolicies['tentativas-acesso']}><AccessAttemptsPage /></PermissionRoute>
           } />
           <Route path="administracao" element={
-            <PermissionRoute anyOf={['organizations:admin', 'users:invite', 'roles:grant', 'roles:revoke']}>
+            <PermissionRoute {...routePolicies.administracao}>
               <AdministrationPage />
             </PermissionRoute>
           } />
+          <Route path="administracao/vinculos/:membershipId" element={
+            <PermissionRoute {...routePolicies.administracao}><AdministrationPage /></PermissionRoute>
+          } />
           <Route path="instalacoes" element={
-            <PermissionRoute anyOf={['facilities:manage']}>
+            <PermissionRoute {...routePolicies.instalacoes}>
               <FacilitiesPage />
             </PermissionRoute>
           } />
-          <Route path="eventos" element={<EventsPage />} />
+          <Route path="eventos" element={
+            <PermissionRoute {...routePolicies.eventos}><EventsPage /></PermissionRoute>
+          } />
+          <Route path="eventos/:eventId" element={
+            <PermissionRoute {...routePolicies.eventos}><EventsPage /></PermissionRoute>
+          } />
           <Route path="vendas" element={
-            <PermissionRoute anyOf={['inventory:hold', 'orders:create', 'orders:read', 'orders:manual-confirm', 'orders:cancel', 'credentials:issue']}>
+            <PermissionRoute {...routePolicies.vendas}>
               <SalesPage />
             </PermissionRoute>
           } />
+          {['pedidos', 'reservas', 'credenciais'].map((section) => (
+            <Route key={section} path={`vendas/${section}/:detailId`} element={
+              <PermissionRoute {...routePolicies.vendas}><SalesPage /></PermissionRoute>
+            } />
+          ))}
           <Route path="bloqueios" element={
-            <PermissionRoute anyOf={['organizations:admin', 'audit:read']}>
+            <PermissionRoute {...routePolicies.bloqueios}>
               <BlockersPage />
             </PermissionRoute>
           } />
-          <Route path="patio" element={<PatioPage />} />
-          <Route path="relatorios" element={<RelatoriosPage />} />
+          <Route path="patio" element={
+            <PermissionRoute {...routePolicies.patio}><PatioPage /></PermissionRoute>
+          } />
+          <Route path="patio/comprovantes/:detailId" element={
+            <PermissionRoute {...patioReceiptAccess}><PatioPage /></PermissionRoute>
+          } />
+          <Route path="relatorios" element={
+            <PermissionRoute {...routePolicies.relatorios}><RelatoriosPage /></PermissionRoute>
+          } />
           <Route path="estoque" element={
-            <PermissionRoute anyOf={['stock:read']}><StockPage /></PermissionRoute>
+            <PermissionRoute {...routePolicies.estoque}><StockPage /></PermissionRoute>
+          } />
+          <Route path="estoque/movimentos/:detailId" element={
+            <PermissionRoute {...routePolicies.estoque}><StockPage /></PermissionRoute>
           } />
           <Route path="notas-entrada" element={
-            <PermissionRoute anyOf={['fiscal:read']}><InboundNotesPage /></PermissionRoute>
+            <PermissionRoute {...routePolicies['notas-entrada']}><InboundNotesPage /></PermissionRoute>
           } />
           <Route path="notas-entrada/nova" element={
-            <PermissionRoute anyOf={['fiscal:manage']}><InboundNoteWizardPage /></PermissionRoute>
+            <PermissionRoute {...inboundEditorAccess}><InboundNoteWizardPage /></PermissionRoute>
           } />
           <Route path="notas-entrada/:id/editar" element={
-            <PermissionRoute anyOf={['fiscal:manage']}><InboundNoteWizardPage /></PermissionRoute>
+            <PermissionRoute {...inboundEditorAccess}><InboundNoteWizardPage /></PermissionRoute>
           } />
           <Route path="notas-entrada/:id" element={
-            <PermissionRoute anyOf={['fiscal:read']}><InboundNoteDetailPage /></PermissionRoute>
+            <PermissionRoute {...routePolicies['notas-entrada']}><InboundNoteDetailPage /></PermissionRoute>
           } />
           <Route path="notas-entrada/importar" element={
-            <PermissionRoute anyOf={['fiscal:read']}><XmlInboundImportPage /></PermissionRoute>
+            <PermissionRoute {...routePolicies['notas-entrada']}><XmlInboundImportPage /></PermissionRoute>
           } />
           <Route path="notas-saida" element={
-            <PermissionRoute anyOf={['fiscal:read']}><OutboundNotesPage /></PermissionRoute>
+            <PermissionRoute {...routePolicies['notas-saida']}><OutboundNotesPage /></PermissionRoute>
           } />
           <Route path="notas-saida/nova" element={
-            <PermissionRoute anyOf={['fiscal:manage']}><OutboundNoteEditorPage /></PermissionRoute>
+            <PermissionRoute {...outboundEditorAccess}><OutboundNoteEditorPage /></PermissionRoute>
           } />
           <Route path="notas-saida/:id/editar" element={
-            <PermissionRoute anyOf={['fiscal:manage']}><OutboundNoteEditorPage /></PermissionRoute>
+            <PermissionRoute {...outboundEditorAccess}><OutboundNoteEditorPage /></PermissionRoute>
           } />
           <Route path="notas-saida/:id" element={
-            <PermissionRoute anyOf={['fiscal:read']}><OutboundNoteDocumentPage /></PermissionRoute>
+            <PermissionRoute {...routePolicies['notas-saida']}><OutboundNoteDocumentPage /></PermissionRoute>
           } />
           <Route path="notas-servico" element={
-            <PermissionRoute anyOf={['fiscal:read']}><ServiceNotesPage /></PermissionRoute>
+            <PermissionRoute {...routePolicies['notas-servico']}><ServiceNotesPage /></PermissionRoute>
+          } />
+          <Route path="notas-servico/estacionamento/:movimentacaoId" element={
+            <PermissionRoute {...routePolicies['notas-servico']}><ParkingFiscalDraftPage /></PermissionRoute>
           } />
           <Route path="notas-servico/:id" element={
-            <PermissionRoute anyOf={['fiscal:read']}><ServiceNoteDocumentPage /></PermissionRoute>
+            <PermissionRoute {...routePolicies['notas-servico']}><ServiceNoteDocumentPage /></PermissionRoute>
           } />
-          <Route path="contas-pagar" element={
-            <PermissionRoute anyOf={['finance:read']}><ContasPagarPage /></PermissionRoute>
+          <Route path="contas-pagar/:detailId?" element={
+            <PermissionRoute {...routePolicies['contas-pagar']}><ContasPagarPage /></PermissionRoute>
           } />
-          <Route path="contas-receber" element={
-            <PermissionRoute anyOf={['finance:read']}><ContasReceberPage /></PermissionRoute>
+          <Route path="contas-receber/:detailId?" element={
+            <PermissionRoute {...routePolicies['contas-receber']}><ContasReceberPage /></PermissionRoute>
           } />
-          <Route path="ordens-servico" element={
-            <PermissionRoute anyOf={['service_orders:read']}><ServiceOrdersPage /></PermissionRoute>
+          <Route path="ordens-servico/:detailId?" element={
+            <PermissionRoute {...routePolicies['ordens-servico']}><ServiceOrdersPage /></PermissionRoute>
           } />
           {crudConfigs.map((config) => (
-            <Route
-              key={config.key}
-              path={config.key}
-              element={config.permissions?.read?.length ? (
-                <PermissionRoute anyOf={config.permissions.read}>
-                  <CrudResourcePage config={config} />
-                </PermissionRoute>
-              ) : <CrudResourcePage config={config} />}
-            />
+            <Route key={config.key} path={`${config.key}/:detailId?`} element={
+              <PermissionRoute {...resourceRouteAccess(config.key)}><CrudResourcePage key={config.key} config={config} /></PermissionRoute>
+            } />
           ))}
         </Route>
         <Route path="/" element={<Navigate to="/app" replace />} />

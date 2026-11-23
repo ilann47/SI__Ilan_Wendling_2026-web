@@ -1,6 +1,107 @@
 > Links: [[auth]] · [[acesso]] · [[administracao]] · [[workspace]] · [[listagens]] · [[instalacoes]] · [[eventos]] · [[vendas]] · [[pagamentos]] · [[clientes]] · [[logistica]] · [[fornecedores]] · [[rh]] · [[conveniencia]] · [[estoque]] · [[dashboard]] · [[bloqueios]] · [[paridade-api]] · [[compatibilidade-legada]] · [[unificacao-multitenant]]
 
-# Frontend Kaneko
+# Frontend yes7parking
+
+## Portaria e preparo guiado — 2026-11-22
+
+[[eventos]] abre o caminho de portaria por padrão; venda antecipada é uma escolha
+explícita, sem remover produtos/lotes do fluxo comercial autorizado. O
+detalhe usa um só formulário para preparar a portaria e exige revisão e
+confirmação antes de abrir. Ações auxiliares ficam em Opções avançadas.
+
+A prévia do novo preço conserva base de seis casas e mostra total HALF_UP em
+centavos e ajuste. Essa orientação não substitui o cálculo nem os snapshots da
+API, e não muda a exibição de valores históricos. [[operacao]] e [[auth]]
+documentam o modo Portaria e o destino operacional após seleção de organização.
+
+## Filtros do Pátio — 2026-11-21
+
+[[operacao]] usa os contadores como filtros clicáveis de todos, avulsos e
+mensalistas. A seleção combina com a placa em cartões/listagem e não muda o
+contexto do caixa, as contagens globais da API, os comandos ou as permissões.
+
+## Visualização de veículos — 2026-11-20
+
+[[operacao]] permite escolher cartões ou listagem na consulta dos veículos do
+Pátio, com preferência local por organização/login. Os mesmos dados e handlers
+alimentam ambos os formatos; a listagem é tabela no desktop e linhas no mobile.
+Não altera API, cálculo, permissões nem vínculos financeiros/fiscais.
+
+## Pendências legíveis — 2026-11-20
+
+[[dashboard]] usa a largura do conteúdo e agrupa pendências por categoria,
+com itens de altura natural, valor e data separados e expansão “Ver mais”.
+Não há rolagem confinada nem nova consulta, permissão, rota ou comando de negócio.
+Os caminhos individuais continuam vindo da API. As listagens gerais permitem
+consultar o restante além dos cinco registros carregados por categoria.
+
+## Evolução operacional — 2026-11-19
+
+[[operacao]] concentra contexto por organização/operador, busca de saída no
+servidor, dinheiro/troco exatos, segunda via e correções com permissão de gestão.
+[[eventos]] reúne a preparação avulsa sem produto/lote e o resumo operacional
+com seções financeiras/fiscais limitadas pela API. Nenhum destes fluxos realiza
+transação bancária ou transmissão fiscal externa.
+
+Vitest executa somente os arquivos de teste em src; o teste standalone de
+publicação da prévia usa `npm run test:preview` (node:test).
+As consultas assíncronas da Testing Library aguardam até cinco segundos pelo
+estado esperado, evitando falhas de agendamento na suíte completa em Windows
+sem remover verificações de validação ou efeito.
+
+A identidade pública usa os vetores originais do Figma Yes7 Parking em
+`public/brand/`: versões colorida, branca e símbolo compacto. A mudança visual
+não renomeia organizações, repositórios nem chaves de sessão existentes.
+
+## Recuperação de falhas de tela
+
+A rota raiz usa `AppRouteError`, que não depende de organização ou sessão
+ativa. Se uma tela falhar, o usuário pode recarregar a mesma URL; nas telas
+internas, também pode ir ao início. A recuperação acompanha o modo claro/escuro,
+não mostra detalhes técnicos, não limpa a sessão e não recarrega automaticamente.
+
+A prévia local na porta 5174 serve `.preview-dist` (`npm run preview:local`).
+Atualize-a com `npm run build:preview`: gera fora da pasta servida, adiciona
+arquivos versionados sem substituir os antigos e só então troca o `index.html`.
+As abas abertas seguem usando seu próprio build, enquanto novas navegações de
+documento recebem o índice atual. O `npm run build` comum continua isolado em
+`dist` e não altera a prévia. Não limpe `.preview-dist` com abas da prévia em uso.
+
+## Acesso por organização
+
+As políticas de rota (auth/routeAccess.ts) são usadas no acesso direto, no
+menu, na busca e nos atalhos. Nenhum desses controles substitui a autorização
+no backend. O Pátio separa consulta de veículos de operação do caixa; Relatórios
+mostra apenas abas acessíveis e abre a primeira permitida se necessário.
+Eventos e ofertas e Vendas e credenciais ficam em Operação → Eventos, com
+as mesmas rotas e permissões. Bloqueios e auditoria também ficam em Operação.
+Ordens de Serviço fica em Operação → Serviços; Notas de Serviço permanece em
+Vendas. A ordem oferece acesso direto à nota vinculada quando há leitura fiscal.
+No cabeçalho, o logo yes7parking leva à home. O menu Operação não inclui Início;
+Pátio, Instalações, Movimentações, Veículos, Tarifas, Mensalistas e Relatórios
+ficam no grupo Estacionamento. Clientes e Fornecedores ficam juntos em Cadastros,
+com suas rotas e permissões independentes.
+
+## Pátio e caixa por turno (2026-11-09)
+
+Em `/app/patio`, a placa é digitada diretamente e um pátio ativo é usado
+automaticamente quando único; caso contrário o seletor exibe os nomes. A
+organização e a permissão `operations:checkout` (papel Caixa do pátio) ou
+`operations:manage` controlam os comandos. Prévia,
+pagamento e fechamento são ações curtas em `AppDialog`; o valor da prévia
+vem do servidor e não é calculado no navegador. A conferência mostra recebido
+por meio e a diferença entre dinheiro contado e esperado. Veículos que não
+saíram permanecem visíveis quando o operador fecha seu turno.
+As confirmações de entrada e saída ficam dentro da página para não cobrir
+as ações do Pátio em telas pequenas.
+
+O caixa pode escolher [[eventos|evento]] e pátio, registrar uma placa sem
+reserva e cobrar na entrada ou na saída. A saída pré-paga alerta para não
+cobrar novamente; após encerrar, a tela mostra NFS-e pendente de emissão.
+Na entrada o Pátio mostra o número da OS aberta automaticamente. A saída
+confirma a conclusão da mesma ordem. Em Operação → Serviços → Ordens de Serviço, essas
+ordens são de consulta: a pendência fiscal aparece no detalhe para quem tem
+permissão e não há ação manual de concluir, cancelar ou gerar nota.
 
 ## Fluxo vigente PARK-0003 (2026-10-16)
 
@@ -98,11 +199,11 @@ as larguras `xs/sm/md/lg` voltam a representar a complexidade do fluxo, somente
 o conteúdo rola e título, fechamento e ações permanecem visíveis. Operações em
 andamento bloqueiam Escape/backdrop; confirmações críticas usam `alertdialog`.
 
-As superfícies seguem uma regra previsível: cadastro curto abre em diálogo;
-consulta detalhada abre no painel lateral; confirmação usa diálogo compacto; e
-processos longos ou encadeados permanecem em página dedicada. Formulários
-customizados reutilizam `OperationalFormDialog`, com as mesmas ações fixas,
-responsividade, estado ocupado e confirmação de descarte do CRUD declarativo.
+As superfícies seguem uma regra previsível: ação curta ou confirmação usa
+diálogo; consulta detalhada usa subpágina independente, com retorno à lista.
+A criação e a edição principais do CRUD usam `ResourceFormPage`. Operações
+próprias extensas usam `OperationalFormPage`.
+Ambas usam `FormPage` para ações, erros e confirmação de descarte.
 
 O cliente HTTP possui timeout de 15 segundos, preserva `Authorization` explícita
 na validação de JWT candidato e centraliza o formato estrito de `If-Match`. Chaves
@@ -169,6 +270,17 @@ jsdom e o aviso do chunk MUI de 603,25 kB, sem reprovação dos gates.
 ## Decisões Técnicas
 
 - A navegação é filtrada pelas permissões retornadas pelo backend.
+- `src/theme/hubTokens.ts` concentra cores semânticas, superfícies e raios do
+  Seven Tickets Web. `src/theme.ts` aplica esses tokens ao MUI; use o mesmo
+  tema nas telas dedicadas em vez de criar cores locais. Usa Montserrat local
+  (WOFF2 Latin, com licença OFL no build), ações em cápsula e rodapés de
+  diálogos separados visualmente. Mantém os alvos de toque, larguras de
+  diálogos e pontos de quebra Kaneko. O preenchimento das ações no modo
+  escuro usa um roxo diferente do texto para preservar contraste.
+- O cabeçalho usa a faixa roxa e a busca em superfície clara do Seven Tickets.
+  No modo escuro, a faixa é adaptada ao tema; menus e formulários mantêm
+  superfícies próprias. Os slots, alturas, pontos de quebra e caminhos de
+  navegação continuam definidos pelo Kaneko.
 - O shell mantém a identidade Kaneko e a navegação principal no topo:
   sem sidebar ou abas abertas. `/app` mostra saudação e pendências, sem atalhos
   de áreas ou resumo do dia. O cabeçalho e seu menu mobile continuam sujeitos
@@ -201,12 +313,14 @@ jsdom e o aviso do chunk MUI de 603,25 kB, sem reprovação dos gates.
 - O tema declara `modal = 1600` como fonte única da camada de diálogos. Popovers
   de calendário usam `modal + 1`, evitando que o seletor de data abra atrás do
   formulário.
-- `AppDialog` é a única porta para modais MUI. Confirmações usam `xs`, formulários
-  simples `sm`, formulários gerais `md` e ordens com itens `lg`; telas pequenas
-  usam fullscreen apenas para tarefas que exigem espaço.
+- `AppDialog` é a única porta para modais MUI. Confirmações usam `xs`; ações
+  pontuais, busca, filtros e seletores mantêm a largura apropriada à tarefa.
 - `QuickCreateProvider` mantém um registro adicional para cadastros contextuais
   de módulos com tela própria. Isso permite criar referências ausentes sem gerar
   rotas CRUD duplicadas e sem perder o formulário principal em andamento.
+  Se a referência exige página, o shell mantém o documento montado, suspende
+  seus diálogos e exibe o cadastro no conteúdo principal. Um único bloqueador de
+  navegação dá prioridade à página contextual, inclusive no Voltar do navegador.
 - Nota de Entrada é página dedicada (lista/wizard/detalhe), fora do CRUD genérico.
 - Componentes ativos do shell: `AppHeader`, `HeaderAreaNavigation`,
   `ContextSelector`, `UserAccountMenu` e métricas de layout (`layoutMetrics`).
@@ -254,6 +368,29 @@ jsdom e o aviso do chunk MUI de 603,25 kB, sem reprovação dos gates.
 
 | Data | Ação |
 |---|---|
+| 2026-11-22 | Uniformiza acesso e retorno nas subpáginas de detalhe; formulários principais de cadastro saem dos modais. |
+| 2026-11-21 | Ativa filtros por tipo nos contadores do Pátio e corrige os rótulos no singular. |
+| 2026-11-20 | Adiciona seletor Cartões/Listagem ao Pátio com persistência por usuário/organização e ações preservadas. |
+| 2026-11-20 | Refaz a apresentação das pendências por categoria, sem sobreposição, mantendo RBAC e os links individuais. |
+| 2026-11-13 | Agrupa Clientes e Fornecedores em Cadastros e move Veículos e Tarifas para Operação → Estacionamento. |
+| 2026-11-13 | Move o atalho de Fornecedores de Estoque para Cadastros → Parceiros. |
+| 2026-11-10 | Move Instalações de Administração para Operação → Estacionamento, sem alterar rota ou permissão. |
+| 2026-11-10 | Isola a prévia 5174, mantém os arquivos de builds anteriores para abas abertas e melhora a tela de recuperação. |
+| 2026-11-10 | Exibe recuperação de erros de rota com recarga manual na mesma URL, inclusive após falha de download de arquivos da tela. |
+| 2026-11-09 | Aplica a logo original do Figma e o nome yes7parking no cabeçalho, autenticação e aba do navegador. |
+| 2026-11-09 | Remove Início dos menus; mantém o logo Kaneko como atalho do cabeçalho para a home. |
+| 2026-11-09 | Move Ordens de Serviço para Operação → Serviços e mantém Notas de Serviço em Vendas. |
+| 2026-11-09 | Move os dois atalhos de eventos para Operação → Eventos, sem alterar permissões. |
+| 2026-11-09 | Alinhadas as políticas de menu, rotas, busca, Pátio e Relatórios ao RBAC da API. |
+| 2026-11-09 | Mostra OS automática no Pátio e NFS-e pendente no detalhe da ordem. |
+| 2026-11-08 | Padroniza seleção por nome em Eventos e Instalações, estado da lista em Ordens de Serviço e Financeiro e cabeçalho das três notas. |
+| 2026-11-08 | Generaliza formulários extensos em página no CRUD, seletores, instalações, eventos e serviços; mantém modais para ações curtas e confirmações. |
+| 2026-11-08 | Move o formulário completo de lançamento a pagar e a receber para página, com a mesma grade e proteção de descarte; mantém baixa e cancelamento em diálogo. |
+| 2026-11-08 | Substitui painéis laterais de detalhe por páginas; mantém diálogos para operações curtas e o drawer apenas como navegação mobile ativa. |
+| 2026-11-08 | Redesenha o miolo: rótulos fixos acima dos campos, cabeçalho semântico e rodapé fixo de diálogos, identidade de linha e hierarquia das tabelas, sem mudar rotas ou ações. |
+| 2026-11-08 | Redesenha cabeçalho, busca, seleção de áreas e superfícies operacionais com os padrões público e de produtor do Seven Tickets, preservando os fluxos e a estrutura das telas. |
+| 2026-11-08 | Adota a Montserrat da referência e os tratamentos de botões, títulos, tabelas e diálogos no próprio componente, além da paleta. Preserva a estrutura das páginas e os fluxos. |
+| 2026-11-08 | Alinha o tema compartilhado ao Seven Tickets Web (main 95181e4): roxo #800084, superfícies neutras, estados semânticos e anéis de foco. Mantém HexMark, tipografia, dimensões, pontos de quebra, rotas e fluxos Kaneko. |
 | 2026-11-08 | Aplica precisão decimal comum a formulários, listas, detalhes e relatórios. |
 | 2026-11-08 | Entrada, estoque e contas a pagar exibem e aceitam milionésimos nos fluxos habilitados. |
 | 2026-11-05 | Remove a operação de Pedido de Venda; Notas de Saída são o fluxo de mercadorias. |

@@ -1,5 +1,6 @@
 {
   "nodes": [
+    {"id":"operacao","type":"file","file":"operacao.md","x":1500,"y":-600,"width":360,"height":220},
     {"id":"core","type":"file","file":"core.md","x":0,"y":0,"width":360,"height":220},
     {"id":"auth","type":"file","file":"auth.md","x":500,"y":0,"width":360,"height":220},
     {"id":"administracao","type":"file","file":"administracao.md","x":1000,"y":-260,"width":360,"height":220},
@@ -25,6 +26,13 @@
     {"id":"importacao-xml","type":"file","file":"importacao-xml.md","x":5500,"y":600,"width":360,"height":220}
   ],
   "edges": [
+    {"id":"core-operacao","fromNode":"core","fromSide":"right","toNode":"operacao","toSide":"left","label":"caixa e estadias"},
+    {"id":"operacao-eventos","fromNode":"operacao","fromSide":"right","toNode":"eventos","toSide":"left","label":"contexto e fechamento"},
+    {"id":"eventos-servicos","fromNode":"eventos","fromSide":"bottom","toNode":"conveniencia","toSide":"top","label":"seleção explícita de serviço ativo"},
+    {"id":"eventos-servico-fiscal","fromNode":"eventos","fromSide":"right","toNode":"fiscal-financeiro","toSide":"top","label":"serviço registrado na OS e no rascunho"},
+    {"id":"operacao-fiscal","fromNode":"operacao","fromSide":"bottom","toNode":"fiscal-financeiro","toSide":"top","label":"OS e pendencia vinculada"},
+    {"id":"operacao-clientes-tomador","fromNode":"operacao","fromSide":"bottom","toNode":"clientes","toSide":"top","label":"cadastro fiscal no pagamento"},
+    {"id":"fiscal-clientes-tomador","fromNode":"fiscal-financeiro","fromSide":"left","toNode":"clientes","toSide":"right","label":"cadastro fiscal no rascunho"},
     {"id":"core-auth","fromNode":"core","fromSide":"right","toNode":"auth","toSide":"left","label":"JWT contextual"},
     {"id":"auth-administracao","fromNode":"auth","fromSide":"right","toNode":"administracao","toSide":"left","label":"tenant e permissoes"},
     {"id":"auth-workspace","fromNode":"auth","fromSide":"right","toNode":"workspace","toSide":"left","label":"isolamento por org"},
