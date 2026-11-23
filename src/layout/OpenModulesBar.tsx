@@ -61,12 +61,12 @@ export function OpenModulesBar({ modules, activeId, onSelect, onClose }: Props) 
               borderRadius: 1.25,
               cursor: 'pointer',
               flexShrink: 0,
-              bgcolor: active ? 'rgba(107,70,254,0.12)' : 'transparent',
+              bgcolor: active ? colors.brandHover : 'transparent',
               border: `1px solid ${active ? colors.purple : 'transparent'}`,
               color: active ? colors.purple : colors.textMuted,
               WebkitTapHighlightColor: 'transparent',
               '&:hover': {
-                bgcolor: active ? 'rgba(107,70,254,0.14)' : colors.sidebarHover,
+                bgcolor: active ? colors.brandHover : colors.surfaceMuted,
                 color: active ? colors.purple : colors.text,
               },
             }}
@@ -105,7 +105,7 @@ export function OpenModulesBar({ modules, activeId, onSelect, onClose }: Props) 
                 p: 0.25,
                 color: 'inherit',
                 opacity: 0.7,
-                '&:hover': { opacity: 1, bgcolor: 'rgba(0,0,0,0.06)' },
+                '&:hover': { opacity: 1, bgcolor: colors.surfaceMuted },
               }}
             >
               <CloseRoundedIcon sx={{ fontSize: 14 }} />

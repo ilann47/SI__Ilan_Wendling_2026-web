@@ -43,6 +43,25 @@ function SessionProbe() {
 afterEach(() => vi.restoreAllMocks());
 
 describe('AuthProvider', () => {
+  it('mantém o JWT, mas não monta o tenant quando a hidratação de permissões recebe 403', async () => {
+    const token = `header.${btoa(JSON.stringify({ sub: 'gestor', perfil: 'USUARIO', org_id: 10 }))}.signature`;
+    localStorage.setItem('kaneko.token', token);
+    const org = { organizationId: 10, legalName: 'Organização QA', membershipId: 20, membershipVersion: 0 };
+    vi.spyOn(api, 'get').mockImplementation(async (url: string) => {
+      if (url === '/api/v1/me/organizations') return { data: [org] };
+      throw { response: { status: 403 } };
+    });
+    const queryClient = new QueryClient();
+    try {
+      render(<QueryClientProvider client={queryClient}><AuthProvider><SessionProbe /></AuthProvider></QueryClientProvider>);
+      await waitFor(() => expect(api.get).toHaveBeenCalledWith('/api/v1/me/permissions'));
+      await waitFor(() => expect(screen.getByText('Tenant: nenhum')).toBeInTheDocument());
+      expect(screen.getByText('Perfil: USUARIO')).toBeInTheDocument();
+      expect(getToken()).toBe(token);
+    } finally {
+      localStorage.removeItem('kaneko.token');
+    }
+  });
   it('remove dados remotos do tenant ao encerrar a sessão', () => {
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     queryClient.setQueryData(['tenant', 10, 'events'], [{ id: 1 }]);

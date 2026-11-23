@@ -56,7 +56,7 @@ export function UserAccountMenu({ variant = 'header' }: Props) {
         aria-haspopup="menu"
         aria-expanded={open ? 'true' : undefined}
         sx={{
-          color: colors.text,
+          color: `var(--kaneko-header-fg, ${colors.text})`,
           fontWeight: 600,
           fontSize: variant === 'hub' ? '0.875rem' : '0.8rem',
           px: { xs: 0.5, sm: 1 },
@@ -64,15 +64,15 @@ export function UserAccountMenu({ variant = 'header' }: Props) {
           minHeight: 44,
           gap: 1,
           textTransform: 'none',
-          '&:hover': { bgcolor: colors.sidebarHover },
+          '&:hover': { bgcolor: `var(--kaneko-header-hover, ${colors.sidebarHover})` },
         }}
       >
         <Avatar
           sx={{
             width: 34,
             height: 34,
-            background: colors.brandGradient,
-            color: '#fff',
+            background: `var(--kaneko-header-fg, ${colors.actionFill})`,
+            color: 'var(--kaneko-header-avatar-fg, #fff)',
             fontSize: '0.72rem',
             fontWeight: 800,
           }}
@@ -80,10 +80,10 @@ export function UserAccountMenu({ variant = 'header' }: Props) {
           {initials}
         </Avatar>
         <Box sx={{ display: { xs: 'none', sm: 'block' }, textAlign: 'left', lineHeight: 1.15 }}>
-          <Typography sx={{ fontWeight: 800, fontSize: '0.8rem', color: colors.text }}>
+          <Typography sx={{ fontWeight: 750, fontSize: '0.8rem', color: 'inherit' }}>
             {userName.split(/[.@]/)[0]}
           </Typography>
-          <Typography sx={{ fontSize: '0.65rem', color: colors.textMuted, fontWeight: 600 }}>
+          <Typography sx={{ fontSize: '0.65rem', color: `var(--kaneko-header-muted, ${colors.textMuted})`, fontWeight: 600 }}>
             {roleLabel}
           </Typography>
         </Box>
@@ -101,9 +101,7 @@ export function UserAccountMenu({ variant = 'header' }: Props) {
               mt: 1,
               minWidth: 260,
               maxWidth: 'calc(100vw - 24px)',
-              borderRadius: 2,
               border: `1px solid ${colors.border}`,
-              boxShadow: '0 12px 32px rgba(15, 23, 42, 0.14)',
             },
           },
         }}

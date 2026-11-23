@@ -66,7 +66,7 @@ describe('AppLayout', () => {
     renderLayout('/app');
 
     expect(screen.getByRole('link', { name: 'Ir para o conteúdo principal' })).toHaveAttribute('href', '#conteudo-principal');
-    expect(screen.getAllByRole('button', { name: 'Kaneko' }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole('button', { name: 'yes7parking' }).length).toBeGreaterThan(0);
     expect(screen.getByRole('navigation', { name: 'Áreas da plataforma' })).toBeInTheDocument();
     expect(screen.queryByRole('navigation', { name: 'Navegação principal' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Abrir menu de navegação' })).not.toBeInTheDocument();
@@ -130,5 +130,7 @@ describe('AppLayout', () => {
     expect(screen.queryByRole('button', { name: 'Ordens de Compra' })).not.toBeInTheDocument();
     expect(screen.queryByRole('tab')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Abrir menu de navegação' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getAllByRole('button', { name: 'yes7parking' })[0]);
+    expect(screen.getByText('Hub')).toBeInTheDocument();
   });
 });

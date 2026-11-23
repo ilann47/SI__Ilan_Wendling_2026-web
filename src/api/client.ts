@@ -27,8 +27,13 @@ api.interceptors.request.use((config) => {
 });
 
 let unauthorizedHandler: (() => void) | null = null;
+let forbiddenHandler: (() => void) | null = null;
 export function setUnauthorizedHandler(fn: (() => void) | null): void {
   unauthorizedHandler = fn;
+}
+
+export function setForbiddenHandler(fn: (() => void) | null): void {
+  forbiddenHandler = fn;
 }
 
 function isAuthCredentialRequest(error: AxiosError): boolean {
@@ -46,6 +51,10 @@ api.interceptors.response.use(
       && !isAuthCredentialRequest(error)
     ) {
       unauthorizedHandler();
+    }
+    if (error.response?.status === 403 && !isAuthCredentialRequest(error)
+      && !error.config?.url?.includes('/api/v1/me/')) {
+      forbiddenHandler?.();
     }
     return Promise.reject(error);
   },
@@ -150,6 +159,8 @@ export function describeError(error: unknown, options: DescribeErrorOptions = {}
   const problem = getApiProblem(error);
   const status = getHttpStatus(error);
   const ax = error as AxiosError | undefined;
+
+  if (status === 403) return appendTraceId(messageForStatus(status, context), problem?.traceId, includeTraceId);
 
   if (problem?.erros && Object.keys(problem.erros).length > 0) {
     const fields = Object.values(problem.erros).filter(Boolean).join(' ');

@@ -25,7 +25,7 @@ describe('NoOrganizationAccessPage', () => {
 
     render(<NoOrganizationAccessPage />);
 
-    expect(screen.getByRole('heading', { name: 'Bem-vindo ao Kaneko' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Bem-vindo ao yes7parking' })).toBeInTheDocument();
     expect(screen.getByText(/ainda não possui acesso a uma organização/i)).toBeInTheDocument();
     expect(screen.getByText('Provisionamento admin')).toBeInTheDocument();
     expect(screen.queryByText('Operação')).not.toBeInTheDocument();

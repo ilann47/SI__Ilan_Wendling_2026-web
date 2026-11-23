@@ -122,7 +122,7 @@ describe('OrganizationSelectionPage', () => {
       data: {
         organization: {
           id: 123,
-          document: '12345678000190',
+          document: '12345678000195',
           legalName: 'Kaneko Estacionamentos Ltda',
           tradeName: 'Kaneko',
           currency: 'BRL',
@@ -145,13 +145,13 @@ describe('OrganizationSelectionPage', () => {
 
     renderPage();
     await userEvent.click(await screen.findByRole('button', { name: 'Criar minha organização' }));
-    await userEvent.type(screen.getByLabelText('CNPJ / documento empresarial'), '12345678000190');
+    await userEvent.type(screen.getByLabelText('CNPJ / documento empresarial'), '12345678000195');
     await userEvent.type(screen.getByLabelText('Razão social'), 'Kaneko Estacionamentos Ltda');
     await userEvent.type(screen.getByLabelText('Nome fantasia'), 'Kaneko');
     await userEvent.click(screen.getByRole('button', { name: 'Criar organização' }));
 
     await waitFor(() => expect(api.post).toHaveBeenCalledWith('/api/v1/me/organizations', expect.objectContaining({
-      document: '12345678000190',
+      document: '12345678000195',
       legalName: 'Kaneko Estacionamentos Ltda',
     })));
     expect(await screen.findByText(/criada com sucesso/i)).toBeInTheDocument();
@@ -221,7 +221,7 @@ describe('OrganizationSelectionPage', () => {
 
     renderPage();
     await userEvent.click(await screen.findByRole('button', { name: 'Criar minha organização' }));
-    await userEvent.type(screen.getByLabelText('CNPJ / documento empresarial'), '12345678000190');
+    await userEvent.type(screen.getByLabelText('CNPJ / documento empresarial'), '12345678000195');
     await userEvent.type(screen.getByLabelText('Razão social'), 'Org');
     await userEvent.click(screen.getByRole('button', { name: 'Criar organização' }));
 

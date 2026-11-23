@@ -37,12 +37,12 @@ describe('CreateOrganizationPanel', () => {
     const onCreated = renderPanel();
     const user = userEvent.setup();
 
-    await user.type(await screen.findByLabelText('CNPJ / documento empresarial'), '12345678000190');
+    await user.type(await screen.findByLabelText('CNPJ / documento empresarial'), '12345678000195');
     await user.type(screen.getByLabelText('Razão social'), 'Kaneko');
     await user.click(screen.getByRole('button', { name: 'Criar organização' }));
 
     await waitFor(() => expect(api.post).toHaveBeenCalledWith('/api/v1/me/organizations', expect.objectContaining({
-      document: '12345678000190',
+      document: '12345678000195',
     })));
     expect(onCreated).toHaveBeenCalledWith(expect.objectContaining({ organizationId: 123, membershipId: 456 }));
     expect(refreshOrganizations).toHaveBeenCalled();

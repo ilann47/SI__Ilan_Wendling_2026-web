@@ -15,7 +15,9 @@ import {
 } from '../layout/areaNavigation';
 import { type NavItem } from '../layout/navigation';
 import { hubModules, moduleNavItems } from '../layout/hubModules';
-import { useAuth } from '../auth/AuthContext';
+import { useAuth, type Perfil } from '../auth/AuthContext';
+import { canOpenAppPath } from '../auth/routeAccess';
+import { isOperationalNavigationPath } from '../layout/operationalNavigation';
 
 type Props = {
   areaId: string;
@@ -32,10 +34,10 @@ const AREA_QUICK_ACTIONS: Record<string, AreaQuickAction[]> = {
   operacao: [
     { label: 'Ver o pátio agora', description: 'Acompanhe entradas, saídas e ocupação.', path: '/app/patio' },
     { label: 'Validar acesso', description: 'Faça check-in ou check-out de eventos.', path: '/app/acesso-eventos', permissions: ['access:validate', 'access:checkin', 'access:checkout'] },
+    { label: 'Consultar ordens de serviço', description: 'Acompanhe os serviços solicitados.', path: '/app/ordens-servico', permissions: ['service_orders:read'] },
   ],
   comercial: [
     { label: 'Lançar nota de saída', description: 'Registre a venda de mercadorias direto na nota.', path: '/app/notas-saida/nova', permissions: ['fiscal:manage'] },
-    { label: 'Abrir ordem de serviço', description: 'Organize serviços solicitados.', path: '/app/ordens-servico', permissions: ['service_orders:read'] },
   ],
   estoque: [
     { label: 'Lançar nota de entrada', description: 'Confira documento, custos e pagamento.', path: '/app/notas-entrada/nova', permissions: ['fiscal:manage'] },
@@ -59,9 +61,10 @@ const AREA_QUICK_ACTIONS: Record<string, AreaQuickAction[]> = {
   ],
 };
 
-export function quickActionsFor(areaId: string, permissions: readonly string[]): AreaQuickAction[] {
+export function quickActionsFor(areaId: string, permissions: readonly string[], profile?: Perfil): AreaQuickAction[] {
   return (AREA_QUICK_ACTIONS[areaId] ?? []).filter((action) => (
-    !action.permissions || action.permissions.some((permission) => permissions.includes(permission))
+    canOpenAppPath(action.path, permissions, profile)
+    && (!action.permissions || action.permissions.some((permission) => permissions.includes(permission)))
   ));
 }
 
@@ -178,14 +181,14 @@ function ProcessItem({
 
 function MegaMenuBody({ menu }: { menu: AreaMenuDefinition }) {
   const navigate = useNavigate();
-  const { permissions } = useAuth();
+  const { permissions, user } = useAuth();
   const { prefs, toggleFavorite } = useUiPreferences();
   const { mode } = useColorMode();
   const colors = getThemeTokens(mode);
-  const groups = visibleProcessGroups(menu, permissions);
-  const quickActions = quickActionsFor(menu.areaId, permissions);
-  const favorites = prefs.favoritePaths.filter((path) => path.startsWith('/app'));
-  const recents = prefs.recentPaths.filter((path) => path.startsWith('/app') && path !== '/app');
+  const groups = visibleProcessGroups(menu, permissions, user?.perfil);
+  const quickActions = quickActionsFor(menu.areaId, permissions, user?.perfil);
+  const favorites = prefs.favoritePaths.filter((path) => isOperationalNavigationPath(path) && canOpenAppPath(path, permissions, user?.perfil));
+  const recents = prefs.recentPaths.filter((path) => path !== '/app' && isOperationalNavigationPath(path) && canOpenAppPath(path, permissions, user?.perfil));
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
@@ -320,10 +323,12 @@ function MegaMenuBody({ menu }: { menu: AreaMenuDefinition }) {
 
 function FlatAreaBody({ areaId }: { areaId: string }) {
   const navigate = useNavigate();
-  const { permissions } = useAuth();
+  const { permissions, user } = useAuth();
   const { prefs, toggleFavorite } = useUiPreferences();
   const module = hubModules.find((candidate) => candidate.id === areaId);
-  const items = module ? moduleNavItems(module, permissions) : [];
+  const items = module ? moduleNavItems(module, permissions, user?.perfil) : [];
+  const favorites = prefs.favoritePaths.filter((path) => isOperationalNavigationPath(path) && canOpenAppPath(path, permissions, user?.perfil));
+  const recents = prefs.recentPaths.filter((path) => isOperationalNavigationPath(path) && canOpenAppPath(path, permissions, user?.perfil));
   const { mode } = useColorMode();
   const colors = getThemeTokens(mode);
 
@@ -341,11 +346,11 @@ function FlatAreaBody({ areaId }: { areaId: string }) {
             Favoritos
           </Typography>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
-            {prefs.favoritePaths.length === 0 ? (
+            {favorites.length === 0 ? (
               <Typography variant="body2" sx={{ color: colors.textMuted }}>
                 Marque processos com a estrela para acesso rápido.
               </Typography>
-            ) : prefs.favoritePaths.map((path) => (
+            ) : favorites.map((path) => (
               <ShortcutRow
                 key={path}
                 path={path}
@@ -361,11 +366,11 @@ function FlatAreaBody({ areaId }: { areaId: string }) {
             Recentes
           </Typography>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
-            {prefs.recentPaths.length === 0 ? (
+            {recents.length === 0 ? (
               <Typography variant="body2" sx={{ color: colors.textMuted }}>
                 Os atalhos que você abrir aparecem aqui.
               </Typography>
-            ) : prefs.recentPaths.map((path) => (
+            ) : recents.map((path) => (
               <ShortcutRow
                 key={path}
                 path={path}
@@ -389,7 +394,7 @@ function FlatAreaBody({ areaId }: { areaId: string }) {
             gap: 0.75,
           }}
         >
-          {items.filter((item) => filterNavItem(item, permissions)).map((item) => (
+          {items.filter((item) => filterNavItem(item, permissions, user?.perfil)).map((item) => (
             <ProcessItem
               key={item.path}
               item={item}

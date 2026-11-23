@@ -15,6 +15,9 @@ perfil global `USUARIO` ou `ADMIN`. A API nao lista Memberships, papeis ou
 atribuicoes; por isso a UI mantém referências recentes para essas relações e
 deixa a limitação explícita.
 
+O seletor de papéis inclui **Caixa do pátio**, destinado a quem registra
+entradas, pagamentos e fechamento sem administrar tarifas e cadastros.
+
 ## Fluxo (camadas da arquitetura)
 
 ```text
@@ -23,6 +26,11 @@ AdministrationPage -> cliente HTTP -> controllers organization/membership/rbac
 ```
 
 ## Endpoints (se houver)
+
+A consulta e a alteração de estado de um vínculo abrem
+`/app/administracao/vinculos/:membershipId` só para quem já possui
+`organizations:admin`. O retorno leva a **Usuários e vínculos**, sem exigir
+listagem nova na API. Adicionar usuário continua em um diálogo de ação rápida.
 
 - `POST/GET/PATCH /api/v1/organizations`
 - `POST/GET/PATCH /api/v1/organizations/{id}/memberships`
@@ -36,6 +44,10 @@ Os formularios espelham `OrganizacaoResponse`, `MembershipResponse` e
 somente leitura. Alteracoes concorrentes enviam `If-Match` estrito.
 Ao criar Membership, o usuário é escolhido por autocomplete pesquisável sobre
 `/api/usuarios`; o operador não precisa descobrir ou digitar o ID global.
+O botão exige tanto `users:invite` quanto o perfil global ADMIN exigido pelo
+seletor legado. A administração contextual de vínculos e papéis não concede
+leitura do cadastro global. O fluxo de primeiro vínculo no provisionamento
+continua separado.
 
 ## Integracoes externas (se houver)
 
@@ -81,6 +93,9 @@ com a versao carregada.
 
 | Data | Acao |
 |---|---|
+| 2026-11-22 | Abre o vínculo organizacional em subpágina e preserva a autorização e o controle de versão existentes. |
+| 2026-11-09 | Separados acesso à Administração, convite, consulta de vínculos e seletor global. |
+| 2026-11-09 | Menu e rotas diretas passam a exigir o perfil legado da API para usuários/geografia e `events:read` para eventos. O caixa sem essas autorizações não vê Administração. |
 | 2026-10-24 | QA reduz metadados técnicos no perfil empresarial e padroniza moeda, fuso horário e revisão de atribuição. |
 | 2026-09-29 | Padroniza a confirmação de descarte do formulário de organização e cobre o fluxo por teste. |
 | 2026-08-03 | Implementa provisionamento, perfil empresarial, Memberships e RBAC contextual. |

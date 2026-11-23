@@ -7,7 +7,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { api, getToken, setToken, setUnauthorizedHandler } from '../api/client';
+import { api, getHttpStatus, getToken, setForbiddenHandler, setToken, setUnauthorizedHandler } from '../api/client';
 import { useQueryClient } from '@tanstack/react-query';
 import type { RegisterRequest, RegisterResponse } from '../types';
 import { rememberLastOrganizationId } from './organizationPreference';
@@ -23,6 +23,7 @@ export interface AccessibleOrganization {
   organizationId: number;
   legalName: string;
   tradeName?: string | null;
+  timeZone?: string;
   membershipId: number;
   membershipVersion: number;
 }
@@ -31,6 +32,7 @@ interface AuthContextValue {
   user: AuthUser | null;
   isAuthenticated: boolean;
   isContextLoading: boolean;
+  contextError?: 'denied' | 'unavailable' | null;
   organizations: AccessibleOrganization[];
   activeOrganization: AccessibleOrganization | null;
   permissions: string[];
@@ -114,28 +116,26 @@ async function establishSession(
   setUser: (user: AuthUser) => void,
   markHydrated: () => void,
   loadOrganizations: () => Promise<unknown>,
-  logout: () => void,
 ) {
   setToken(token);
   markHydrated();
   setUser({ login: loginName, perfil });
-  try {
-    await loadOrganizations();
-  } catch (cause) {
-    logout();
-    throw cause;
-  }
+  // A credencial já foi validada. Falha ao carregar o tenant é tratada na
+  // barreira de contexto, não como falha do login.
+  await loadOrganizations().catch(() => undefined);
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
   const hydrationStarted = useRef(false);
+  const permissionRefreshToken = useRef<string | null>(null);
   const [user, setUser] = useState<AuthUser | null>(() => userFromToken(getToken()));
   const [isContextLoading, setContextLoading] = useState(() => !!getToken());
   const [organizations, setOrganizations] = useState<AccessibleOrganization[]>([]);
   const [activeOrganization, setActiveOrganization] =
     useState<AccessibleOrganization | null>(null);
   const [permissions, setPermissions] = useState<string[]>([]);
+  const [contextError, setContextError] = useState<AuthContextValue['contextError']>(null);
   const [organizationSelectionRequested, setOrganizationSelectionRequested] = useState(false);
 
   const logout = useCallback(() => {
@@ -145,6 +145,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setOrganizations([]);
     setActiveOrganization(null);
     setPermissions([]);
+    setContextError(null);
     setOrganizationSelectionRequested(false);
     setContextLoading(false);
   }, [queryClient]);
@@ -178,6 +179,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
       setPermissions(permissionResponse.data.permissions);
       setActiveOrganization(organization);
+      setContextError(null);
       setOrganizationSelectionRequested(false);
       rememberLastOrganizationId(organizationId);
     } finally {
@@ -186,30 +188,58 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [organizations, queryClient]);
 
   const loadOrganizations = useCallback(async () => {
+    const token = getToken();
     setContextLoading(true);
     try {
       const { data } = await api.get<AccessibleOrganization[]>('/api/v1/me/organizations');
+      if (getToken() !== token) return [];
       setOrganizations(data);
-      const organizationId = decodeToken(getToken() ?? '')?.org_id;
-      if (organizationId) {
-        const organization = data.find((item) => item.organizationId === organizationId) ?? null;
-        setActiveOrganization(organization);
-        if (organization) {
-          const permissionResponse = await api.get<PermissionsResponse>('/api/v1/me/permissions');
-          setPermissions(permissionResponse.data.permissions);
-        } else {
-          setPermissions([]);
-        }
-      } else {
-        // Conta global: nunca auto-seleciona. O usuário escolhe (mesmo com 1 org).
+      const organizationId = decodeToken(token ?? '')?.org_id;
+      const organization = data.find((item) => item.organizationId === organizationId) ?? null;
+      const granted = organization
+        ? (await api.get<PermissionsResponse>('/api/v1/me/permissions')).data.permissions
+        : [];
+      if (getToken() !== token) return [];
+      setActiveOrganization(organization);
+      setPermissions(granted);
+      setContextError(null);
+      return data;
+    } catch (error) {
+      if (getToken() === token) {
+        queryClient.clear();
         setActiveOrganization(null);
         setPermissions([]);
+        setContextError(getHttpStatus(error) === 403 ? 'denied' : 'unavailable');
       }
-      return data;
+      throw error;
     } finally {
-      setContextLoading(false);
+      if (getToken() === token) setContextLoading(false);
     }
-  }, []);
+  }, [queryClient]);
+
+  const refreshPermissions = useCallback(async () => {
+    const token = getToken();
+    if (!token || !activeOrganization || permissionRefreshToken.current === token) return;
+    permissionRefreshToken.current = token;
+    try {
+      const { data } = await api.get<PermissionsResponse>('/api/v1/me/permissions');
+      if (getToken() !== token) return;
+      const current = new Set(permissions);
+      if (current.size !== new Set(data.permissions).size || data.permissions.some((permission) => !current.has(permission))) {
+        queryClient.clear();
+        setPermissions(data.permissions);
+      }
+    } catch (error) {
+      if (getToken() === token && getHttpStatus(error) === 403) {
+        queryClient.clear();
+        setActiveOrganization(null);
+        setPermissions([]);
+        setContextError('denied');
+      }
+    } finally {
+      if (permissionRefreshToken.current === token) permissionRefreshToken.current = null;
+    }
+  }, [activeOrganization, permissions, queryClient]);
 
   useEffect(() => {
     setUnauthorizedHandler(logout);
@@ -217,17 +247,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [logout]);
 
   useEffect(() => {
+    const refresh = () => { void refreshPermissions(); };
+    setForbiddenHandler(refresh);
+    window.addEventListener('focus', refresh);
+    return () => {
+      setForbiddenHandler(null);
+      window.removeEventListener('focus', refresh);
+    };
+  }, [refreshPermissions]);
+
+  useEffect(() => {
     if (user && !hydrationStarted.current) {
       hydrationStarted.current = true;
-      void loadOrganizations().catch(logout);
+      void loadOrganizations().catch(() => undefined);
     }
-  }, [loadOrganizations, logout, user]);
+  }, [loadOrganizations, user]);
 
   const markHydrated = useCallback(() => {
     hydrationStarted.current = true;
   }, []);
 
   const openOrganizationSelection = useCallback(() => {
+    setContextError(null);
     setOrganizationSelectionRequested(true);
   }, []);
 
@@ -247,9 +288,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser,
       markHydrated,
       loadOrganizations,
-      logout,
     );
-  }, [loadOrganizations, logout, markHydrated]);
+  }, [loadOrganizations, markHydrated]);
 
   const register = useCallback(async (payload: RegisterRequest) => {
     const body: RegisterRequest = {
@@ -266,15 +306,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser,
       markHydrated,
       loadOrganizations,
-      logout,
     );
-  }, [loadOrganizations, logout, markHydrated]);
+  }, [loadOrganizations, markHydrated]);
 
   return (
     <AuthContext.Provider value={{
       user,
       isAuthenticated: !!user,
       isContextLoading,
+      contextError,
       organizations,
       activeOrganization,
       permissions,

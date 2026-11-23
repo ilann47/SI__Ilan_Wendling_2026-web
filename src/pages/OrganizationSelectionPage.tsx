@@ -32,7 +32,9 @@ type HighlightedOrg = {
   membershipId?: number;
 };
 
-export function OrganizationSelectionPage() {
+export function OrganizationSelectionPage({ onSelectionStart, onSelectionFailed }: {
+  onSelectionStart?: () => void; onSelectionFailed?: () => void;
+} = {}) {
   const {
     organizations,
     selectOrganization,
@@ -68,6 +70,7 @@ export function OrganizationSelectionPage() {
     }), [organizations, term, lastOrganizationId, createdOrg?.organizationId]);
 
   const enter = async (organizationId: number) => {
+    onSelectionStart?.();
     setSelecting(organizationId);
     setError(null);
     try {
@@ -84,6 +87,7 @@ export function OrganizationSelectionPage() {
           : undefined;
       await selectOrganization(organizationId, knownList);
     } catch (cause) {
+      onSelectionFailed?.();
       const status = getHttpStatus(cause);
       if (status === 404) {
         setError('Este vínculo não está mais disponível. Atualizamos a lista de organizações.');
@@ -118,12 +122,13 @@ export function OrganizationSelectionPage() {
       sx={{
         minHeight: '100dvh',
         display: 'grid',
+        gridTemplateColumns: 'minmax(0, 1fr)',
         placeItems: 'center',
         p: 2,
         pb: 'max(16px, env(safe-area-inset-bottom))',
       }}
     >
-      <Stack spacing={2} sx={{ width: '100%', maxWidth: 560 }}>
+      <Stack spacing={2} sx={{ width: '100%', maxWidth: 560, minWidth: 0 }}>
         <Box>
           <Typography component="h1" variant="h5" sx={{ fontWeight: 800 }}>
             Escolha a organização

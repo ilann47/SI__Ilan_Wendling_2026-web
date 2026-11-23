@@ -9,12 +9,21 @@ describe('navigation - areas por processo', () => {
     expect(navGroups.map((group) => group.label)).toEqual([
       'Operação', 'Vendas', 'Estoque', 'Financeiro', 'Cadastros', 'Administração',
     ]);
+    expect(navGroups.flatMap(({ items }) => items).some(({ path }) => path === '/app')).toBe(false);
   });
 
   it.each([
     ['/app/notas-entrada', 'Estoque'],
     ['/app/notas-saida', 'Vendas'],
     ['/app/notas-servico', 'Vendas'],
+    ['/app/ordens-servico', 'Operação'],
+    ['/app/eventos', 'Operação'],
+    ['/app/vendas', 'Operação'],
+    ['/app/fornecedores', 'Cadastros'],
+    ['/app/clientes', 'Cadastros'],
+    ['/app/veiculos', 'Operação'],
+    ['/app/tarifas', 'Operação'],
+    ['/app/instalacoes', 'Operação'],
   ])('oferece %s em um único menu de processo', (path, group) => {
     expect(navGroups.filter((candidate) => candidate.items.some((item) => item.path === path))
       .map((candidate) => candidate.label)).toEqual([group]);
@@ -43,12 +52,23 @@ describe('navigation - areas por processo', () => {
     const items = [
       ...navGroups.flatMap((group) => group.items),
       ...(areaMenuFor('comercial')?.processGroups.flatMap((group) => group.items) ?? []),
-      ...quickActionsFor('comercial', ['sales:read', 'fiscal:manage', 'service_orders:read']),
+      ...quickActionsFor('comercial', ['fiscal:read', 'fiscal:manage', 'customers:read', 'catalog:read', 'stock:read', 'service_orders:read']),
     ];
     expect(items.map(({ path }) => path)).not.toContain('/app/vendas-administrativas');
     expect(items.map(({ path }) => path)).toContain('/app/notas-saida/nova');
     expect(items.map(({ path }) => path)).toContain('/app/ordens-servico');
     expect(navGroups.flatMap((group) => group.items).some(({ path }) => path === '/app/vendas')).toBe(true);
+  });
+
+  it('mantém contas a pagar e receber sem oferecer despesas avulsas nos menus', () => {
+    const paths = [
+      navGroups.find((group) => group.label === 'Financeiro')?.items.map(({ path }) => path),
+      areaMenuFor('financeiro')?.processGroups.flatMap((group) => group.items.map(({ path }) => path)),
+    ];
+    for (const menu of paths) {
+      expect(menu).toEqual(expect.arrayContaining(['/app/contas-pagar', '/app/contas-receber']));
+      expect(menu).not.toContain('/app/contas-pagar-avulsas');
+    }
   });
 
   it('exige leitura contextual para Ordens de Servico', () => {

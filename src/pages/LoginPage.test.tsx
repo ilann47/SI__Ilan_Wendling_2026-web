@@ -44,8 +44,8 @@ describe('LoginPage', () => {
   it('apresenta a identidade do hub e somente capacidades reais do produto', () => {
     renderLogin(vi.fn());
 
-    expect(screen.getByRole('heading', { name: /Hub Operacional Kaneko/i })).toBeInTheDocument();
-    const identity = screen.getByRole('region', { name: 'Identidade Kaneko' });
+    expect(screen.getByRole('heading', { name: /Hub Operacional yes7parking/i })).toBeInTheDocument();
+    const identity = screen.getByRole('region', { name: 'Identidade yes7parking' });
     expect(identity).toHaveTextContent('Operação clara.');
     expect(identity).toHaveTextContent('Decisões rápidas.');
     expect(screen.getByText('Acesso contextual por organização')).toBeInTheDocument();

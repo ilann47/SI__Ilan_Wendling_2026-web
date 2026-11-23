@@ -158,7 +158,7 @@ describe('getApiProblem / getHttpStatus', () => {
   });
 });
 
-describe('interceptor 401', () => {
+describe('interceptor de sessão', () => {
   it('nao encerra sessao na tentativa de login', async () => {
     const handler = vi.fn();
     setUnauthorizedHandler(handler);
@@ -192,5 +192,17 @@ describe('interceptor 401', () => {
 
     await expect(interceptor.rejected!(error)).rejects.toBe(error);
     expect(handler).toHaveBeenCalledOnce();
+  });
+
+  it('preserva a sessão quando uma API recusa o acesso com 403', async () => {
+    const handler = vi.fn();
+    setUnauthorizedHandler(handler);
+    const error = axiosError({ status: 403, url: '/api/usuarios' });
+    const interceptor = (api.interceptors.response as unknown as {
+      handlers: Array<{ rejected?: (err: AxiosError) => Promise<unknown> }>;
+    }).handlers[0];
+
+    await expect(interceptor.rejected!(error)).rejects.toBe(error);
+    expect(handler).not.toHaveBeenCalled();
   });
 });

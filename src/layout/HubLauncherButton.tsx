@@ -32,13 +32,14 @@ export function HubLauncherButton({ onGoHome, onSelectModule, activeModuleId }: 
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const { mode } = useColorMode();
   const colors = getThemeTokens(mode);
-  const { permissions } = useAuth();
+  const { permissions, user } = useAuth();
+  const profile = user?.perfil;
   const [anchor, setAnchor] = useState<HTMLElement | null>(null);
   const [query, setQuery] = useState('');
 
   const modules = useMemo(
-    () => hubModules.filter((module) => canOpenHubModule(module, permissions)),
-    [permissions],
+    () => hubModules.filter((module) => canOpenHubModule(module, permissions, profile)),
+    [permissions, profile],
   );
 
   const filtered = useMemo(() => {
@@ -118,7 +119,7 @@ export function HubLauncherButton({ onGoHome, onSelectModule, activeModuleId }: 
                   width: 48,
                   height: 48,
                   borderRadius: 1.5,
-                  bgcolor: active ? colors.purple : colors.brandHover,
+                  bgcolor: active ? colors.actionFill : colors.brandHover,
                   color: active ? '#fff' : colors.purple,
                   display: 'grid',
                   placeItems: 'center',
@@ -235,7 +236,7 @@ export function HubLauncherButton({ onGoHome, onSelectModule, activeModuleId }: 
                 p: 1.5,
                 borderRadius: 2,
                 border: `1px solid ${colors.border}`,
-                boxShadow: '0 12px 40px rgba(15, 23, 42, 0.16)',
+                boxShadow: colors.raisedShadow,
               },
             },
           }}

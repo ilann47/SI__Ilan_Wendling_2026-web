@@ -3,7 +3,6 @@ import AdminPanelSettingsOutlinedIcon from '@mui/icons-material/AdminPanelSettin
 import ApartmentOutlinedIcon from '@mui/icons-material/ApartmentOutlined';
 import AssessmentOutlinedIcon from '@mui/icons-material/AssessmentOutlined';
 import BadgeOutlinedIcon from '@mui/icons-material/BadgeOutlined';
-import BlockOutlinedIcon from '@mui/icons-material/BlockOutlined';
 import BuildOutlinedIcon from '@mui/icons-material/BuildOutlined';
 import CallMadeOutlinedIcon from '@mui/icons-material/CallMadeOutlined';
 import CallReceivedOutlinedIcon from '@mui/icons-material/CallReceivedOutlined';
@@ -26,10 +25,8 @@ import PeopleOutlinedIcon from '@mui/icons-material/PeopleOutlined';
 import PriceChangeOutlinedIcon from '@mui/icons-material/PriceChangeOutlined';
 import PublicOutlinedIcon from '@mui/icons-material/PublicOutlined';
 import QrCodeScannerOutlinedIcon from '@mui/icons-material/QrCodeScannerOutlined';
-import ReceiptOutlinedIcon from '@mui/icons-material/ReceiptOutlined';
 import SellOutlinedIcon from '@mui/icons-material/SellOutlined';
 import ShoppingBagOutlinedIcon from '@mui/icons-material/ShoppingBagOutlined';
-import SpaceDashboardOutlinedIcon from '@mui/icons-material/SpaceDashboardOutlined';
 import StraightenOutlinedIcon from '@mui/icons-material/StraightenOutlined';
 import SwapHorizOutlinedIcon from '@mui/icons-material/SwapHorizOutlined';
 import TrendingDownOutlinedIcon from '@mui/icons-material/TrendingDownOutlined';
@@ -37,6 +34,11 @@ import TrendingUpOutlinedIcon from '@mui/icons-material/TrendingUpOutlined';
 import WarehouseOutlinedIcon from '@mui/icons-material/WarehouseOutlined';
 import WorkOutlineIcon from '@mui/icons-material/WorkOutline';
 import { navGroups, type NavItem } from './navigation';
+import { EVENT_READ_PERMISSIONS } from '../auth/administrationAccess';
+import { PATIO_PAGE_ACCESS, REPORTS_PAGE_ACCESS } from '../auth/accessPolicy';
+import { canOpenAppPath } from '../auth/routeAccess';
+import { isOperationalNavigationPath } from './operationalNavigation';
+import type { Perfil } from '../auth/AuthContext';
 
 /** Grupo de processos dentro de uma área (mega menu estilo Bling, visual Kaneko). */
 export interface AreaProcessGroup {
@@ -56,17 +58,34 @@ export const areaMenus: AreaMenuDefinition[] = [
   {
     areaId: 'operacao',
     title: 'Operação',
-    description: 'Pátio, acessos, mensalistas e visão do dia a dia.',
+    description: 'Pátio, instalações, veículos, tarifas, acessos, eventos e serviços.',
     processGroups: [
       {
-        label: 'Dia a dia',
+        label: 'Estacionamento',
         items: [
-          { label: 'Início', path: '/app', icon: <SpaceDashboardOutlinedIcon fontSize="small" /> },
-          { label: 'Pátio', path: '/app/patio', icon: <LocalParkingOutlinedIcon fontSize="small" /> },
+          { label: 'Pátio', path: '/app/patio', icon: <LocalParkingOutlinedIcon fontSize="small" />, permissions: PATIO_PAGE_ACCESS },
+          {
+            label: 'Instalações',
+            path: '/app/instalacoes',
+            icon: <ApartmentOutlinedIcon fontSize="small" />,
+            permissions: ['facilities:manage'],
+          },
           {
             label: 'Movimentações',
             path: '/app/movimentacoes',
             icon: <SwapHorizOutlinedIcon fontSize="small" />,
+            permissions: ['operations:read'],
+          },
+          {
+            label: 'Veículos',
+            path: '/app/veiculos',
+            icon: <DirectionsCarOutlinedIcon fontSize="small" />,
+            permissions: ['operations:read'],
+          },
+          {
+            label: 'Tarifas',
+            path: '/app/tarifas',
+            icon: <PriceChangeOutlinedIcon fontSize="small" />,
             permissions: ['operations:read'],
           },
           {
@@ -79,7 +98,7 @@ export const areaMenus: AreaMenuDefinition[] = [
             label: 'Relatórios',
             path: '/app/relatorios',
             icon: <AssessmentOutlinedIcon fontSize="small" />,
-            permissions: ['finance:read', 'operations:read', 'stock:read'],
+            permissions: REPORTS_PAGE_ACCESS,
           },
         ],
       },
@@ -100,12 +119,38 @@ export const areaMenus: AreaMenuDefinition[] = [
           },
         ],
       },
+      {
+        label: 'Eventos',
+        items: [
+          { label: 'Eventos e ofertas', path: '/app/eventos', icon: <EventOutlinedIcon fontSize="small" />, permissions: EVENT_READ_PERMISSIONS },
+          {
+            label: 'Vendas e credenciais',
+            path: '/app/vendas',
+            icon: <ShoppingBagOutlinedIcon fontSize="small" />,
+            permissions: [
+              'inventory:hold', 'orders:create', 'orders:read', 'orders:manual-confirm',
+              'orders:cancel', 'credentials:issue',
+            ],
+          },
+        ],
+      },
+      {
+        label: 'Serviços',
+        items: [
+          {
+            label: 'Ordens de Serviço',
+            path: '/app/ordens-servico',
+            icon: <BuildOutlinedIcon fontSize="small" />,
+            permissions: ['service_orders:read'],
+          },
+        ],
+      },
     ],
   },
   {
     areaId: 'comercial',
     title: 'Vendas',
-    description: 'Vendas, serviços e os documentos de cada processo.',
+    description: 'Notas de saída e notas de serviço.',
     processGroups: [
       {
         label: 'Vendas',
@@ -121,12 +166,6 @@ export const areaMenus: AreaMenuDefinition[] = [
       {
         label: 'Serviços',
         items: [
-          {
-            label: 'Ordens de Serviço',
-            path: '/app/ordens-servico',
-            icon: <BuildOutlinedIcon fontSize="small" />,
-            permissions: ['service_orders:read'],
-          },
           {
             label: 'Notas de Serviço',
             path: '/app/notas-servico',
@@ -150,12 +189,6 @@ export const areaMenus: AreaMenuDefinition[] = [
             path: '/app/notas-entrada',
             icon: <CallReceivedOutlinedIcon fontSize="small" />,
             permissions: ['fiscal:read'],
-          },
-          {
-            label: 'Fornecedores',
-            path: '/app/fornecedores',
-            icon: <LocalShippingOutlinedIcon fontSize="small" />,
-            permissions: ['suppliers:read'],
           },
         ],
       },
@@ -245,12 +278,6 @@ export const areaMenus: AreaMenuDefinition[] = [
             icon: <TrendingUpOutlinedIcon fontSize="small" />,
             permissions: ['finance:read'],
           },
-          {
-            label: 'Despesas Avulsas',
-            path: '/app/contas-pagar-avulsas',
-            icon: <ReceiptOutlinedIcon fontSize="small" />,
-            permissions: ['finance:read'],
-          },
         ],
       },
     ],
@@ -258,10 +285,10 @@ export const areaMenus: AreaMenuDefinition[] = [
   {
     areaId: 'cadastros',
     title: 'Cadastros',
-    description: 'Clientes, veículos, tarifas e parceiros.',
+    description: 'Clientes, fornecedores, pagamentos e logística.',
     processGroups: [
       {
-        label: 'Clientes e veículos',
+        label: 'Clientes e fornecedores',
         items: [
           {
             label: 'Clientes',
@@ -270,16 +297,10 @@ export const areaMenus: AreaMenuDefinition[] = [
             permissions: ['customers:read'],
           },
           {
-            label: 'Veículos',
-            path: '/app/veiculos',
-            icon: <DirectionsCarOutlinedIcon fontSize="small" />,
-            permissions: ['operations:read'],
-          },
-          {
-            label: 'Tarifas',
-            path: '/app/tarifas',
-            icon: <PriceChangeOutlinedIcon fontSize="small" />,
-            permissions: ['operations:read'],
+            label: 'Fornecedores',
+            path: '/app/fornecedores',
+            icon: <LocalShippingOutlinedIcon fontSize="small" />,
+            permissions: ['suppliers:read'],
           },
         ],
       },
@@ -328,7 +349,7 @@ export const areaMenus: AreaMenuDefinition[] = [
   {
     areaId: 'admin',
     title: 'Administração',
-    description: 'Usuários, instalações, eventos e bloqueios.',
+    description: 'Organização, usuários e permissões.',
     processGroups: [
       {
         label: 'Empresa',
@@ -337,36 +358,8 @@ export const areaMenus: AreaMenuDefinition[] = [
             label: 'Administração',
             path: '/app/administracao',
             icon: <AdminPanelSettingsOutlinedIcon fontSize="small" />,
-            permissions: ['organizations:admin', 'users:invite', 'roles:grant', 'roles:revoke'],
           },
           { label: 'Usuários', path: '/app/usuarios', icon: <ManageAccountsOutlinedIcon fontSize="small" /> },
-          {
-            label: 'Instalações',
-            path: '/app/instalacoes',
-            icon: <ApartmentOutlinedIcon fontSize="small" />,
-            permissions: ['facilities:manage'],
-          },
-        ],
-      },
-      {
-        label: 'Eventos',
-        items: [
-          { label: 'Eventos e ofertas', path: '/app/eventos', icon: <EventOutlinedIcon fontSize="small" /> },
-          {
-            label: 'Vendas e credenciais',
-            path: '/app/vendas',
-            icon: <ShoppingBagOutlinedIcon fontSize="small" />,
-            permissions: [
-              'inventory:hold', 'orders:create', 'orders:read', 'orders:manual-confirm',
-              'orders:cancel', 'credentials:issue',
-            ],
-          },
-          {
-            label: 'Bloqueios',
-            path: '/app/bloqueios',
-            icon: <BlockOutlinedIcon fontSize="small" />,
-            permissions: ['organizations:admin', 'audit:read'],
-          },
         ],
       },
       {
@@ -397,27 +390,28 @@ export function areaMenuFor(areaId: string): AreaMenuDefinition | undefined {
   return areaMenus.find((menu) => menu.areaId === areaId);
 }
 
-export function filterNavItem(item: NavItem, permissions: readonly string[]): boolean {
-  return !item.permissions || item.permissions.some((permission) => permissions.includes(permission));
+export function filterNavItem(item: NavItem, permissions: readonly string[], profile?: Perfil): boolean {
+  return isOperationalNavigationPath(item.path) && canOpenAppPath(item.path, permissions, profile);
 }
 
 export function visibleProcessGroups(
   menu: AreaMenuDefinition,
   permissions: readonly string[],
+  profile?: Perfil,
 ): AreaProcessGroup[] {
   return menu.processGroups
     .map((group) => ({
       ...group,
-      items: group.items.filter((item) => filterNavItem(item, permissions)),
+      items: group.items.filter((item) => filterNavItem(item, permissions, profile)),
     }))
     .filter((group) => group.items.length > 0);
 }
 
 /** Itens flat da área (sidebar) — usa mega menu quando existir; senão o grupo clássico. */
-export function areaFlatNavItems(areaId: string, permissions: readonly string[]): NavItem[] {
+export function areaFlatNavItems(areaId: string, permissions: readonly string[], profile?: Perfil): NavItem[] {
   const menu = areaMenuFor(areaId);
   if (menu) {
-    return visibleProcessGroups(menu, permissions).flatMap((group) => group.items);
+    return visibleProcessGroups(menu, permissions, profile).flatMap((group) => group.items);
   }
   return [];
 }

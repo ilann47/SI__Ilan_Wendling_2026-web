@@ -8,6 +8,7 @@ import { describeError } from '../api/client';
 import { OrganizationProvisioningCard } from '../features/organizations/OrganizationProvisioningCard';
 import { getThemeTokens } from '../theme/hubTokens';
 import { useColorMode } from '../context/ColorModeContext';
+import { productName } from '../components/brand/brandName';
 
 export function NoOrganizationAccessPage() {
   const { logout, user, refreshOrganizations } = useAuth();
@@ -43,7 +44,7 @@ export function NoOrganizationAccessPage() {
         <BusinessOutlinedIcon sx={{ fontSize: 48, color: colors.purple }} />
         <Box>
           <Typography component="h1" variant="h5" sx={{ fontWeight: 800 }}>
-            Bem-vindo ao Kaneko
+            Bem-vindo ao {productName}
           </Typography>
           <Typography color="text.secondary" sx={{ mt: 1 }}>
             Sua conta foi criada com sucesso. Você ainda não possui acesso a uma organização.

@@ -11,6 +11,8 @@ import { describeError } from '../../api/client';
 import { globalSearchApi, type GlobalSearchResult } from '../../api/globalSearch';
 import { tenantQueryKey } from '../../api/queryKeys';
 import { useAuth } from '../../auth/AuthContext';
+import { canOpenAppPath } from '../../auth/routeAccess';
+import { isOperationalNavigationPath } from '../../layout/operationalNavigation';
 import { rememberRecentSearch } from '../../preferences/uiPreferences';
 import { highlightTerm } from '../listing/listingUtils';
 import { ErrorState } from '../listing/ErrorState';
@@ -32,7 +34,7 @@ function Highlight({ text, term }: { text: string; term: string }) {
   return (
     <>
       {highlightTerm(text, term).map((part, index) => (
-        <Box key={`${part.text}-${index}`} component="span" sx={part.match ? { bgcolor: 'warning.light', fontWeight: 700 } : undefined}>
+        <Box key={`${part.text}-${index}`} component="span" sx={part.match ? { bgcolor: 'action.selected', color: 'primary.main', fontWeight: 700 } : undefined}>
           {part.text}
         </Box>
       ))}
@@ -41,7 +43,7 @@ function Highlight({ text, term }: { text: string; term: string }) {
 }
 
 export function GlobalSearch() {
-  const { activeOrganization } = useAuth();
+  const { activeOrganization, permissions, user } = useAuth();
   const navigate = useNavigate();
   const inputRef = useRef<HTMLInputElement>(null);
   const [open, setOpen] = useState(false);
@@ -78,10 +80,11 @@ export function GlobalSearch() {
     enabled: open && !!organizationId && query.length >= 2,
   });
 
-  const flat = useMemo<GlobalSearchResult[]>(
-    () => search.data?.grupos.flatMap((group) => group.resultados) ?? [],
-    [search.data],
-  );
+  const visibleGroups = useMemo(() => (search.data?.grupos ?? []).map((group) => ({
+    ...group, resultados: group.resultados.filter((result) => isOperationalNavigationPath(result.caminho)
+      && canOpenAppPath(result.caminho, permissions, user?.perfil)),
+  })).filter((group) => group.resultados.length > 0), [search.data, permissions, user?.perfil]);
+  const flat = visibleGroups.flatMap((group) => group.resultados);
 
   const close = () => { setOpen(false); setInput(''); setQuery(''); setSelected(0); };
   const openResult = (result: GlobalSearchResult) => {
@@ -116,7 +119,9 @@ export function GlobalSearch() {
           display: { xs: 'inline-flex', md: 'none' },
           width: 44,
           height: 44,
-          borderRadius: 1.25,
+          borderRadius: '100px',
+          color: 'var(--kaneko-header-fg, inherit)',
+          '&:hover': { bgcolor: 'var(--kaneko-header-hover, transparent)' },
           alignItems: 'center',
           justifyContent: 'center',
         }}
@@ -126,17 +131,17 @@ export function GlobalSearch() {
       <ButtonBase aria-label="Buscar em toda a plataforma" onClick={() => setOpen(true)} sx={{
         display: { xs: 'none', md: 'flex' }, width: '100%', maxWidth: 520, px: 1.75, py: 0.85,
         border: '1px solid', borderColor: 'divider', borderRadius: 999,
-        bgcolor: 'background.default', justifyContent: 'space-between',
+        bgcolor: 'background.paper', justifyContent: 'space-between', gap: 1,
         fontSize: '0.85rem',
         '&:hover': { borderColor: 'primary.light', bgcolor: 'action.hover' },
       }}>
-        <Stack direction="row" spacing={1} alignItems="center">
+        <Stack direction="row" spacing={1} alignItems="center" sx={{ minWidth: 0 }}>
           <SearchOutlinedIcon sx={{ fontSize: 18, color: 'text.secondary' }} />
-          <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.85rem' }}>
+          <Typography variant="body2" color="text.secondary" noWrap sx={{ fontSize: '0.85rem' }}>
             Buscar módulos, relatórios, cadastros…
           </Typography>
         </Stack>
-        <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: 'text.secondary' }}>
+        <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: 'text.secondary', bgcolor: 'action.hover', borderRadius: '6px', px: 0.65, whiteSpace: 'nowrap' }}>
           Ctrl + K
         </Typography>
       </ButtonBase>
@@ -184,10 +189,10 @@ export function GlobalSearch() {
                 onRetry={() => void search.refetch()} />
             </Box>
           )}
-          {!search.isFetching && !search.isError && search.data?.total === 0 && (
+          {!search.isFetching && !search.isError && search.data && flat.length === 0 && (
             <Typography color="text.secondary" sx={{ p: 3 }}>Nenhum resultado encontrado.</Typography>
           )}
-          {!search.isError && search.data?.grupos.map((group) => (
+          {!search.isError && visibleGroups.map((group) => (
             <Box key={group.grupo}>
               <Typography variant="overline" color="text.secondary" sx={{ px: 3, pt: 2, display: 'block' }}>{group.grupo}</Typography>
               <List disablePadding>

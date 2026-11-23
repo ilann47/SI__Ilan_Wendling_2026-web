@@ -1,16 +1,17 @@
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import { Alert, Box, Typography } from '@mui/material';
+import { Link } from 'react-router-dom';
 import type { ReactNode } from 'react';
 import { useAuth } from './AuthContext';
+import { allowsAccess, type AccessPolicy } from './accessPolicy';
 
-interface PermissionRouteProps {
-  anyOf: string[];
+interface PermissionRouteProps extends AccessPolicy {
   children: ReactNode;
 }
 
-export function PermissionRoute({ anyOf, children }: PermissionRouteProps) {
-  const { permissions } = useAuth();
-  if (anyOf.some((permission) => permissions.includes(permission))) return <>{children}</>;
+export function PermissionRoute({ children, ...policy }: PermissionRouteProps) {
+  const { permissions, user } = useAuth();
+  if (allowsAccess(permissions, policy, user?.perfil)) return <>{children}</>;
 
   return (
     <Box sx={{ maxWidth: 640, mx: 'auto', py: 6 }}>
@@ -19,6 +20,7 @@ export function PermissionRoute({ anyOf, children }: PermissionRouteProps) {
         <Typography variant="body2">
           Seu vínculo atual não possui permissão para esta área.
         </Typography>
+        <Link to="/app">Voltar ao início</Link>
       </Alert>
     </Box>
   );

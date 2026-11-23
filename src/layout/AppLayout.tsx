@@ -9,6 +9,10 @@ import { APP_HEADER_HEIGHTS } from './layoutMetrics';
 import { useColorMode } from '../context/ColorModeContext';
 import { useUiPreferences } from '../preferences/useUiPreferences';
 import { getThemeTokens } from '../theme/hubTokens';
+import { QuickFormPageHost } from '../components/form/QuickFormPageHost';
+import { useAuth } from '../auth/AuthContext';
+import { canOpenAppPath } from '../auth/routeAccess';
+import { isOperationalNavigationPath } from './operationalNavigation';
 
 export interface AppLayoutContext {
   openArea: (areaId: string) => void;
@@ -20,6 +24,7 @@ export function AppLayout() {
   const { mode } = useColorMode();
   const colors = getThemeTokens(mode);
   const { rememberPath } = useUiPreferences();
+  const { permissions, user } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const activeModule = resolveHubModule(location.pathname, location.search);
@@ -28,13 +33,13 @@ export function AppLayout() {
 
   useEffect(() => {
     if (/^\/app\/?$/.test(location.pathname) || location.pathname.startsWith('/app/areas/')) return;
-    rememberPath(`${location.pathname}${location.search}`);
-  }, [location.pathname, location.search, rememberPath]);
+    const path = `${location.pathname}${location.search}`;
+    if (isOperationalNavigationPath(path) && canOpenAppPath(path, permissions, user?.perfil)) rememberPath(path);
+  }, [location.pathname, location.search, rememberPath, permissions, user?.perfil]);
 
   return (
     <Box sx={{
-      minHeight: '100dvh', bgcolor: colors.background, overflowX: 'hidden',
-      backgroundImage: mode === 'light' ? 'radial-gradient(circle at 92% 8%, rgba(107,70,254,0.07), transparent 24%)' : 'none',
+      minHeight: '100dvh', bgcolor: colors.background, overflowX: 'clip',
       backgroundAttachment: 'fixed',
     }}>
       <Box component="a" href="#conteudo-principal" sx={{
@@ -56,7 +61,7 @@ export function AppLayout() {
           <ContextSelector />
         </Box>
       <Box sx={{ width: '100%', maxWidth: 1920, mx: 'auto', p: { xs: 1.5, sm: 2.5, md: 3 }, minWidth: 0 }}>
-          <Outlet context={{ openArea: setRequestedArea } satisfies AppLayoutContext} />
+          <QuickFormPageHost><Outlet context={{ openArea: setRequestedArea } satisfies AppLayoutContext} /></QuickFormPageHost>
         </Box>
       </Box>
     </Box>

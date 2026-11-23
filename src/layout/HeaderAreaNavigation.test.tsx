@@ -5,9 +5,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ColorModeProvider } from '../context/ColorModeContext';
 import { createTheme } from '@mui/material/styles';
 import { HeaderAreaNavigation } from './HeaderAreaNavigation';
+import type { Perfil } from '../auth/AuthContext';
 
-const state = vi.hoisted(() => ({ permissions: ['stock:read', 'fiscal:read'], mobile: false }));
-vi.mock('../auth/AuthContext', () => ({ useAuth: () => ({ permissions: state.permissions }) }));
+const state = vi.hoisted(() => ({ permissions: ['stock:read', 'fiscal:read'], mobile: false, perfil: 'USUARIO' as Perfil }));
+vi.mock('../auth/AuthContext', () => ({ useAuth: () => ({ permissions: state.permissions, user: { perfil: state.perfil } }) }));
 vi.mock('@mui/material', async (importOriginal) => ({
   ...await importOriginal<typeof import('@mui/material')>(),
   useMediaQuery: () => state.mobile,
@@ -30,6 +31,70 @@ describe('navegação por áreas no cabeçalho', () => {
   beforeEach(() => {
     state.permissions = ['stock:read', 'fiscal:read'];
     state.mobile = false;
+    state.perfil = 'USUARIO';
+  });
+
+  it.each([false, true])('oculta Administração do caixa (mobile=%s)', async (mobile) => {
+    state.permissions = ['operations:checkout'];
+    state.mobile = mobile;
+    const user = setup();
+    if (mobile) await user.click(screen.getByRole('button', { name: 'Abrir áreas e processos' }));
+    expect(screen.queryByRole('button', { name: 'Administração' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Operação' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Operação' }));
+    expect(screen.getByRole('link', { name: 'Pátio' })).toHaveAttribute('href', '/app/patio');
+    expect(screen.queryByRole('link', { name: 'Instalações' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Dia a dia' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /^Início$/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Eventos e ofertas' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Vendas e credenciais' })).not.toBeInTheDocument();
+  });
+
+  it.each([false, true])('abre Instalações junto ao Pátio sem alterar a rota (mobile=%s)', async (mobile) => {
+    state.mobile = mobile;
+    state.permissions = ['operations:read', 'facilities:manage', 'organizations:admin'];
+    const user = setup();
+    if (mobile) await user.click(screen.getByRole('button', { name: 'Abrir áreas e processos' }));
+
+    await user.click(screen.getByRole('button', { name: 'Operação' }));
+    const panel = within(mobile
+      ? screen.getByRole('dialog', { name: 'Áreas e processos' })
+      : screen.getByRole('region', { name: 'Processos de Operação' }));
+    expect(panel.getByRole('heading', { name: 'Estacionamento' })).toBeInTheDocument();
+    const [patio, instalacoes] = panel.getAllByRole('link');
+    expect(patio).toHaveAccessibleName('Pátio');
+    expect(instalacoes).toHaveAccessibleName('Instalações');
+    expect(instalacoes).toHaveAttribute('href', '/app/instalacoes');
+    await user.click(instalacoes);
+    expect(screen.getByLabelText('Rota atual')).toHaveTextContent('/app/instalacoes');
+
+    if (!mobile) {
+      await user.click(screen.getByRole('button', { name: 'Administração' }));
+      const admin = within(screen.getByRole('region', { name: 'Processos de Administração' }));
+      expect(admin.queryByRole('link', { name: 'Instalações' })).not.toBeInTheDocument();
+    }
+  });
+
+  it('preserva os atalhos legados e de eventos para quem pode abrir cada rota', async () => {
+    state.perfil = 'ADMIN';
+    state.permissions = ['events:read', 'orders:read', 'fiscal:read'];
+    const user = setup();
+    await user.click(screen.getByRole('button', { name: 'Administração' }));
+    const panel = screen.getByRole('region', { name: 'Processos de Administração' });
+    expect(within(panel).getByRole('link', { name: 'Usuários' })).toBeInTheDocument();
+    expect(within(panel).getByRole('link', { name: 'Países' })).toBeInTheDocument();
+    expect(within(panel).queryByRole('link', { name: 'Eventos e ofertas' })).not.toBeInTheDocument();
+    expect(within(panel).queryByRole('link', { name: 'Vendas e credenciais' })).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Vendas' }));
+    const sales = within(screen.getByRole('region', { name: 'Processos de Vendas' }));
+    expect(sales.queryByRole('link', { name: 'Eventos e ofertas' })).not.toBeInTheDocument();
+    expect(sales.queryByRole('link', { name: 'Vendas e credenciais' })).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Operação' }));
+    const operations = within(screen.getByRole('region', { name: 'Processos de Operação' }));
+    expect(operations.queryByRole('heading', { name: 'Estacionamento' })).not.toBeInTheDocument();
+    expect(operations.getByRole('heading', { name: /^Eventos$/ })).toBeInTheDocument();
+    expect(operations.getByRole('link', { name: 'Eventos e ofertas' })).toHaveAttribute('href', '/app/eventos');
+    expect(operations.getByRole('link', { name: 'Vendas e credenciais' })).toHaveAttribute('href', '/app/vendas');
   });
 
   it('abre processos em colunas sem sair da tela e navega direto com os filtros', async () => {

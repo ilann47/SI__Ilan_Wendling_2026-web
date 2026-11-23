@@ -5,8 +5,9 @@ import PeopleOutlinedIcon from '@mui/icons-material/PeopleOutlined';
 import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined';
 import AdminPanelSettingsOutlinedIcon from '@mui/icons-material/AdminPanelSettingsOutlined';
 import type { ReactElement } from 'react';
-import { areaFlatNavItems, areaMenuFor, filterNavItem } from './areaNavigation';
+import { areaFlatNavItems, areaMenuFor, areaMenus, filterNavItem } from './areaNavigation';
 import { navGroups, type NavItem } from './navigation';
+import type { Perfil } from '../auth/AuthContext';
 
 export interface HubModule {
   id: string;
@@ -24,7 +25,7 @@ export const hubModules: HubModule[] = [
   {
     id: 'operacao',
     label: 'Operação',
-    description: 'Pátio, acessos, mensalistas e relatórios',
+    description: 'Pátio, veículos, tarifas, instalações, acessos, eventos e serviços',
     icon: <LocalParkingOutlinedIcon />,
     homePath: '/app/areas/operacao',
     groupLabel: 'Operação',
@@ -32,7 +33,7 @@ export const hubModules: HubModule[] = [
   {
     id: 'comercial',
     label: 'Vendas',
-    description: 'Vendas, ordens de serviço e notas de saída e de serviço',
+    description: 'Notas de saída e notas de serviço',
     icon: <ShoppingCartCheckoutOutlinedIcon />,
     homePath: '/app/areas/comercial',
     groupLabel: 'Vendas',
@@ -57,7 +58,7 @@ export const hubModules: HubModule[] = [
   {
     id: 'cadastros',
     label: 'Cadastros',
-    description: 'Clientes, veículos, tarifas e parceiros',
+    description: 'Clientes, fornecedores, pagamentos e logística',
     icon: <PeopleOutlinedIcon />,
     homePath: '/app/areas/cadastros',
     groupLabel: 'Cadastros',
@@ -65,7 +66,7 @@ export const hubModules: HubModule[] = [
   {
     id: 'admin',
     label: 'Administração',
-    description: 'Usuários, instalações, eventos, vagas e bloqueios',
+    description: 'Organização, usuários e permissões',
     icon: <AdminPanelSettingsOutlinedIcon />,
     homePath: '/app/areas/admin',
     groupLabel: 'Administração',
@@ -93,23 +94,24 @@ export function resolveHubModule(pathname: string, search = ''): HubModule | nul
     return hubModules.find((module) => module.id === areaMatch[1]) ?? null;
   }
 
-  const allItems = navGroups.flatMap((group) => group.items.map((item) => ({ group: group.label, item })));
+  const allItems = areaMenus.flatMap((menu) => menu.processGroups
+    .flatMap((group) => group.items.map((item) => ({ areaId: menu.areaId, item }))));
   const match = allItems
     .filter(({ item }) => pathMatches(pathname, search, item.path))
     .sort((a, b) => b.item.path.length - a.item.path.length)[0];
   if (!match) return null;
-  return hubModules.find((module) => module.groupLabel === match.group) ?? null;
+  return hubModules.find((module) => module.id === match.areaId) ?? null;
 }
 
-export function moduleNavItems(module: HubModule, permissions: readonly string[]): NavItem[] {
+export function moduleNavItems(module: HubModule, permissions: readonly string[], profile?: Perfil): NavItem[] {
   if (areaMenuFor(module.id)) {
-    return areaFlatNavItems(module.id, permissions);
+    return areaFlatNavItems(module.id, permissions, profile);
   }
   const group = navGroups.find((candidate) => candidate.label === module.groupLabel);
   if (!group) return [];
-  return group.items.filter((item) => filterNavItem(item, permissions));
+  return group.items.filter((item) => filterNavItem(item, permissions, profile));
 }
 
-export function canOpenHubModule(module: HubModule, permissions: readonly string[]): boolean {
-  return moduleNavItems(module, permissions).length > 0;
+export function canOpenHubModule(module: HubModule, permissions: readonly string[], profile?: Perfil): boolean {
+  return moduleNavItems(module, permissions, profile).length > 0;
 }

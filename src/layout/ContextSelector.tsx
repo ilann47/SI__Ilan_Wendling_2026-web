@@ -32,19 +32,22 @@ export function ContextSelector() {
         aria-label="Contexto operacional"
         aria-haspopup="true"
         onClick={(eventClick) => setAnchor(eventClick.currentTarget)}
-        sx={{
+        sx={(theme) => ({
           maxWidth: { xs: '100%', sm: 320, md: 420 },
           width: { xs: '100%', sm: 'auto' },
-          px: 1.25, py: 1, borderRadius: 2, textAlign: 'left',
+          px: 1.25, py: 1, borderRadius: '100px', textAlign: 'left',
+          color: 'var(--kaneko-header-fg, inherit)',
+          boxShadow: 'inset 0 0 0 1px var(--kaneko-header-line, transparent)',
+          '&:hover': { bgcolor: `var(--kaneko-header-hover, ${theme.palette.action.hover})` },
           minHeight: 48,
-        }}
+        })}
       >
         <Stack spacing={0.15} sx={{ minWidth: 0 }}>
           <Stack direction="row" alignItems="center" spacing={0.5}>
             <Typography variant="subtitle2" noWrap>{organizationName}</Typography>
             <ExpandMoreOutlinedIcon fontSize="small" />
           </Stack>
-          <Typography variant="caption" color="text.secondary" noWrap>
+          <Typography variant="caption" noWrap sx={(theme) => ({ color: `var(--kaneko-header-muted, ${theme.palette.text.secondary})` })}>
             {role}
             {venue ? ` · ${venue.label}` : ''}
             {event ? ` · ${event.label}` : ''}

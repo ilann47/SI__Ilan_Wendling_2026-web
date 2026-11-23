@@ -9,6 +9,9 @@ seus contatos e suas referências comerciais e logísticas.
 
 ## Contexto
 
+O atalho fica em **Cadastros → Clientes e fornecedores**. O acesso à
+listagem continua exigindo `suppliers:read`.
+
 O backend V42 tornou `/api/fornecedores` tenant-aware sem alterar a URL pública.
 O frontend mantém `/app/fornecedores` e o formulário existente, agora exigindo
 JWT contextual, permissões por ação e cache isolado pela organização ativa.
@@ -98,5 +101,7 @@ ou revogação de permissão descarta o contexto do diálogo, não os dados do b
 
 | Data | Ação |
 |---|---|
+| 2026-11-13 | Agrupa o atalho de Fornecedores com Clientes, sem mudar o acesso. |
+| 2026-11-13 | Move Fornecedores para Cadastros → Parceiros, preservando a rota e o acesso. |
 | 2026-08-03 | Adapta exclusivamente Fornecedores ao contrato multiempresa V42. |
 | 2026-09-12 | Valida cadastro contextual real, cancelamento e erro sem perder itens, seleção automática do cadastro salvo, RBAC e isolamento por organização. |

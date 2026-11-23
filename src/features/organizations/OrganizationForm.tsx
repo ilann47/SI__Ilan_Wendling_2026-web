@@ -8,6 +8,8 @@ import {
 import { useRef, useState, type FormEvent } from 'react';
 import { getApiProblem, getHttpStatus } from '../../api/client';
 import { ConfirmDialog } from '../../components/common/ConfirmDialog';
+import { validaCnpj } from '../../utils/documento';
+import { currencyChoices, regionChoices, planChoices, timeZoneChoices } from './organizationChoices';
 import {
   DEFAULT_ORGANIZATION_FORM,
   digitsOnly,
@@ -46,7 +48,7 @@ export function OrganizationForm({
   const [formError, setFormError] = useState('');
   const [dirty, setDirty] = useState(false);
   const [confirmDiscard, setConfirmDiscard] = useState(false);
-  const refs = useRef<Partial<Record<FieldKey, HTMLInputElement | null>>>({});
+  const refs = useRef<Partial<Record<FieldKey, HTMLInputElement | HTMLSelectElement | null>>>({});
 
   const setField = (key: FieldKey, value: string) => {
     setDirty(true);
@@ -64,16 +66,17 @@ export function OrganizationForm({
     const document = digitsOnly(values.document);
     if (!document) errors.document = 'Informe o documento empresarial.';
     else if (document.length !== 14) errors.document = 'Informe um CNPJ com 14 dígitos.';
+    else if (!validaCnpj(document)) errors.document = 'Informe um CNPJ válido.';
 
     if (!values.legalName.trim()) errors.legalName = 'Informe a razão social.';
     else if (values.legalName.trim().length > 160) errors.legalName = 'A razão social pode ter no máximo 160 caracteres.';
 
     if (values.tradeName.trim().length > 160) errors.tradeName = 'O nome fantasia pode ter no máximo 160 caracteres.';
 
-    if (!values.currency.trim()) errors.currency = 'Informe a moeda.';
-    if (!values.timeZone.trim()) errors.timeZone = 'Informe o fuso horário.';
-    if (!values.region.trim()) errors.region = 'Informe a região.';
-    if (!values.plan.trim()) errors.plan = 'Informe o plano.';
+    if (!currencyChoices.some(({ value }) => value === values.currency)) errors.currency = 'Selecione uma moeda da lista.';
+    if (!timeZoneChoices.some(({ value }) => value === values.timeZone)) errors.timeZone = 'Selecione um fuso horário da lista.';
+    if (!regionChoices.some(({ value }) => value === values.region)) errors.region = 'Selecione um estado da lista.';
+    if (!planChoices.some(({ value }) => value === values.plan)) errors.plan = 'Selecione um plano da lista.';
     return errors;
   };
 
@@ -191,6 +194,9 @@ export function OrganizationForm({
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
         <TextField
           label="Moeda"
+          select
+          SelectProps={{ native: true }}
+          disabled={loading}
           value={values.currency}
           onChange={(event) => setField('currency', event.target.value.toUpperCase())}
           inputRef={(el) => { refs.current.currency = el; }}
@@ -198,10 +204,15 @@ export function OrganizationForm({
           helperText={fieldErrors.currency}
           required
           fullWidth
-          inputProps={{ maxLength: 3, 'aria-label': 'Moeda' }}
-        />
+          inputProps={{ 'aria-label': 'Moeda' }}
+        >
+          {currencyChoices.map(({ value, label }) => <option key={value} value={value}>{label}</option>)}
+        </TextField>
         <TextField
           label="Região"
+          select
+          SelectProps={{ native: true }}
+          disabled={loading}
           value={values.region}
           onChange={(event) => setField('region', event.target.value.toUpperCase())}
           inputRef={(el) => { refs.current.region = el; }}
@@ -209,10 +220,15 @@ export function OrganizationForm({
           helperText={fieldErrors.region}
           required
           fullWidth
-          inputProps={{ maxLength: 8, 'aria-label': 'Região' }}
-        />
+          inputProps={{ 'aria-label': 'Região' }}
+        >
+          {regionChoices.map(({ value, label }) => <option key={value} value={value}>{label}</option>)}
+        </TextField>
         <TextField
           label="Plano"
+          select
+          SelectProps={{ native: true }}
+          disabled={loading}
           value={values.plan}
           onChange={(event) => setField('plan', event.target.value.toUpperCase())}
           inputRef={(el) => { refs.current.plan = el; }}
@@ -220,20 +236,32 @@ export function OrganizationForm({
           helperText={fieldErrors.plan}
           required
           fullWidth
-          inputProps={{ maxLength: 30, 'aria-label': 'Plano' }}
-        />
+          inputProps={{ 'aria-label': 'Plano' }}
+        >
+          {planChoices.map(({ value, label }) => <option key={value} value={value}>{label}</option>)}
+        </TextField>
       </Stack>
       <TextField
         label="Fuso horário"
+        select
+        SelectProps={{ native: true }}
+        disabled={loading}
         value={values.timeZone}
         onChange={(event) => setField('timeZone', event.target.value)}
         inputRef={(el) => { refs.current.timeZone = el; }}
         error={Boolean(fieldErrors.timeZone)}
-        helperText={fieldErrors.timeZone ?? 'Ex.: America/Sao_Paulo'}
+        helperText={fieldErrors.timeZone ?? 'Selecione a cidade/fuso da organização.'}
         required
         fullWidth
-        inputProps={{ maxLength: 60, 'aria-label': 'Fuso horário' }}
-      />
+        inputProps={{ 'aria-label': 'Fuso horário' }}
+      >
+        <optgroup label="Brasil">
+          {timeZoneChoices.filter(({ brazil }) => brazil).map(({ value, label }) => <option key={value} value={value}>{label}</option>)}
+        </optgroup>
+        <optgroup label="Outros fusos">
+          {timeZoneChoices.filter(({ brazil }) => !brazil).map(({ value, label }) => <option key={value} value={value}>{label}</option>)}
+        </optgroup>
+      </TextField>
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.25}>
         <Button type="submit" variant="contained" disabled={loading} sx={{ minHeight: 44 }}>
           {loading ? 'Salvando…' : submitLabel}

@@ -27,10 +27,10 @@ import LightModeOutlinedIcon from '@mui/icons-material/LightModeOutlined';
 import { useAuth } from '../auth/AuthContext';
 import { getApiProblem, getHttpStatus } from '../api/client';
 import { BrandMark } from '../components/brand/BrandMark';
-import { getThemeTokens } from '../theme/hubTokens';
+import { productName } from '../components/brand/brandName';
+import { componentRadius, getThemeTokens } from '../theme/hubTokens';
 import { useColorMode } from '../context/ColorModeContext';
 
-const PURPLE = '#6B46FE';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -100,12 +100,9 @@ export function RegisterPage() {
 
   const fieldSx = {
     '& .MuiOutlinedInput-root': {
-      borderRadius: '12px',
+      borderRadius: `${componentRadius.control}px`,
       bgcolor: colors.card,
       minHeight: 48,
-      '& fieldset': { borderColor: colors.border },
-      '&:hover fieldset': { borderColor: colors.purpleSoft },
-      '&.Mui-focused fieldset': { borderColor: PURPLE, borderWidth: 1.5 },
     },
     '& .MuiInputBase-input': {
       fontSize: '0.92rem',
@@ -222,7 +219,7 @@ export function RegisterPage() {
         <IconButton
           onClick={toggle}
           size="small"
-          sx={{ color: '#9AA3B2' }}
+          sx={{ color: colors.textMuted }}
           aria-label={mode === 'light' ? 'Ativar modo escuro' : 'Ativar modo claro'}
         >
           {mode === 'light' ? <DarkModeOutlinedIcon sx={{ fontSize: 18 }} /> : <LightModeOutlinedIcon sx={{ fontSize: 18 }} />}
@@ -238,18 +235,18 @@ export function RegisterPage() {
           width: '100%',
           maxWidth: 440,
           bgcolor: colors.card,
-          borderRadius: '24px',
+          borderRadius: `${componentRadius.surface}px`,
           px: { xs: 2.5, sm: 4 },
           py: { xs: 3, sm: 4 },
-          boxShadow: '0 16px 48px rgba(27, 33, 64, 0.08)',
+          boxShadow: colors.raisedShadow,
           border: `1px solid ${colors.border}`,
         }}
       >
-        <Typography component="h1" sx={{ fontWeight: 800, fontSize: '1.35rem', color: colors.text, textAlign: 'center' }}>
+        <Typography component="h1" sx={{ fontWeight: 750, fontSize: '1.35rem', color: colors.text, textAlign: 'center' }}>
           Criar conta
         </Typography>
         <Typography sx={{ mt: 0.6, mb: 2.5, textAlign: 'center', color: colors.textMuted, fontSize: '0.88rem' }}>
-          Preencha seus dados para acessar o Hub Operacional Kaneko.
+          Preencha seus dados para acessar o Hub Operacional {productName}.
         </Typography>
 
         <Box component="form" onSubmit={submit} noValidate>
@@ -271,7 +268,7 @@ export function RegisterPage() {
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
-                  <BadgeOutlinedIcon sx={{ fontSize: 20, color: '#B0B7C3' }} />
+                  <BadgeOutlinedIcon sx={{ fontSize: 20, color: colors.textMuted }} />
                 </InputAdornment>
               ),
             }}
@@ -295,7 +292,7 @@ export function RegisterPage() {
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
-                  <PersonOutlineOutlinedIcon sx={{ fontSize: 20, color: '#B0B7C3' }} />
+                  <PersonOutlineOutlinedIcon sx={{ fontSize: 20, color: colors.textMuted }} />
                 </InputAdornment>
               ),
             }}
@@ -320,7 +317,7 @@ export function RegisterPage() {
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
-                  <MailOutlineIcon sx={{ fontSize: 20, color: '#B0B7C3' }} />
+                  <MailOutlineIcon sx={{ fontSize: 20, color: colors.textMuted }} />
                 </InputAdornment>
               ),
             }}
@@ -345,7 +342,7 @@ export function RegisterPage() {
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
-                  <LockOutlinedIcon sx={{ fontSize: 20, color: '#B0B7C3' }} />
+                  <LockOutlinedIcon sx={{ fontSize: 20, color: colors.textMuted }} />
                 </InputAdornment>
               ),
               endAdornment: (
@@ -356,7 +353,7 @@ export function RegisterPage() {
                     size="small"
                     aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
                     aria-pressed={showPassword}
-                    sx={{ color: '#B0B7C3' }}
+                    sx={{ color: colors.textMuted }}
                   >
                     {showPassword ? <VisibilityOffOutlinedIcon /> : <VisibilityOutlinedIcon />}
                   </IconButton>
@@ -390,7 +387,7 @@ export function RegisterPage() {
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
-                  <LockOutlinedIcon sx={{ fontSize: 20, color: '#B0B7C3' }} />
+                  <LockOutlinedIcon sx={{ fontSize: 20, color: colors.textMuted }} />
                 </InputAdornment>
               ),
               endAdornment: (
@@ -401,7 +398,7 @@ export function RegisterPage() {
                     size="small"
                     aria-label={showConfirm ? 'Ocultar confirmação de senha' : 'Mostrar confirmação de senha'}
                     aria-pressed={showConfirm}
-                    sx={{ color: '#B0B7C3' }}
+                    sx={{ color: colors.textMuted }}
                   >
                     {showConfirm ? <VisibilityOffOutlinedIcon /> : <VisibilityOutlinedIcon />}
                   </IconButton>
@@ -418,30 +415,26 @@ export function RegisterPage() {
 
           <Button
             type="submit"
+            variant="contained"
             fullWidth
             disabled={loading}
             endIcon={<ArrowForwardRoundedIcon sx={{ fontSize: 20 }} />}
             sx={{
               py: 1.45,
               minHeight: 48,
-              fontWeight: 700,
+              fontWeight: 600,
               fontSize: '0.98rem',
-              color: '#fff',
-              borderRadius: '12px',
               textTransform: 'none',
-              bgcolor: PURPLE,
               boxShadow: 'none',
-              '&:hover': { bgcolor: '#5B3AE8', boxShadow: 'none' },
-              '&.Mui-disabled': { color: '#fff', bgcolor: PURPLE, opacity: 0.65 },
             }}
           >
             {loading ? 'Criando conta…' : 'Criar minha conta'}
           </Button>
         </Box>
 
-        <Typography sx={{ mt: 2.25, textAlign: 'center', fontSize: '0.88rem', color: colors.textMuted }}>
+        <Typography sx={{ mt: 2.25, py: 0.9, px: 1, borderRadius: `${componentRadius.control}px`, bgcolor: colors.panelHeader, textAlign: 'center', fontSize: '0.88rem', color: colors.textMuted }}>
           Já possui uma conta?{' '}
-          <Link component={RouterLink} to="/login" underline="hover" sx={{ fontWeight: 700, color: PURPLE }}>
+          <Link component={RouterLink} to="/login" underline="hover" sx={{ fontWeight: 700, color: colors.purple }}>
             Entrar
           </Link>
         </Typography>

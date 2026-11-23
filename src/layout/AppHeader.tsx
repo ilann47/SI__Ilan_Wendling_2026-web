@@ -41,11 +41,20 @@ export function AppHeader({
       position="fixed"
       elevation={0}
       sx={{
-        width: '100%', bgcolor: colors.appBar, color: colors.text,
+        width: '100%', bgcolor: colors.masthead, color: colors.onMasthead,
+        backgroundImage: {
+          xs: 'none',
+          md: `linear-gradient(to bottom, ${colors.masthead} calc(${APP_HEADER_HEIGHT}px + env(safe-area-inset-top)), ${colors.panelHeader} 0)`,
+          xl: 'none',
+        },
+        '--kaneko-header-fg': colors.onMasthead,
+        '--kaneko-header-muted': colors.onMastheadMuted,
+        '--kaneko-header-hover': colors.mastheadHover,
+        '--kaneko-header-line': colors.mastheadLine,
+        '--kaneko-header-avatar-fg': colors.masthead,
         borderBottom: `1px solid ${colors.border}`,
-        boxShadow: mode === 'dark' ? '0 8px 28px rgba(0,0,0,0.2)' : '0 8px 28px rgba(27,33,64,0.07)',
-        backdropFilter: 'blur(14px)',
         pt: 'env(safe-area-inset-top)',
+        '& :focus-visible': { outlineColor: colors.onMasthead },
       }}
     >
       <Toolbar
@@ -74,17 +83,23 @@ export function AppHeader({
       >
         <Box sx={{ gridArea: 'brand', display: 'flex', alignItems: 'center', gap: 1.5, minWidth: 0 }}>
           <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
-            <BrandMark size={APP_HEADER_BRAND_SIZE} showName onClick={onGoHome} />
+            <BrandMark size={APP_HEADER_BRAND_SIZE} showName inverted onClick={onGoHome} />
           </Box>
           <Box sx={{ display: { xs: 'block', sm: 'none' } }}>
-            <BrandMark size={30} onClick={onGoHome} />
+            <BrandMark size={30} inverted onClick={onGoHome} />
           </Box>
           <Box sx={{ display: { xs: 'none', lg: 'block' }, minWidth: 0, maxWidth: { lg: 210, xl: 140 }, '& > button': { maxWidth: '100%' } }}>
             {contextSlot ?? <ContextSelector />}
           </Box>
         </Box>
 
-        <Box sx={{ gridArea: 'navigation', alignSelf: 'stretch', display: 'flex', alignItems: 'center', minWidth: 0, borderTop: { xs: 0, md: `1px solid ${colors.border}`, xl: 0 } }}>
+        <Box sx={{
+          gridArea: 'navigation', alignSelf: 'stretch', display: 'flex', alignItems: 'center', minWidth: 0,
+          borderTop: { xs: 0, md: `1px solid ${colors.mastheadLine}`, xl: 0 },
+          '--kaneko-area-fg': { xs: colors.onMasthead, md: colors.text, xl: colors.onMasthead },
+          '--kaneko-area-hover': { xs: colors.mastheadHover, md: colors.brandHover, xl: colors.mastheadHover },
+          '&& :focus-visible': { outlineColor: { xs: colors.onMasthead, md: colors.focusRing, xl: colors.onMasthead } },
+        }}>
           <HeaderAreaNavigation activeModuleId={activeModuleId} requestedArea={requestedArea} onAreaOpened={onAreaOpened} />
         </Box>
 
@@ -96,7 +111,7 @@ export function AppHeader({
           <Box sx={{ display: { xs: 'flex', md: 'none' } }}><GlobalSearch /></Box>
           <Tooltip title={mode === 'light' ? 'Modo escuro' : 'Modo claro'}>
             <IconButton aria-label={mode === 'light' ? 'Ativar modo escuro' : 'Ativar modo claro'}
-              onClick={toggle} sx={{ color: colors.textMuted, width: 44, height: 44, display: { xs: 'none', sm: 'inline-flex' } }}>
+              onClick={toggle} sx={{ color: colors.onMasthead, width: 44, height: 44, display: { xs: 'none', sm: 'inline-flex' }, '&:hover': { bgcolor: colors.mastheadHover } }}>
               {mode === 'light' ? <DarkModeOutlinedIcon /> : <LightModeOutlinedIcon />}
             </IconButton>
           </Tooltip>

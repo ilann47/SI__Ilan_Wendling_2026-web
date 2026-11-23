@@ -10,7 +10,7 @@ import ExpandMoreRoundedIcon from '@mui/icons-material/ExpandMoreRounded';
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 import { useAuth } from '../auth/AuthContext';
 import { useColorMode } from '../context/ColorModeContext';
-import { getThemeTokens } from '../theme/hubTokens';
+import { componentRadius, getThemeTokens } from '../theme/hubTokens';
 import { areaMenus, visibleProcessGroups, type AreaProcessGroup } from './areaNavigation';
 
 type Props = {
@@ -25,7 +25,7 @@ function ProcessLinks({ groups, onNavigate }: { groups: AreaProcessGroup[]; onNa
   const location = useLocation();
   return <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: `repeat(${groups.length}, minmax(0, 1fr))` }, gap: { xs: 2, md: 3 } }}>
     {groups.map((group) => <Box key={group.label}>
-      <Typography component="h3" sx={{ px: 1.25, mb: 0.75, fontSize: '0.78rem', fontWeight: 800, color: colors.text }}>
+      <Typography component="h3" sx={{ px: 1.25, mb: 0.75, fontSize: '0.73rem', fontWeight: 750, color: colors.purple, letterSpacing: '0.045em', textTransform: 'uppercase' }}>
         {group.label}
       </Typography>
       <Box sx={{ display: 'flex', flexDirection: 'column' }}>
@@ -49,7 +49,8 @@ function ProcessLinks({ groups, onNavigate }: { groups: AreaProcessGroup[]; onNa
 
 /** Acesso direto aos processos; usa o mesmo catálogo e RBAC das áreas. */
 export function HeaderAreaNavigation({ activeModuleId, requestedArea, onAreaOpened }: Props) {
-  const { permissions } = useAuth();
+  const { permissions, user } = useAuth();
+  const profile = user?.perfil;
   const { mode } = useColorMode();
   const colors = getThemeTokens(mode);
   const theme = useTheme();
@@ -62,7 +63,7 @@ export function HeaderAreaNavigation({ activeModuleId, requestedArea, onAreaOpen
   const panelRef = useRef<HTMLDivElement | null>(null);
   const triggerRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   const focusFirstLink = useRef(false);
-  const menus = areaMenus.map((menu) => ({ ...menu, groups: visibleProcessGroups(menu, permissions) }))
+  const menus = areaMenus.map((menu) => ({ ...menu, groups: visibleProcessGroups(menu, permissions, profile) }))
     .filter((menu) => menu.groups.length > 0);
   const selected = menus.find((menu) => menu.areaId === openArea);
 
@@ -74,7 +75,7 @@ export function HeaderAreaNavigation({ activeModuleId, requestedArea, onAreaOpen
   useEffect(() => {
     setOpenArea(null);
     setDrawerOpen(false);
-  }, [location.key, mobile, permissions]);
+  }, [location.key, mobile, permissions, profile]);
 
   useEffect(() => {
     if (mobile) setMobileExpanded(activeModuleId ?? null);
@@ -83,7 +84,7 @@ export function HeaderAreaNavigation({ activeModuleId, requestedArea, onAreaOpen
   useEffect(() => {
     if (!requestedArea) return;
     const menu = areaMenus.find((candidate) => candidate.areaId === requestedArea);
-    if (menu && visibleProcessGroups(menu, permissions).length > 0) {
+    if (menu && visibleProcessGroups(menu, permissions, profile).length > 0) {
       if (mobile) {
         setDrawerOpen(true);
         setMobileExpanded(requestedArea);
@@ -94,7 +95,7 @@ export function HeaderAreaNavigation({ activeModuleId, requestedArea, onAreaOpen
       setOpenArea(requestedArea);
     }
     onAreaOpened?.();
-  }, [requestedArea, onAreaOpened, mobile, permissions]);
+  }, [requestedArea, onAreaOpened, mobile, permissions, profile]);
 
   const keyboard = (event: KeyboardEvent) => {
     if (event.key === 'Escape') {
@@ -109,14 +110,13 @@ export function HeaderAreaNavigation({ activeModuleId, requestedArea, onAreaOpen
       onClick={() => {
         setMobileExpanded(openArea ?? activeModuleId ?? null);
         setDrawerOpen(true);
-      }} sx={{ width: 44, height: 44, color: colors.purple }}><MenuRoundedIcon /></IconButton>
+      }} sx={{ width: 44, height: 44, color: `var(--kaneko-area-fg, ${colors.purple})`, '&:hover': { bgcolor: `var(--kaneko-area-hover, ${colors.brandHover})` } }}><MenuRoundedIcon /></IconButton>
     <Drawer open={drawerOpen} onClose={close}
       PaperProps={{ role: 'dialog', 'aria-label': 'Áreas e processos', sx: { width: 'min(360px, 100vw)', bgcolor: colors.appBar, p: 2, pb: 'max(16px, env(safe-area-inset-bottom))' } }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
         <Typography component="h2" sx={{ fontSize: '1rem', fontWeight: 800 }}>Áreas e processos</Typography>
         <IconButton aria-label="Fechar áreas e processos" onClick={close}><CloseRoundedIcon /></IconButton>
       </Box>
-      <Button component={RouterLink} to="/app" onClick={close} sx={{ justifyContent: 'flex-start', minHeight: 44 }}>Início</Button>
       {menus.map((menu) => <Accordion key={menu.areaId} expanded={mobileExpanded === menu.areaId}
         onChange={(_, expanded) => setMobileExpanded(expanded ? menu.areaId : null)} disableGutters elevation={0}
         sx={{ bgcolor: 'transparent', '&::before': { display: 'none' }, borderBottom: `1px solid ${colors.border}` }}>
@@ -159,10 +159,12 @@ export function HeaderAreaNavigation({ activeModuleId, requestedArea, onAreaOpen
         endIcon={<ExpandMoreRoundedIcon />}
         sx={{
           minWidth: 0, minHeight: 40, px: 1.25, fontSize: '0.8rem', fontWeight: 700, whiteSpace: 'nowrap',
-          color: menu.areaId === activeModuleId || menu.areaId === openArea ? colors.purple : colors.text,
-          bgcolor: menu.areaId === openArea ? colors.brandHover : 'transparent', borderRadius: 1.25,
+          color: menu.areaId === activeModuleId || menu.areaId === openArea ? colors.purple : `var(--kaneko-area-fg, ${colors.text})`,
+          bgcolor: menu.areaId === activeModuleId || menu.areaId === openArea ? colors.card : 'transparent',
+          borderRadius: `${componentRadius.pill}px`,
+          boxShadow: menu.areaId === activeModuleId || menu.areaId === openArea ? `inset 0 0 0 1px ${colors.border}` : 'none',
           '& .MuiButton-endIcon': { ml: 0.35, '& svg': { fontSize: 16 } },
-          '&:hover': { bgcolor: colors.brandHover },
+          '&:hover': { bgcolor: menu.areaId === activeModuleId || menu.areaId === openArea ? colors.card : `var(--kaneko-area-hover, ${colors.brandHover})` },
         }}>
         {menu.title}
       </Button>)}
@@ -178,7 +180,7 @@ export function HeaderAreaNavigation({ activeModuleId, requestedArea, onAreaOpen
           }}
           id="header-area-processes" role="region" aria-label={`Processos de ${selected.title}`}
           sx={{ p: 2, width: Math.max(280, selected.groups.length * 235), maxWidth: 'calc(100vw - 24px)', maxHeight: 'calc(100dvh - 140px)', overflowY: 'auto',
-            bgcolor: colors.card, border: `1px solid ${colors.border}`, borderRadius: 2, boxShadow: theme.shadows[8] }}>
+            bgcolor: colors.card, border: `1px solid ${colors.border}`, borderRadius: `${componentRadius.surface}px`, boxShadow: colors.raisedShadow }}>
           <ProcessLinks groups={selected.groups} onNavigate={close} />
         </Paper>}
       </Popper>

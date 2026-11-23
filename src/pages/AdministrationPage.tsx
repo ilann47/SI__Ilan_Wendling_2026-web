@@ -15,15 +15,18 @@ import {
   TextField,
 } from '@mui/material';
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
+import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { api, describeError, ifMatchHeaders } from '../api/client';
 import { tenantQueryKey } from '../api/queryKeys';
 import { useAuth } from '../auth/AuthContext';
+import { allowsAccess, MEMBERSHIP_INVITE_ACCESS } from '../auth/accessPolicy';
 import { OperationCard } from '../components/enterprise/OperationCard';
 import { ResourceIdField } from '../components/enterprise/ResourceIdField';
 import { ResourceSnapshot } from '../components/enterprise/ResourceSnapshot';
 import { ReferenceSelect } from '../components/form/ReferenceSelect';
 import { NumberField } from '../components/form/NumberField';
 import { OperationalFormDialog } from '../components/form/OperationalFormDialog';
+import { RecordDetailPage } from '../components/listing/RecordDetailPage';
 import { PageHeader } from '../components/common/PageHeader';
 import { useSnackbar } from '../components/SnackbarProvider';
 import { useOperationalWorkspace } from '../workspace/OperationalWorkspaceContext';
@@ -63,7 +66,7 @@ interface RoleAssignmentResponse {
 }
 
 function OrganizationProfile() {
-  const { activeOrganization } = useAuth();
+  const { activeOrganization, refreshOrganizations } = useAuth();
   const { notify } = useSnackbar();
   const queryClient = useQueryClient();
   const organizationId = activeOrganization!.organizationId;
@@ -108,6 +111,9 @@ function OrganizationProfile() {
       );
       queryClient.setQueryData(queryKey, response.data);
       notify('Dados da organizacao atualizados.', 'success');
+      if (response.data.timeZone !== query.data.timeZone) {
+        void refreshOrganizations().catch(() => notify('Fuso salvo. Recarregue a página para atualizar o contexto.', 'warning'));
+      }
     } catch (cause) {
       setError(describeError(cause));
     } finally {
@@ -145,61 +151,41 @@ function OrganizationProfile() {
   );
 }
 
+const membershipListPath = '/app/administracao?tab=vinculos';
+const validMembershipId = (value: string) => /^\d+$/.test(value) && Number.isSafeInteger(Number(value)) && Number(value) > 0;
+
 function MembershipOperations({ canInvite, canManage }: { canInvite: boolean; canManage: boolean }) {
   const { activeOrganization } = useAuth();
   const { recent, remember } = useOperationalWorkspace();
   const { notify } = useSnackbar();
+  const navigate = useNavigate();
   const organizationId = activeOrganization!.organizationId;
   const [inviteOpen, setInviteOpen] = useState(false);
   const [userId, setUserId] = useState('');
   const [membershipId, setMembershipId] = useState('');
-  const [membership, setMembership] = useState<MembershipResponse | null>(null);
-  const [status, setStatus] = useState<MembershipResponse['status']>('ATIVO');
-  const [loading, setLoading] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const run = async (operation: 'create' | 'read' | 'update') => {
-    setLoading(operation);
+  const invite = async () => {
+    if (!canInvite || loading || !validMembershipId(userId)) return;
+    setLoading(true);
     setError(null);
     try {
-      let response;
-      if (operation === 'create') {
-        response = await api.post<MembershipResponse>(
-          `/api/v1/organizations/${organizationId}/memberships`,
-          { userId: Number(userId) },
-        );
-      } else if (operation === 'read') {
-        response = await api.get<MembershipResponse>(
-          `/api/v1/organizations/${organizationId}/memberships/${Number(membershipId)}`,
-        );
-      } else {
-        if (!membership || membership.id !== Number(membershipId)) {
-          throw new Error('Consulte o vínculo antes de alterar seu estado.');
-        }
-        response = await api.patch<MembershipResponse>(
-          `/api/v1/organizations/${organizationId}/memberships/${membership.id}`,
-          { status },
-          { headers: ifMatchHeaders(membership.version) },
-        );
-      }
-      setMembership(response.data);
+      const response = await api.post<MembershipResponse>(
+        `/api/v1/organizations/${organizationId}/memberships`, { userId: Number(userId) });
       setMembershipId(String(response.data.id));
-      setStatus(response.data.status);
       remember('membership', {
         id: response.data.id,
         label: `Usuário ${response.data.userId}`,
         version: response.data.version,
-        snapshot: { ...response.data },
       });
-      if (operation === 'create') {
-        notify('Usuário adicionado à organização.', 'success');
-        setUserId('');
-        setInviteOpen(false);
-      }
+      notify('Usuário adicionado à organização.', 'success');
+      setUserId('');
+      setInviteOpen(false);
     } catch (cause) {
       setError(describeError(cause));
     } finally {
-      setLoading(null);
+      setLoading(false);
     }
   };
 
@@ -214,9 +200,9 @@ function MembershipOperations({ canInvite, canManage }: { canInvite: boolean; ca
       </Button>}
       {canInvite && <OperationalFormDialog open={inviteOpen} onClose={() => setInviteOpen(false)}
         title="Adicionar usuário" description="Cria um vínculo ativo com a organização atual."
-        formId="membership-create-form" submitLabel="Criar vínculo" submitting={loading === 'create'}
+        formId="membership-create-form" submitLabel="Criar vínculo" submitting={loading}
         submitDisabled={!userId} dirty={userId !== ''} error={error} maxWidth="sm"
-        onSubmit={(event) => { event.preventDefault(); void run('create'); }}>
+        onSubmit={(event) => { event.preventDefault(); void invite(); }}>
         <ReferenceSelect
           label="Usuário"
           value={userId ? Number(userId) : null}
@@ -226,32 +212,70 @@ function MembershipOperations({ canInvite, canManage }: { canInvite: boolean; ca
         />
       </OperationalFormDialog>}
       {canManage && <OperationCard
-        title="Consultar e alterar vínculo"
-        description="Consulte os dados atuais antes de alterar. Um vínculo encerrado não pode ser reativado."
-        error={error}
-        result={membership ? <ResourceSnapshot data={{ id: membership.id, userId: membership.userId, status: membership.status, origin: membership.origin, version: membership.version, joinedAt: membership.joinedAt }} /> : undefined}
+        title="Consultar vínculo"
+        description="Escolha um vínculo recente ou informe seu código para abrir o registro."
       >
-        <ResourceIdField label="Vínculo" value={membershipId} onChange={setMembershipId} recent={recent('membership')} />
-        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-          <Button variant="outlined" disabled={!membershipId || loading !== null} onClick={() => void run('read')} startIcon={loading === 'read' ? <CircularProgress size={18} /> : <SearchOutlinedIcon />}>
-            Consultar
-          </Button>
-          <TextField select label="Novo estado" value={status} onChange={(event) => setStatus(event.target.value as MembershipResponse['status'])} fullWidth>
-            <MenuItem value="ATIVO">Ativo</MenuItem>
-            <MenuItem value="SUSPENSO">Suspenso</MenuItem>
-            <MenuItem value="ENCERRADO">Encerrado</MenuItem>
-          </TextField>
-          <Button variant="contained" disabled={!membership || loading !== null || membership.status === 'ENCERRADO'} onClick={() => void run('update')} startIcon={loading === 'update' ? <CircularProgress size={18} color="inherit" /> : <SaveOutlinedIcon />}>
-            Alterar estado
-          </Button>
+        <Stack component="form" spacing={2} onSubmit={(event) => {
+          event.preventDefault();
+          if (validMembershipId(membershipId)) navigate(`/app/administracao/vinculos/${Number(membershipId)}`, { state: { fromMembershipLookup: true } });
+        }}>
+          <ResourceIdField label="Vínculo" value={membershipId} onChange={setMembershipId} recent={recent('membership')} />
+          <Button type="submit" variant="outlined" disabled={!validMembershipId(membershipId)} startIcon={<SearchOutlinedIcon />} sx={{ alignSelf: 'flex-start' }}>Abrir vínculo</Button>
         </Stack>
       </OperationCard>}
     </Stack>
   );
 }
 
+function MembershipDetailPage({ membershipId }: { membershipId: number }) {
+  const { activeOrganization } = useAuth();
+  const { remember } = useOperationalWorkspace();
+  const { notify } = useSnackbar();
+  const navigate = useNavigate();
+  const { state } = useLocation();
+  const queryClient = useQueryClient();
+  const organizationId = activeOrganization!.organizationId;
+  const path = `/api/v1/organizations/${organizationId}/memberships/${membershipId}`;
+  const queryKey = tenantQueryKey(organizationId, 'membership-detail', membershipId);
+  const query = useQuery({ queryKey, queryFn: () => api.get<MembershipResponse>(path).then((response) => response.data) });
+  const membership = query.isError ? undefined : query.data;
+  const [nextStatus, setNextStatus] = useState<MembershipResponse['status'] | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  useEffect(() => {
+    if (membership) remember('membership', { id: membership.id, label: `Usuário ${membership.userId}`, version: membership.version });
+  }, [membership, remember]);
+
+  const update = async (event: FormEvent) => {
+    event.preventDefault();
+    if (saving || !membership || membership.status === 'ENCERRADO' || !nextStatus || membership.status === nextStatus) return;
+    setSaving(true); setError(null);
+    try {
+      const { data } = await api.patch<MembershipResponse>(path, { status: nextStatus }, { headers: ifMatchHeaders(membership.version) });
+      queryClient.setQueryData(queryKey, data);
+      setNextStatus(null);
+      notify('Estado do vínculo atualizado.', 'success');
+    } catch (cause) { setError(describeError(cause)); } finally { setSaving(false); }
+  };
+  return <RecordDetailPage title={`Vínculo #${membershipId}`} subtitle="Consulte ou altere o estado do vínculo com a organização." onBack={() => state?.fromMembershipLookup ? navigate(-1) : navigate(membershipListPath, { replace: true })}>
+    {query.isLoading && <CircularProgress size={24} />}
+    {query.isError && <Alert severity="error" action={<Button onClick={() => void query.refetch()}>Tentar novamente</Button>}>{describeError(query.error)}</Alert>}
+    {error && <Alert severity="error">{error}</Alert>}
+    {membership && <ResourceSnapshot data={{ id: membership.id, userId: membership.userId, status: membership.status, origin: membership.origin, version: membership.version, joinedAt: membership.joinedAt }} />}
+    {membership?.status === 'ENCERRADO' && <Alert severity="info">Um vínculo encerrado não pode ser reativado.</Alert>}
+    {membership && membership.status !== 'ENCERRADO' && <Stack component="form" direction={{ xs: 'column', sm: 'row' }} spacing={2} onSubmit={(event) => void update(event)}>
+      <TextField select label="Novo estado" value={nextStatus ?? membership.status} onChange={(event) => setNextStatus(event.target.value as MembershipResponse['status'])} fullWidth>
+        <MenuItem value="ATIVO">Ativo</MenuItem>
+        <MenuItem value="SUSPENSO">Suspenso</MenuItem>
+        <MenuItem value="ENCERRADO">Encerrado</MenuItem>
+      </TextField>
+      <Button type="submit" variant="contained" disabled={saving || !nextStatus || membership.status === nextStatus} startIcon={<SaveOutlinedIcon />}>Alterar estado</Button>
+    </Stack>}
+  </RecordDetailPage>;
+}
+
 const roleCodes = [
-  'ADMIN_ORGANIZACAO', 'GESTOR', 'ORGANIZADOR', 'SUPERVISOR', 'OPERADOR', 'FISCAL_ACESSO',
+  'ADMIN_ORGANIZACAO', 'GESTOR', 'ORGANIZADOR', 'SUPERVISOR', 'OPERADOR', 'FISCAL_ACESSO', 'CAIXA_PATIO',
 ] as const;
 
 const roleLabels: Record<(typeof roleCodes)[number], string> = {
@@ -261,6 +285,7 @@ const roleLabels: Record<(typeof roleCodes)[number], string> = {
   SUPERVISOR: 'Supervisor',
   OPERADOR: 'Operador',
   FISCAL_ACESSO: 'Fiscal de acesso',
+  CAIXA_PATIO: 'Caixa do pátio',
 };
 
 function RoleOperations({ canGrant, canRevoke }: { canGrant: boolean; canRevoke: boolean }) {
@@ -344,34 +369,40 @@ function RoleOperations({ canGrant, canRevoke }: { canGrant: boolean; canRevoke:
 }
 
 export function AdministrationPage() {
-  const { permissions } = useAuth();
-  const [tab, setTab] = useState(0);
+  const { activeOrganization, permissions, user } = useAuth();
+  const navigate = useNavigate();
+  const { membershipId } = useParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const canOrganization = permissions.includes('organizations:admin');
-  const canInvite = permissions.includes('users:invite') || canOrganization;
+  const canInvite = allowsAccess(permissions, MEMBERSHIP_INVITE_ACCESS, user?.perfil);
   const canGrant = permissions.includes('roles:grant');
   const canRevoke = permissions.includes('roles:revoke');
   const available = [
-    canOrganization && { label: 'Organização', content: <OrganizationProfile /> },
+    canOrganization && { id: 'organizacao', label: 'Organização', content: <OrganizationProfile /> },
     (canInvite || canOrganization) && {
-      label: 'Usuários e vínculos', content: <MembershipOperations canInvite={canInvite} canManage={canOrganization} />,
+      id: 'vinculos', label: 'Usuários e vínculos', content: <MembershipOperations canInvite={canInvite} canManage={canOrganization} />,
     },
     (canGrant || canRevoke) && {
-      label: 'Papéis e acessos', content: <RoleOperations canGrant={canGrant} canRevoke={canRevoke} />,
+      id: 'papeis', label: 'Papéis e acessos', content: <RoleOperations canGrant={canGrant} canRevoke={canRevoke} />,
     },
-  ].filter(Boolean) as { label: string; content: ReactNode }[];
+  ].filter(Boolean) as { id: string; label: string; content: ReactNode }[];
 
-  useEffect(() => {
-    if (tab >= available.length) setTab(0);
-  }, [available.length, tab]);
+  const tab = available.find((item) => item.id === searchParams.get('tab')) ?? available[0];
+  if (membershipId) {
+    if (canOrganization && validMembershipId(membershipId)) return <MembershipDetailPage key={activeOrganization?.organizationId + ':' + membershipId} membershipId={Number(membershipId)} />;
+    return <RecordDetailPage title="Vínculo indisponível" onBack={() => navigate(membershipListPath, { replace: true })}>
+      <Alert severity="warning">Não foi possível abrir o vínculo com o acesso atual.</Alert>
+    </RecordDetailPage>;
+  }
 
   return (
     <Box>
       <PageHeader title="Administração" subtitle="Organização, usuários, vínculos e permissões do contexto atual." />
-      <Tabs value={tab} onChange={(_, value) => setTab(value)} variant="scrollable"
+      <Tabs value={tab?.id ?? false} onChange={(_, value) => setSearchParams({ tab: value })} variant="scrollable"
         scrollButtons="auto" allowScrollButtonsMobile aria-label="Áreas administrativas" sx={{ mb: 2 }}>
-        {available.map((item) => <Tab key={item.label} label={item.label} />)}
+        {available.map((item) => <Tab key={item.id} value={item.id} label={item.label} />)}
       </Tabs>
-      {available[tab]?.content ?? <Alert severity="warning">Nenhuma operação administrativa disponível.</Alert>}
+      {tab?.content ?? <Alert severity="warning">Nenhuma operação administrativa disponível.</Alert>}
     </Box>
   );
 }

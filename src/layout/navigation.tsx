@@ -1,11 +1,9 @@
 import FactCheckOutlinedIcon from '@mui/icons-material/FactCheckOutlined';
 import QrCodeScannerOutlinedIcon from '@mui/icons-material/QrCodeScannerOutlined';
-import SpaceDashboardOutlinedIcon from '@mui/icons-material/SpaceDashboardOutlined';
 import AdminPanelSettingsOutlinedIcon from '@mui/icons-material/AdminPanelSettingsOutlined';
 import ApartmentOutlinedIcon from '@mui/icons-material/ApartmentOutlined';
 import EventOutlinedIcon from '@mui/icons-material/EventOutlined';
 import ShoppingBagOutlinedIcon from '@mui/icons-material/ShoppingBagOutlined';
-import BlockOutlinedIcon from '@mui/icons-material/BlockOutlined';
 import AssessmentOutlinedIcon from '@mui/icons-material/AssessmentOutlined';
 import BadgeOutlinedIcon from '@mui/icons-material/BadgeOutlined';
 import BuildOutlinedIcon from '@mui/icons-material/BuildOutlined';
@@ -27,7 +25,6 @@ import PaymentOutlinedIcon from '@mui/icons-material/PaymentOutlined';
 import PeopleOutlinedIcon from '@mui/icons-material/PeopleOutlined';
 import PriceChangeOutlinedIcon from '@mui/icons-material/PriceChangeOutlined';
 import PublicOutlinedIcon from '@mui/icons-material/PublicOutlined';
-import ReceiptOutlinedIcon from '@mui/icons-material/ReceiptOutlined';
 import SellOutlinedIcon from '@mui/icons-material/SellOutlined';
 import StraightenOutlinedIcon from '@mui/icons-material/StraightenOutlined';
 import SwapHorizOutlinedIcon from '@mui/icons-material/SwapHorizOutlined';
@@ -36,12 +33,14 @@ import TrendingUpOutlinedIcon from '@mui/icons-material/TrendingUpOutlined';
 import WorkOutlineIcon from '@mui/icons-material/WorkOutline';
 import WarehouseOutlinedIcon from '@mui/icons-material/WarehouseOutlined';
 import type { ReactNode } from 'react';
+import { EVENT_READ_PERMISSIONS } from '../auth/administrationAccess';
+import { PATIO_PAGE_ACCESS, REPORTS_PAGE_ACCESS } from '../auth/accessPolicy';
 
 export interface NavItem {
   label: string;
   path: string;
   icon: ReactNode;
-  permissions?: string[];
+  permissions?: readonly string[];
 }
 
 export interface NavGroup {
@@ -57,7 +56,6 @@ export const navGroups: NavGroup[] = [
   {
     label: 'Operação',
     items: [
-      { label: 'Início', path: '/app', icon: <SpaceDashboardOutlinedIcon fontSize="small" /> },
       {
         label: 'Acesso de eventos',
         path: '/app/acesso-eventos',
@@ -70,11 +68,29 @@ export const navGroups: NavGroup[] = [
         icon: <FactCheckOutlinedIcon fontSize="small" />,
         permissions: ['audit:read'],
       },
-      { label: 'Pátio', path: '/app/patio', icon: <LocalParkingOutlinedIcon fontSize="small" /> },
+      { label: 'Pátio', path: '/app/patio', icon: <LocalParkingOutlinedIcon fontSize="small" />, permissions: PATIO_PAGE_ACCESS },
+      {
+        label: 'Instalações',
+        path: '/app/instalacoes',
+        icon: <ApartmentOutlinedIcon fontSize="small" />,
+        permissions: ['facilities:manage'],
+      },
       {
         label: 'Movimentações',
         path: '/app/movimentacoes',
         icon: <SwapHorizOutlinedIcon fontSize="small" />,
+        permissions: ['operations:read'],
+      },
+      {
+        label: 'Veículos',
+        path: '/app/veiculos',
+        icon: <DirectionsCarOutlinedIcon fontSize="small" />,
+        permissions: ['operations:read'],
+      },
+      {
+        label: 'Tarifas',
+        path: '/app/tarifas',
+        icon: <PriceChangeOutlinedIcon fontSize="small" />,
         permissions: ['operations:read'],
       },
       {
@@ -87,19 +103,34 @@ export const navGroups: NavGroup[] = [
         label: 'Relatórios',
         path: '/app/relatorios',
         icon: <AssessmentOutlinedIcon fontSize="small" />,
-        permissions: ['finance:read', 'operations:read', 'stock:read'],
+        permissions: REPORTS_PAGE_ACCESS,
       },
-    ],
-  },
-  {
-    label: 'Vendas',
-    items: [
+      {
+        label: 'Eventos e ofertas',
+        path: '/app/eventos',
+        icon: <EventOutlinedIcon fontSize="small" />,
+        permissions: EVENT_READ_PERMISSIONS,
+      },
+      {
+        label: 'Vendas e credenciais',
+        path: '/app/vendas',
+        icon: <ShoppingBagOutlinedIcon fontSize="small" />,
+        permissions: [
+          'inventory:hold', 'orders:create', 'orders:read', 'orders:manual-confirm',
+          'orders:cancel', 'credentials:issue',
+        ],
+      },
       {
         label: 'Ordens de Serviço',
         path: '/app/ordens-servico',
         icon: <BuildOutlinedIcon fontSize="small" />,
         permissions: ['service_orders:read'],
       },
+    ],
+  },
+  {
+    label: 'Vendas',
+    items: [
       {
         label: 'Notas de Saída',
         path: '/app/notas-saida',
@@ -122,12 +153,6 @@ export const navGroups: NavGroup[] = [
         path: '/app/notas-entrada',
         icon: <CallReceivedOutlinedIcon fontSize="small" />,
         permissions: ['fiscal:read'],
-      },
-      {
-        label: 'Fornecedores',
-        path: '/app/fornecedores',
-        icon: <LocalShippingOutlinedIcon fontSize="small" />,
-        permissions: ['suppliers:read'],
       },
       {
         label: 'Posição de Estoque',
@@ -200,12 +225,6 @@ export const navGroups: NavGroup[] = [
         icon: <TrendingDownOutlinedIcon fontSize="small" />,
         permissions: ['finance:read'],
       },
-      {
-        label: 'Despesas Avulsas',
-        path: '/app/contas-pagar-avulsas',
-        icon: <ReceiptOutlinedIcon fontSize="small" />,
-        permissions: ['finance:read'],
-      },
     ],
   },
   {
@@ -218,16 +237,10 @@ export const navGroups: NavGroup[] = [
         permissions: ['customers:read'],
       },
       {
-        label: 'Veículos',
-        path: '/app/veiculos',
-        icon: <DirectionsCarOutlinedIcon fontSize="small" />,
-        permissions: ['operations:read'],
-      },
-      {
-        label: 'Tarifas',
-        path: '/app/tarifas',
-        icon: <PriceChangeOutlinedIcon fontSize="small" />,
-        permissions: ['operations:read'],
+        label: 'Fornecedores',
+        path: '/app/fornecedores',
+        icon: <LocalShippingOutlinedIcon fontSize="small" />,
+        permissions: ['suppliers:read'],
       },
       {
         label: 'Condições de Pagamento',
@@ -284,33 +297,6 @@ export const navGroups: NavGroup[] = [
         label: 'Administração',
         path: '/app/administracao',
         icon: <AdminPanelSettingsOutlinedIcon fontSize="small" />,
-        permissions: ['organizations:admin', 'users:invite', 'roles:grant', 'roles:revoke'],
-      },
-      {
-        label: 'Instalações',
-        path: '/app/instalacoes',
-        icon: <ApartmentOutlinedIcon fontSize="small" />,
-        permissions: ['facilities:manage'],
-      },
-      {
-        label: 'Eventos e ofertas',
-        path: '/app/eventos',
-        icon: <EventOutlinedIcon fontSize="small" />,
-      },
-      {
-        label: 'Vendas e credenciais',
-        path: '/app/vendas',
-        icon: <ShoppingBagOutlinedIcon fontSize="small" />,
-        permissions: [
-          'inventory:hold', 'orders:create', 'orders:read', 'orders:manual-confirm',
-          'orders:cancel', 'credentials:issue',
-        ],
-      },
-      {
-        label: 'Bloqueios',
-        path: '/app/bloqueios',
-        icon: <BlockOutlinedIcon fontSize="small" />,
-        permissions: ['organizations:admin', 'audit:read'],
       },
     ],
   },

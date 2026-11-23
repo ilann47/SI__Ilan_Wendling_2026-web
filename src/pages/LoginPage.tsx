@@ -24,12 +24,11 @@ import BusinessOutlinedIcon from '@mui/icons-material/BusinessOutlined';
 import { useAuth } from '../auth/AuthContext';
 import { describeError } from '../api/client';
 import { BrandMark } from '../components/brand/BrandMark';
-import { HexMark } from '../components/brand/HexMark';
+import { productName } from '../components/brand/brandName';
 import { LoginHeroDiagram } from '../components/brand/LoginHeroDiagram';
-import { getThemeTokens } from '../theme/hubTokens';
+import { componentRadius, getThemeTokens } from '../theme/hubTokens';
 import { useColorMode } from '../context/ColorModeContext';
 
-const PURPLE = '#6B46FE';
 
 export function LoginPage() {
   const { login, isAuthenticated } = useAuth();
@@ -47,16 +46,16 @@ export function LoginPage() {
   const loginInputRef = useRef<HTMLInputElement>(null);
   const passwordInputRef = useRef<HTMLInputElement>(null);
 
-  if (isAuthenticated) return <Navigate to="/app" replace />;
+  const requested = (location.state as { from?: { pathname?: string; search?: string; hash?: string } } | null)?.from;
+  const destination = requested?.pathname && /^\/app(?:\/|$)/.test(requested.pathname)
+    ? requested.pathname + (requested.search ?? '') + (requested.hash ?? '') : '/app';
+  if (isAuthenticated) return <Navigate to={destination} replace />;
 
   const fieldSx = {
     '& .MuiOutlinedInput-root': {
-      borderRadius: '12px',
+      borderRadius: `${componentRadius.control}px`,
       bgcolor: colors.card,
       height: 48,
-      '& fieldset': { borderColor: colors.border },
-      '&:hover fieldset': { borderColor: colors.purpleSoft },
-      '&.Mui-focused fieldset': { borderColor: PURPLE, borderWidth: 1.5 },
     },
     '& .MuiInputBase-input': {
       fontSize: '0.92rem',
@@ -83,8 +82,7 @@ export function LoginPage() {
     setLoading(true);
     try {
       await login(normalizedLogin, senha);
-      const from = (location.state as { from?: { pathname?: string } } | null)?.from?.pathname;
-      navigate(from ?? '/app', { replace: true });
+      navigate(destination, { replace: true });
     } catch (err) {
       setError(describeError(err, { context: 'login' }));
     } finally {
@@ -105,9 +103,7 @@ export function LoginPage() {
         minHeight: '100vh',
         display: 'flex',
         flexDirection: { xs: 'column', md: 'row' },
-        background: mode === 'dark'
-          ? colors.background
-          : 'radial-gradient(circle at 85% 12%, rgba(107,70,254,0.12), transparent 28%), #F7F8FC',
+        background: colors.background,
         position: 'relative',
         overflow: 'hidden',
       }}
@@ -125,7 +121,7 @@ export function LoginPage() {
 
       <Box
         role="region"
-        aria-label="Identidade Kaneko"
+        aria-label={`Identidade ${productName}`}
         sx={{
           flex: { md: 1.15 },
           display: { xs: 'none', md: 'flex' },
@@ -133,28 +129,26 @@ export function LoginPage() {
           justifyContent: 'space-between',
           px: { md: 6, lg: 8 },
           py: { md: 6 },
-          background: 'linear-gradient(145deg, #11162E 0%, #25205B 48%, #5B38D6 100%)',
-          color: '#FFFFFF',
+          bgcolor: colors.masthead,
+          color: colors.onMasthead,
           position: 'relative',
           overflow: 'hidden',
           '&::before': {
-            content: '""', position: 'absolute', width: 420, height: 420, borderRadius: '50%',
-            right: -160, top: -150, background: 'rgba(255,255,255,0.08)',
+            content: '""', position: 'absolute', width: 440, height: 272, borderRadius: '32px',
+            right: -156, top: -78, transform: 'rotate(-22deg)', border: `1px solid ${colors.mastheadLine}`,
+            boxShadow: `0 0 0 24px ${colors.mastheadHover}, inset 0 0 0 14px ${colors.mastheadHover}`,
           },
           '&::after': {
-            content: '""', position: 'absolute', width: 260, height: 260, borderRadius: '50%',
-            left: -100, bottom: -110, background: 'rgba(139,111,255,0.22)',
+            content: '""', position: 'absolute', width: 380, height: 250, borderRadius: '28px',
+            left: -172, bottom: -164, transform: 'rotate(-22deg)', border: `1px solid ${colors.mastheadLine}`,
+            boxShadow: `0 0 0 20px ${colors.mastheadHover}`,
           },
           '& > *': { position: 'relative', zIndex: 1 },
         }}
       >
         <Box>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, mb: 5 }}>
-            <HexMark size={44} />
-            <Box>
-              <Typography sx={{ fontWeight: 850, fontSize: '1.05rem', lineHeight: 1.1 }}>Kaneko</Typography>
-              <Typography sx={{ mt: 0.35, fontSize: '0.64rem', letterSpacing: 1.8, textTransform: 'uppercase', color: 'rgba(255,255,255,0.68)' }}>Hub operacional</Typography>
-            </Box>
+            <BrandMark size={44} showName inverted />
           </Box>
           <Typography sx={{ fontWeight: 750, fontSize: { md: '2.3rem', lg: '2.75rem' }, color: '#FFFFFF', lineHeight: 1.08, maxWidth: 520 }}>
             Operação clara.<br />Decisões rápidas.
@@ -164,13 +158,13 @@ export function LoginPage() {
             sx={{
               fontWeight: 700,
               fontSize: { md: '1.15rem', lg: '1.3rem' },
-              color: '#BFB2FF',
+              color: '#F1C3F2',
               lineHeight: 1.2,
               mt: 1.5,
               mb: 2,
             }}
           >
-            Hub Operacional Kaneko
+            Hub Operacional {productName}
           </Typography>
           <Typography sx={{ maxWidth: 500, color: 'rgba(255,255,255,0.72)', fontSize: '0.98rem', lineHeight: 1.65 }}>
             Opere pátio, acessos, mensalistas, eventos e cobrança no mesmo hub —
@@ -186,13 +180,13 @@ export function LoginPage() {
             return (
               <Box key={item.title} sx={{ display: 'flex', gap: 1.1, alignItems: 'flex-start' }}>
                 <Box sx={{ width: 36, height: 36, borderRadius: 2, bgcolor: 'rgba(255,255,255,0.1)', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
-                  <Icon sx={{ fontSize: 20, color: '#C9C0FF' }} />
+                  <Icon sx={{ fontSize: 20, color: '#F1C3F2' }} />
                 </Box>
                 <Box>
                   <Typography sx={{ fontWeight: 800, fontSize: '0.82rem', color: '#FFFFFF' }}>
                     {item.title}
                   </Typography>
-                  <Typography sx={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.6)', lineHeight: 1.4 }}>
+                  <Typography sx={{ fontSize: '0.72rem', color: colors.onMastheadMuted, lineHeight: 1.4 }}>
                     {item.desc}
                   </Typography>
                 </Box>
@@ -220,14 +214,12 @@ export function LoginPage() {
         <Box sx={{
           display: { xs: 'flex', md: 'none' }, alignItems: 'center', width: 'calc(100% + 32px)',
           px: 3, pt: 'max(28px, env(safe-area-inset-top))', pb: 4.5, mb: -2,
-          background: 'linear-gradient(135deg, #171A39 0%, #5B38D6 100%)', color: '#FFFFFF',
-          borderRadius: '0 0 32px 32px', position: 'relative', overflow: 'hidden',
-          '&::after': { content: '""', position: 'absolute', width: 180, height: 180, borderRadius: '50%', right: -80, top: -90, bgcolor: 'rgba(255,255,255,0.1)' },
+          bgcolor: colors.masthead, color: colors.onMasthead,
+          position: 'relative', overflow: 'hidden',
+          '&::after': { content: '""', position: 'absolute', width: 180, height: 104, borderRadius: '20px', right: -48, top: -52, transform: 'rotate(-22deg)', border: `1px solid ${colors.mastheadLine}`, boxShadow: `0 0 0 10px ${colors.mastheadHover}` },
         }}>
-          <HexMark size={42} />
-          <Box sx={{ ml: 1.25, position: 'relative', zIndex: 1 }}>
-            <Typography sx={{ fontWeight: 850, fontSize: '1.05rem', lineHeight: 1.1 }}>Kaneko</Typography>
-            <Typography sx={{ mt: 0.3, fontSize: '0.64rem', letterSpacing: 1.5, textTransform: 'uppercase', color: 'rgba(255,255,255,0.65)' }}>Hub operacional</Typography>
+          <Box sx={{ position: 'relative', zIndex: 1 }}>
+            <BrandMark size={42} showName inverted />
           </Box>
         </Box>
         <Box
@@ -235,20 +227,19 @@ export function LoginPage() {
             width: '100%',
             maxWidth: 420,
             bgcolor: colors.card,
-            borderRadius: { xs: '28px', md: '28px' },
+            borderRadius: `${componentRadius.surface}px`,
             px: { xs: 2.75, sm: 4 },
             py: { xs: 3.5, sm: 4.25 },
-            boxShadow: '0 24px 70px rgba(27, 33, 64, 0.14)',
+            boxShadow: colors.raisedShadow,
             border: `1px solid ${colors.border}`,
             position: 'relative',
             overflow: 'hidden',
-            '&::before': { content: '""', position: 'absolute', inset: '0 0 auto 0', height: 4, background: colors.brandGradient },
           }}
         >
           <Box sx={{ display: { xs: 'none', md: 'flex' }, justifyContent: 'center', mb: 2.25 }}>
             <BrandMark size={44} showName />
           </Box>
-          <Typography sx={{ fontWeight: 850, fontSize: { xs: '1.55rem', sm: '1.7rem' }, color: colors.text, textAlign: 'left', letterSpacing: -0.5 }}>
+          <Typography sx={{ fontWeight: 750, fontSize: { xs: '1.55rem', sm: '1.7rem' }, color: colors.text, textAlign: 'left', letterSpacing: -0.5 }}>
             Acesse sua conta
           </Typography>
           <Typography sx={{ mt: 0.6, mb: 3, textAlign: 'left', color: colors.textMuted, fontSize: '0.9rem' }}>
@@ -279,7 +270,7 @@ export function LoginPage() {
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
-                    <PersonOutlineOutlinedIcon sx={{ fontSize: 20, color: '#B0B7C3' }} />
+                    <PersonOutlineOutlinedIcon sx={{ fontSize: 20, color: colors.textMuted }} />
                   </InputAdornment>
                 ),
               }}
@@ -310,7 +301,7 @@ export function LoginPage() {
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
-                    <LockOutlinedIcon sx={{ fontSize: 20, color: '#B0B7C3' }} />
+                    <LockOutlinedIcon sx={{ fontSize: 20, color: colors.textMuted }} />
                   </InputAdornment>
                 ),
                 endAdornment: (
@@ -321,7 +312,7 @@ export function LoginPage() {
                       size="small"
                       aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
                       aria-pressed={showPassword}
-                      sx={{ color: '#B0B7C3' }}
+                      sx={{ color: colors.textMuted }}
                     >
                       {showPassword ? <VisibilityOffOutlinedIcon /> : <VisibilityOutlinedIcon />}
                     </IconButton>
@@ -346,6 +337,7 @@ export function LoginPage() {
 
             <Button
               type="submit"
+              variant="contained"
               fullWidth
               disabled={loading}
               aria-busy={loading}
@@ -354,34 +346,29 @@ export function LoginPage() {
               endIcon={loading ? undefined : <ArrowForwardRoundedIcon sx={{ fontSize: 20 }} />}
               sx={{
                 py: 1.45,
-                fontWeight: 700,
+                fontWeight: 600,
                 fontSize: '0.98rem',
-                color: '#fff',
-                borderRadius: '12px',
                 textTransform: 'none',
-                bgcolor: PURPLE,
                 boxShadow: 'none',
-                '&:hover': { bgcolor: '#5B3AE8', boxShadow: 'none' },
-                '&.Mui-disabled': { color: '#fff', bgcolor: PURPLE, opacity: 0.65 },
               }}
             >
               {loading ? 'Entrando…' : 'Entrar'}
             </Button>
           </Box>
 
-          <Typography sx={{ mt: 2.25, textAlign: 'center', fontSize: '0.88rem', color: colors.textMuted }}>
+          <Typography sx={{ mt: 2.25, py: 0.9, px: 1, borderRadius: `${componentRadius.control}px`, bgcolor: colors.panelHeader, textAlign: 'center', fontSize: '0.88rem', color: colors.textMuted }}>
             Não possui uma conta?{' '}
-            <Link component={RouterLink} to="/register" underline="hover" sx={{ fontWeight: 700, color: PURPLE }}>
+            <Link component={RouterLink} to="/register" underline="hover" sx={{ fontWeight: 700, color: colors.purple }}>
               Criar conta
             </Link>
           </Typography>
         </Box>
 
         <Typography sx={{ mt: 2.5, fontSize: '0.72rem', color: colors.textMuted, textAlign: 'center' }}>
-          Estacionamento Kaneko
+          {productName}
         </Typography>
         <Typography sx={{ mt: 0.4, fontSize: '0.72rem', color: colors.textMuted, textAlign: 'center' }}>
-          © {new Date().getFullYear()} Kaneko · Hub operacional
+          © {new Date().getFullYear()} {productName} · Hub operacional
         </Typography>
       </Box>
     </Box>
