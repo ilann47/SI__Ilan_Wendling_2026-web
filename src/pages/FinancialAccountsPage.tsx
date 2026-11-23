@@ -1,6 +1,6 @@
 import AddIcon from '@mui/icons-material/Add';
 import { Alert, Box, Button, Card, Chip,
-  InputAdornment, MenuItem, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TablePagination, TableRow,
+  InputAdornment, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   TextField, Typography, useMediaQuery, useTheme } from '@mui/material';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
@@ -15,14 +15,17 @@ import { PageHeader } from '../components/common/PageHeader';
 import { AppDialog } from '../components/common/AppDialog';
 import { FilterBar } from '../components/crud/FilterBar';
 import { hasResourceActionPermission, type FilterConfig } from '../components/crud/resourceConfig';
-import { ResourceFormDialog } from '../components/form/ResourceFormDialog';
+import { ResourceFormPage } from '../components/form/ResourceFormPage';
 import { AppliedFilterChips } from '../components/listing/AppliedFilterChips';
-import { DetailDrawer } from '../components/listing/DetailDrawer';
+import { RecordDetailPage } from '../components/listing/RecordDetailPage';
+import { FormField } from '../components/form/FormField';
 import { EmptyState } from '../components/listing/EmptyState';
 import { ErrorState } from '../components/listing/ErrorState';
 import { ListingCards } from '../components/listing/ListingCards';
 import { ListingSkeleton } from '../components/listing/ListingSkeleton';
 import { ListingToolbar } from '../components/listing/ListingToolbar';
+import { ListPagination, ListSort } from '../components/listing/ListViewControls';
+import { useCorrectListPage, useListView } from '../components/listing/useListView';
 import { SecondaryActionsMenu, type SecondaryAction } from '../components/listing/SecondaryActionsMenu';
 import { useSnackbar } from '../components/SnackbarProvider';
 import { useLinkedDetail } from '../hooks/useLinkedDetail';
@@ -32,6 +35,12 @@ import { exactDecimal } from '../utils/fixedDecimal';
 
 const filterNames = ['search', 'situacao', 'fornecedorId', 'clienteId', 'dataVencimentoDe', 'dataVencimentoAte',
   'origem', 'notaEntradaId', 'notaSaidaId', 'notaServicoId'];
+const financialSorts = [
+  { value: 'dataVencimento,asc', label: 'Vencimento mais próximo' },
+  { value: 'dataVencimento,desc', label: 'Vencimento mais distante' },
+  { value: 'valorTotal,desc', label: 'Maior valor' },
+  { value: 'id,desc', label: 'Mais recentes' },
+];
 const settlementDate = () => {
   const now = new Date();
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
@@ -51,6 +60,7 @@ export function FinancialAccountsPage({ tipo }: { tipo: FinancialAccountType }) 
   const client = useQueryClient();
   const { notify } = useSnackbar();
   const [params, setParams] = useSearchParams();
+  const creating = params.get('novo') === '1';
   const isMobile = useMediaQuery(useTheme().breakpoints.down('md'));
   const origins = Object.entries(financialOriginLabels)
     .filter(([key]) => pagar ? ['MANUAL', 'NOTA_ENTRADA'].includes(key) : key !== 'NOTA_ENTRADA')
@@ -58,10 +68,8 @@ export function FinancialAccountsPage({ tipo }: { tipo: FinancialAccountType }) 
   const filters = Object.fromEntries(filterNames
     .filter((key) => key === 'origem' ? origins.some(({ value }) => value === params.get(key)) : params.get(key))
     .map((key) => [key, params.get(key)!]));
-  const [page, setPage] = useState(0);
-  const [size, setSize] = useState(10);
-  const [sort, setSort] = useState('dataVencimento,asc');
-  const [createOpen, setCreateOpen] = useState(false);
+  const view = useListView(financialSorts);
+  const { page, size, sort } = view;
   const [settling, setSettling] = useState<FinancialAccount | null>(null);
   const [canceling, setCanceling] = useState<FinancialAccount | null>(null);
   const [valor, setValor] = useState('');
@@ -71,32 +79,40 @@ export function FinancialAccountsPage({ tipo }: { tipo: FinancialAccountType }) 
   const attemptKey = (id: number) => settlementAttemptStorageKey(org!, user?.login ?? 'sessao', tipo, id);
   const list = useQuery({ queryKey: tenantQueryKey(org ?? 0, 'financial-accounts', tipo, filters, page, size, sort),
     queryFn: () => resource.list({ ...filters, page, size, sort }), enabled: canRead });
+  useCorrectListPage(view, list.data?.totalElements);
   const summary = useQuery({ queryKey: tenantQueryKey(org ?? 0, 'financial-summary', tipo, filters),
     queryFn: () => resource.summary(filters), enabled: canRead });
-  const linked = useLinkedDetail(org, config.key, resource.get, canRead);
+  const linked = useLinkedDetail(org, config.key, resource.get, canRead, true, { listPath: `/app/${config.key}` });
   const detail = linked.data;
   const history = useQuery({ queryKey: tenantQueryKey(org ?? 0, 'financial-history', tipo, detail?.id),
     queryFn: () => resource.history(detail!.id), enabled: canRead && !!detail });
   const refresh = async () => { if (org) await client.invalidateQueries({ queryKey: ['tenant', org] }); };
   const create = useMutation({ mutationFn: resource.create, onSuccess: async () => {
-    setCreateOpen(false); notify('Título registrado.', 'success'); await refresh();
+    notify('Título registrado.', 'success'); await refresh();
   } });
+  const closeCreate = () => setParams((current) => {
+    const url = new URLSearchParams(current); url.delete('novo'); return url;
+  }, { replace: true });
+  const openCreate = () => {
+    create.reset();
+    setParams((current) => {
+      const url = new URLSearchParams(current); url.delete('detail'); url.set('novo', '1'); return url;
+    });
+  };
   const settle = useMutation({ mutationFn: ({ id, body, key }: { id: number; body: SettlementRequest; key: string }) => resource.settle(id, body, key),
     onSuccess: async (_, variables) => { clearSettlementAttempt(attemptKey(variables.id)); setSettling(null); setAttempt(null); notify('Baixa registrada no sistema.', 'success'); await refresh(); } });
   const cancel = useMutation({ mutationFn: resource.cancel, onSuccess: async () => { setCanceling(null); await refresh(); } });
   const changeFilters = (next: Record<string, unknown>) => {
-    setPage(0);
     setParams((current) => {
       const url = new URLSearchParams(current);
+      url.delete('page');
       for (const key of filterNames) {
         if (next[key] !== '' && next[key] != null) url.set(key, String(next[key])); else url.delete(key);
       }
       return url;
     }, { replace: true });
   };
-  const open = (row: FinancialAccount) => setParams((current) => {
-    const url = new URLSearchParams(current); url.set('detail', String(row.id)); return url;
-  });
+  const open = (row: FinancialAccount) => linked.open(row.id);
   const openSettlement = (row: FinancialAccount) => {
     try {
       const pending = readSettlementAttempt(attemptKey(row.id));
@@ -145,12 +161,24 @@ export function FinancialAccountsPage({ tipo }: { tipo: FinancialAccountType }) 
       ? <Button component={RouterLink} to={source.url} size="small" onClick={(e) => e.stopPropagation()}>{label}</Button> : label;
   };
   if (!canRead) return <Alert severity="warning">Selecione uma organização com permissão para consultar o financeiro.</Alert>;
+  if (creating) {
+    if (!canCreate) return <Box>
+      <PageHeader title="Novo lançamento" onBack={closeCreate} />
+      <Alert severity="warning">Seu acesso não permite criar lançamentos nesta organização.</Alert>
+    </Box>;
+    return <ResourceFormPage key={`${org}:${tipo}`} title="Novo lançamento"
+      subtitle={pagar ? 'Registre um título a pagar para um fornecedor.' : 'Registre um título a receber de um cliente.'}
+      fields={config.fields} submitting={create.isPending} error={create.isError ? describeError(create.error) : undefined}
+      discardLabel="Descartar lançamento" onClose={closeCreate} onSubmit={(body) => create.mutateAsync(body)} />;
+  }
 
   return <Box>
+    {!linked.requested && <>
     <PageHeader title={pagar ? 'Contas a pagar' : 'Contas a receber'} count={list.data?.totalElements}
       subtitle="Consulte vencimentos, documentos de origem, baixas e o saldo de cada título."
-      action={canCreate ? <Button variant="contained" startIcon={<AddIcon />} onClick={() => { create.reset(); setCreateOpen(true); }}>Novo lançamento</Button> : undefined} />
+      action={canCreate ? <Button variant="contained" startIcon={<AddIcon />} onClick={openCreate}>Novo lançamento</Button> : undefined} />
     <ListingToolbar searchValue={filters.search ?? ''} searchLabel="Buscar por nome, documento, nota ou observação"
+      sortControl={<ListSort options={financialSorts} value={sort} onChange={view.setSort} />}
       onSearchChange={(search) => changeFilters({ ...filters, search })} appliedCount={Object.keys(filters).length}
       onClear={() => changeFilters({})} filterForm={<Stack gap={2}>
         <FilterBar filters={filterConfigs.filter((f) => !['search', 'dataVencimentoDe', 'dataVencimentoAte'].includes(f.name))} values={filters} onChange={changeFilters} />
@@ -165,10 +193,6 @@ export function FinancialAccountsPage({ tipo }: { tipo: FinancialAccountType }) 
           <Card key={String(label)} sx={{ p: 2, flex: 1 }}><Typography variant="body2" color="text.secondary">{label}</Typography><Typography variant="h6">{moeda(Number(value))}</Typography></Card>)}
       </Stack>}
     <Typography variant="caption" color="text.secondary">Totais de todos os títulos filtrados. O saldo em aberto desconsidera cancelados.</Typography>
-    <Box sx={{ my: 2 }}><TextField select size="small" label="Ordenar por" value={sort} onChange={(e) => { setSort(e.target.value); setPage(0); }}>
-      <MenuItem value="dataVencimento,asc">Vencimento mais próximo</MenuItem><MenuItem value="dataVencimento,desc">Vencimento mais distante</MenuItem>
-      <MenuItem value="valorTotal,desc">Maior valor</MenuItem><MenuItem value="id,desc">Mais recentes</MenuItem>
-    </TextField></Box>
     {list.isError ? <ErrorState message={describeError(list.error)} onRetry={() => { void list.refetch(); }} /> : list.isPending ? <ListingSkeleton />
       : !list.data.content.length ? <EmptyState title="Nenhum título encontrado" description="Revise os filtros ou registre um novo lançamento." />
         : isMobile ? <ListingCards rows={list.data.content} getKey={(r) => r.id} getTitle={(r) => r.fornecedorNome ?? r.clienteNome}
@@ -183,11 +207,10 @@ export function FinancialAccountsPage({ tipo }: { tipo: FinancialAccountType }) 
               <TableCell>{moeda(r.valorPago ?? r.valorRecebido)}</TableCell><TableCell>{moeda(r.saldo)}</TableCell>
               <TableCell><Chip label={formatStatusLabel(r.situacao)} size="small" /></TableCell><TableCell><SecondaryActionsMenu actions={actions(r)} /></TableCell>
             </TableRow>)}</TableBody></Table></TableContainer>}
-    <TablePagination component="div" count={list.data?.totalElements ?? 0} page={page} rowsPerPage={size} rowsPerPageOptions={[10, 25, 50]}
-      onPageChange={(_, next) => setPage(next)} onRowsPerPageChange={(e) => { setSize(Number(e.target.value)); setPage(0); }} labelRowsPerPage="Por página"
-      labelDisplayedRows={({ from, to, count }) => `${from}–${to} de ${count}`} />
-    <DetailDrawer open={linked.requested} title={detail ? `Título ${detail.id} — ${detail.fornecedorNome ?? detail.clienteNome}` : 'Detalhes do título'}
-      onClose={linked.close} actions={detail && <Stack direction="row" gap={1}>{actions(detail).map((a) => <Button key={a.key} variant={a.danger ? 'outlined' : 'contained'} color={a.danger ? 'error' : 'primary'} onClick={a.onClick}>{a.label}</Button>)}</Stack>}>
+    <ListPagination view={view} total={list.data?.totalElements} />
+    </>}
+    {linked.requested && <RecordDetailPage title={detail ? `Título ${detail.id} — ${detail.fornecedorNome ?? detail.clienteNome ?? 'Contraparte não informada'}` : 'Detalhes do título'}
+      onBack={linked.close} actions={detail && <Stack direction={{ xs: 'column', sm: 'row' }} gap={1}>{actions(detail).map((a) => <Button key={a.key} variant={a.danger ? 'outlined' : 'contained'} color={a.danger ? 'error' : 'primary'} onClick={a.onClick}>{a.label}</Button>)}</Stack>}>
       {linked.isError ? <ErrorState message={describeError(linked.error)} onRetry={() => { void linked.refetch(); }} /> : !detail ? <ListingSkeleton /> : <>
         <Chip label={formatStatusLabel(detail.situacao)} sx={{ alignSelf: 'start' }} /><Typography variant="h5">Saldo: {moeda(detail.saldo)}</Typography>
         <Typography>Parcela {detail.numeroParcela} de {detail.totalParcelas} · Vence em {formatDate(detail.dataVencimento)}</Typography>
@@ -203,9 +226,7 @@ export function FinancialAccountsPage({ tipo }: { tipo: FinancialAccountType }) 
             <Typography variant="body2" color="text.secondary">{h.saldoAnterior ? 'Saldo acumulado anterior ao histórico detalhado; pagamentos individuais não disponíveis.' : h.atorNome ?? 'Autor não informado'}</Typography>
           </Card>)}
       </>}
-    </DetailDrawer>
-    <ResourceFormDialog open={createOpen} title="Novo lançamento" fields={config.fields} submitting={create.isPending}
-      conflictMessage={create.isError ? describeError(create.error) : null} onClose={() => { if (!create.isPending) setCreateOpen(false); }} onSubmit={(body) => { if (canCreate) create.mutate(body); }} />
+    </RecordDetailPage>}
     <AppDialog open={!!settling} onClose={() => { if (!attempt) setSettling(null); }}
       title={pagar ? 'Registrar pagamento' : 'Registrar recebimento'} maxWidth="sm"
       fullScreenOnMobile busy={settle.isPending} actions={<>
@@ -215,11 +236,11 @@ export function FinancialAccountsPage({ tipo }: { tipo: FinancialAccountType }) 
         <Alert severity="info" sx={{ mb: 2 }}>Esta ação registra uma baixa no sistema; não executa uma transferência bancária.</Alert>
         {attempt && !settle.isError && <Alert severity="info" sx={{ mb: 2 }}>Esta tentativa está preservada. A confirmação utiliza os mesmos dados para evitar duplicidade.</Alert>}
         {settling && <Typography sx={{ mb: 2 }}>Saldo atual: {moeda(settling.saldo)}</Typography>}
-        <Stack gap={2}><TextField label="Valor da baixa" type="number" value={valor} disabled={!!attempt}
+        <Stack gap={2}><FormField label="Valor da baixa" type="number" value={valor} disabled={!!attempt}
           error={!!localError} inputProps={{ min: precisaoBaixa, step: precisaoBaixa, inputMode: 'decimal' }}
           onChange={(event) => { setValor(event.target.value); setLocalError(null); }}
           InputProps={{ startAdornment: <InputAdornment position="start">R$</InputAdornment> }} />
-          <TextField label="Data da baixa" value={data} type="date" disabled={!!attempt} onChange={(e) => setData(e.target.value)} InputLabelProps={{ shrink: true }} /></Stack>
+          <FormField label="Data da baixa" value={data} type="date" disabled={!!attempt} onChange={(e) => setData(e.target.value)} /></Stack>
         {(localError || settle.isError) && <Alert severity="error" sx={{ mt: 2 }}>{localError ?? describeError(settle.error)}</Alert>}
         {settle.isError && attempt && <Alert severity="warning" sx={{ mt: 1 }}>O resultado pode ter sido registrado. Tente novamente com os mesmos dados para consultar ou concluir esta baixa sem duplicá-la.</Alert>}
     </AppDialog>

@@ -34,6 +34,8 @@ inventário de vagas e das notas fiscais legadas.
 
 ## Fluxo (camadas da arquitetura)
 
+O detalhe do razão abre em `/app/estoque/movimentos/:detailId`, com volta à listagem e seus filtros. Links anteriores com `?tab=razao&detail=...` continuam válidos. Criar e editar locais usa formulário em página dedicada na aba Locais (`?tab=locais&formulario=...`), com a mesma permissão de gestão e controle de versão. A inativação continua em confirmação rápida.
+
 ```text
 JWT contextual + stock:read
   -> menu superior Estoque (Entradas + Estoque, acesso direto às telas)
@@ -132,6 +134,7 @@ arquivos, além de typecheck, lint e build.
 
 | Data | Ação |
 |---|---|
+| 2026-11-22 | Separa detalhes do razão e formulários de locais das listagens, preservando filtros, permissões e versionamento. |
 | 2026-11-08 | Mostra a sexta casa na posição, razão e detalhe de estoque sem arredondar para zero. |
 | 2026-11-06 | Retira Conferência/Ajustes dos menus e as ações Ajustar estoque e Compensar movimento; razão histórico e locais continuam disponíveis. |
 | 2026-11-05 | Exibe movimentos de venda histórica apenas para consulta, sem link para o pedido removido ou compensação isolada. |

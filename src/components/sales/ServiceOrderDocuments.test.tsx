@@ -10,14 +10,22 @@ vi.mock('../../auth/AuthContext', () => ({ useAuth: () => ({ activeOrganization:
 const order = { id: 18, numero: 'OS-18', status: 'CONCLUIDA', valorTotal: 100, itens: [] } as unknown as ServiceOrder;
 const note = { id: 21, numero: 'NS-21', situacao: 'PENDENTE', valorTotal: 100 };
 const permissions = ['service_orders:read', 'fiscal:read', 'fiscal:manage', 'finance:read'];
-function mount(allowed = permissions, status = order.status) {
+function mount(allowed = permissions, status = order.status, movimentacaoPatioId?: number) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   render(<MemoryRouter><QueryClientProvider client={client}><ServiceOrderDocuments organizationId={2}
-    order={{ ...order, status }} permissions={allowed} /></QueryClientProvider></MemoryRouter>);
+    order={{ ...order, status, movimentacaoPatioId }} permissions={allowed} /></QueryClientProvider></MemoryRouter>);
   return client;
 }
 afterEach(() => vi.restoreAllMocks());
 describe('faturamento contextual de serviços', () => {
+  it('exibe a NFS-e pendente da estadia sem oferecer emissão ou geração manual', async () => {
+    vi.spyOn(api, 'get').mockResolvedValue({ data: { nota: null, contas: [],
+      nfsePatio: { status: 'PENDENTE_EMISSAO', movimentacaoId: 72, valor: '25.123456' } } });
+    mount(permissions, 'CONCLUIDA', 72);
+    expect(await screen.findByText('NFS-e pendente de emissão')).toBeVisible();
+    expect(screen.queryByRole('button', { name: /Gerar nota|Emitir internamente/ })).not.toBeInTheDocument();
+    expect(screen.getByText(/cobrança foi registrada no caixa/)).toBeVisible();
+  });
   it('conclusão permite preparar nota, sem afirmar que já existe cobrança', async () => {
     vi.spyOn(api, 'get').mockResolvedValue({ data: { nota: null, contas: [] } }); mount();
     expect(await screen.findByRole('button', { name: 'Gerar nota de serviço' })).toBeInTheDocument();
@@ -35,7 +43,8 @@ describe('faturamento contextual de serviços', () => {
       .mockResolvedValueOnce({ data: note }); const client = mount();
     const invalidate = vi.spyOn(client, 'invalidateQueries');
     fireEvent.click(await screen.findByRole('button', { name: 'Gerar nota de serviço' }));
-    const form = screen.getByRole('dialog', { name: 'Gerar nota de serviço' });
+    const form = screen.getByRole('form', { name: 'Gerar nota de serviço' });
+    expect(screen.queryByRole('dialog', { name: 'Gerar nota de serviço' })).not.toBeInTheDocument();
     fireEvent.change(within(form).getByRole('textbox', { name: /Número da nota/ }), { target: { value: 'NS-21' } });
     fireEvent.click(within(form).getByRole('button', { name: 'Preparar nota' }));
     fireEvent.click(await within(form).findByRole('button', { name: 'Tentar novamente' }));
@@ -56,6 +65,12 @@ describe('faturamento contextual de serviços', () => {
     expect(await screen.findByRole('link', { name: 'Conferir nota NS-21' }))
       .toHaveAttribute('href', '/app/notas-servico/21');
     expect(screen.queryByRole('button', { name: 'Emitir internamente' })).not.toBeInTheDocument();
+  });
+  it('não abre a nota vinculada sem permissão de leitura fiscal', async () => {
+    vi.spyOn(api, 'get').mockResolvedValue({ data: { nota: note, contas: [] } });
+    mount(['service_orders:read', 'fiscal:manage']);
+    expect(await screen.findByText('Nota NS-21 preparada. A consulta exige permissão fiscal.')).toBeVisible();
+    expect(screen.queryByRole('link', { name: /Conferir nota|Ver nota/ })).not.toBeInTheDocument();
   });
   it('erro de leitura não vira documento inexistente e sem permissão não exibe comandos', async () => {
     vi.spyOn(api, 'get').mockRejectedValue(new Error('Não foi possível consultar o faturamento.')); mount(['service_orders:read']);

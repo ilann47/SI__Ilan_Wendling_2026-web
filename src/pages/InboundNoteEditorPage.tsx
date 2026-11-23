@@ -4,7 +4,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import dayjs from 'dayjs';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { FormProvider, useForm, useWatch } from 'react-hook-form';
-import { useBlocker, useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
+import { useManagedFormBlocker } from '../context/formNavigationCore';
 import { describeError } from '../api/client';
 import { buildNotaEntradaPayload, canCorrectRejectedCreate, inboundNotesApi, inboundNoteVersion, type InboundNotePreview } from '../api/inboundNotes';
 import { tenantQueryKey } from '../api/queryKeys';
@@ -115,7 +116,7 @@ function InboundNoteEditor({ org }: { org: number }) {
   }, [attempt, resetValues]);
   const dirty = form.formState.isDirty || JSON.stringify(values) !== savedValues.current;
   const navigationAfterSave = useRef(false);
-  const blocker = useBlocker(() => !navigationAfterSave.current && (JSON.stringify(form.getValues()) !== savedValues.current || !!attempt));
+  const blocker = useManagedFormBlocker(() => !navigationAfterSave.current && (JSON.stringify(form.getValues()) !== savedValues.current || !!attempt));
   useEffect(() => {
     const warn = (event: BeforeUnloadEvent) => { if (dirty || attempt) event.preventDefault(); };
     window.addEventListener('beforeunload', warn);

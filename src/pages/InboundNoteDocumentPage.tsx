@@ -1,5 +1,5 @@
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import { Accordion, AccordionDetails, AccordionSummary, Alert, Box, Button, Chip, Divider, Stack, Typography } from '@mui/material';
+import { Accordion, AccordionDetails, AccordionSummary, Alert, Box, Button, Divider, Stack, Typography } from '@mui/material';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { Link as RouterLink, useParams } from 'react-router-dom';
@@ -8,22 +8,16 @@ import { canReverseFiscalNote } from '../api/fiscalCommands';
 import { inboundNotesApi, inboundNoteVersion } from '../api/inboundNotes';
 import { tenantQueryKey } from '../api/queryKeys';
 import { useAuth } from '../auth/AuthContext';
+import { allowsAccess } from '../auth/accessPolicy';
+import { inboundEditorAccess } from '../auth/routeAccess';
 import { ConfirmDialog } from '../components/common/ConfirmDialog';
 import { FiscalReversalDialog } from '../components/common/FiscalReversalDialog';
-import { PageHeader } from '../components/common/PageHeader';
+import { NoteDetailHeader } from '../components/common/NoteDetailHeader';
 import { StatusChip } from '../components/common/StatusChip';
 import { ErrorState } from '../components/listing/ErrorState';
 import { ListingSkeleton } from '../components/listing/ListingSkeleton';
 import { InboundNoteDocumentReview } from '../components/inboundNotes/InboundNoteDocumentReview';
 import { formatCurrencyMicros, formatDate, formatDateTime, formatNumber } from '../utils/format';
-
-function NoteFact({ label, value, emphasis = false }: { label: string; value: string; emphasis?: boolean }) {
-  return <Box sx={{ minWidth: 0 }}>
-    <Typography display="block" variant="caption" color="text.secondary" fontWeight={700}>{label}</Typography>
-    <Typography fontWeight={emphasis ? 850 : 700} color={emphasis ? 'primary.main' : 'text.primary'} fontSize={emphasis ? '1.2rem' : undefined}
-      sx={{ overflowWrap: 'anywhere' }}>{value}</Typography>
-  </Box>;
-}
 
 export function InboundNoteDocumentPage() {
   const { id } = useParams();
@@ -65,6 +59,7 @@ function InboundDocument({ org, noteId, permissions }: { org: number; noteId: nu
   const note = data.nota;
   const pending = note.situacao === 'PENDENTE';
   const manages = permissions.includes('fiscal:manage');
+  const mayEdit = allowsAccess(permissions, inboundEditorAccess);
   const reversed = !!note.revertidaEm;
   const mayReverse = note.situacao === 'CONFIRMADA' && canReverseFiscalNote(permissions);
   const hasPayment = permissions.includes('finance:read') && data.contasPagar?.some((account) => account.valorPago > 0);
@@ -76,13 +71,25 @@ function InboundDocument({ org, noteId, permissions }: { org: number; noteId: nu
   const stateCopy = reversed ? 'Nota revertida internamente · histórico preservado' : pending ? 'Rascunho · ainda não movimenta estoque nem gera obrigação' : note.situacao === 'CONFIRMADA'
     ? 'Nota confirmada · somente leitura' : 'Nota cancelada · somente consulta';
   return <Box>
-    <PageHeader title={`Nota ${note.numero}`} subtitle={`Série ${note.serie} · modelo ${note.modelo} · ${note.fornecedorNome}`}
-      backFallback="/app/notas-entrada"
+    <NoteDetailHeader title={`Nota de Entrada ${note.numero}`} counterpart={note.fornecedorNome}
+      series={note.serie} model={note.modelo} backFallback="/app/notas-entrada"
+      status={pending ? 'RASCUNHO' : note.situacao} reversed={reversed} total={formatCurrencyMicros(note.valorTotal)}
+      description={stateCopy}
+      facts={[
+        { label: 'Emissão', value: formatDate(note.dataEmissao) },
+        { label: 'Chegada', value: formatDate(note.dataChegada) },
+        { label: 'Local de estoque', value: note.localEstoqueNome ?? 'Não disponível' },
+        { label: 'Condição de pagamento', value: note.condicaoPagamentoNome ?? 'Não informada' },
+      ]}
       action={pending && manages ? <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
-        {pending && manages && <Button variant="contained" component={RouterLink} to={`/app/notas-entrada/${note.id}/editar`}>Editar / conferir entrada</Button>}
+        {mayEdit && <Button variant="contained" component={RouterLink} to={`/app/notas-entrada/${note.id}/editar`}>Editar / conferir entrada</Button>}
         {pending && manages && <Button color="error" onClick={() => setCancelling(true)}>Cancelar rascunho</Button>}
       </Stack> : mayReverse && !reversalBlocked ? <Button variant="outlined" color="error" disabled={reverseUncertain || reverse.isPending || detail.isFetching}
-        onClick={() => { setReverseError(null); setReversing(true); }}>Reverter nota</Button> : undefined} />
+        onClick={() => { setReverseError(null); setReversing(true); }}>Reverter nota</Button> : undefined}>
+      <Typography variant="caption" color="text.secondary">
+        {note.transportadoraNome ? `Transportadora: ${note.transportadoraNome} · ` : ''}Frete: {note.tipoFrete} · Atualizada em {formatDateTime(note.updatedAt)}
+      </Typography>
+    </NoteDetailHeader>
     {reversed && <Alert severity="warning" sx={{ mb: 2 }}>
       Reversão registrada em {formatDateTime(note.revertidaEm)}. Motivo: {note.motivoReversao ?? 'Não informado'}.
     </Alert>}
@@ -97,30 +104,6 @@ function InboundDocument({ org, noteId, permissions }: { org: number; noteId: nu
         if (result.isSuccess) { setReverseUncertain(false); setReverseError(null); }
       })}>Recarregar nota</Button>}>{reverseError}</Alert>}
     <Box sx={{ bgcolor: 'background.paper', border: 1, borderColor: 'divider', borderRadius: 2, overflow: 'hidden' }}>
-      <Box component="section" sx={{ p: { xs: 2, md: 2.5 } }}>
-        <Stack direction="row" alignItems="flex-start" justifyContent="space-between" gap={2}>
-          <Box>
-            <Typography component="h2" variant="h6" fontWeight={800}>Dados da nota</Typography>
-            <Typography variant="body2" color="text.secondary">{stateCopy}</Typography>
-          </Box>
-          <Stack alignItems="flex-end" spacing={0.5} sx={{ flexShrink: 0 }}>
-            {reversed ? <Chip size="small" color="warning" label="Revertida" /> : <StatusChip status={note.situacao} />}
-            <Typography fontWeight={850} color="primary.main" fontSize="1.35rem">{formatCurrencyMicros(note.valorTotal)}</Typography>
-          </Stack>
-        </Stack>
-        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'repeat(2, minmax(0, 1fr))', sm: 'repeat(3, minmax(0, 1fr))', lg: 'repeat(5, minmax(0, 1fr))' }, gap: { xs: 1.5, md: 2.5 }, mt: 2 }}>
-          <NoteFact label="Documento" value={`Modelo ${note.modelo} · Série ${note.serie}`} />
-          <NoteFact label="Emissão" value={formatDate(note.dataEmissao)} />
-          <NoteFact label="Chegada" value={formatDate(note.dataChegada)} />
-          <NoteFact label="Local de estoque" value={note.localEstoqueNome ?? 'Não disponível'} />
-          <NoteFact label="Condição" value={note.condicaoPagamentoNome ?? 'Não informada'} />
-        </Box>
-        <Typography display="block" variant="caption" color="text.secondary" mt={1.5}>
-          {note.transportadoraNome ? `Transportadora: ${note.transportadoraNome} · ` : ''}Frete: {note.tipoFrete} · Atualizada em {formatDateTime(note.updatedAt)}
-        </Typography>
-      </Box>
-
-      <Divider />
       <Box sx={{ p: { xs: 2, md: 2.5 } }}>
         {data.previa ? <InboundNoteDocumentReview value={data.previa} situacao={note.situacao} revertida={reversed} /> : <Stack spacing={2}>
           <Box component="section">

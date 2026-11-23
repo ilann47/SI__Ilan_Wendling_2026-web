@@ -5,7 +5,8 @@ import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import { Alert, Box, Button, Card, Chip, Stack, useMediaQuery } from '@mui/material';
 import UploadFileOutlinedIcon from '@mui/icons-material/UploadFileOutlined';
 import { useTheme } from '@mui/material/styles';
-import { DataGrid, type GridColDef, type GridPaginationModel } from '@mui/x-data-grid';
+import type { GridColDef, GridPaginationModel } from '@mui/x-data-grid';
+import { OperationalDataGrid } from '../components/listing/OperationalDataGrid';
 import { ptBR } from '@mui/x-data-grid/locales';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo, useState } from 'react';
@@ -153,7 +154,7 @@ export function InboundNotesPage() {
   const rowActions = (row: NotaEntradaResponse): SecondaryAction[] => {
     const actions: SecondaryAction[] = [];
     if (canManage && row.situacao === 'PENDENTE') {
-      actions.push({
+      if (canCreate) actions.push({
         key: 'confirmar',
         label: 'Conferir / editar rascunho',
         icon: <CheckCircleOutlineIcon fontSize="small" />,
@@ -304,7 +305,8 @@ export function InboundNotesPage() {
             onOpen={openDetail}
           />
           <Card sx={{ display: { xs: 'none', md: 'block' } }}>
-            <DataGrid
+            <OperationalDataGrid
+              identityField="numero"
               autoHeight
               rows={rows}
               columns={columns}

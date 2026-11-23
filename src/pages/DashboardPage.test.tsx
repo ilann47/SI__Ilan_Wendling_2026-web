@@ -19,7 +19,7 @@ describe('DashboardPage', () => {
     vi.spyOn(api, 'get').mockResolvedValue({ data: {
       inicio: '2026-09-12', fim: '2026-09-18', totalAPagar: 100, totalAReceber: 250,
       vencidoAPagar: 0, vencidoAReceber: 0,
-      aPagar: [{ id: 8, origem: 'DESPESA_AVULSA', contraparte: 'Energia', saldo: 100, vencimento: '2026-09-13', situacao: 'PENDENTE', vencido: false }],
+      aPagar: [{ id: 8, origem: 'CONTA_PAGAR', contraparte: 'Fornecedor A', saldo: 100, vencimento: '2026-09-13', situacao: 'PENDENTE', vencido: false }],
       aReceber: [{ id: 9, origem: 'CONTA_RECEBER', contraparte: 'Cliente A', saldo: 250, vencimento: '2026-09-14', situacao: 'PARCIAL', vencido: false }],
     } });
     render(<MemoryRouter><QueryClientProvider client={new QueryClient()}><DashboardPage /></QueryClientProvider></MemoryRouter>);
@@ -29,7 +29,7 @@ describe('DashboardPage', () => {
     expect(screen.queryByText('R$ 350,00')).not.toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Ver contas a pagar do período' }));
     const drawer = screen.getByRole('dialog');
-    expect(within(drawer).getByRole('link', { name: /Energia/ })).toHaveAttribute('href', '/app/contas-pagar-avulsas?detail=8');
+    expect(within(drawer).getByRole('link', { name: /Fornecedor A/ })).toHaveAttribute('href', '/app/contas-pagar?detail=8');
     expect(within(drawer).queryByText('Cliente A')).not.toBeInTheDocument();
   });
 

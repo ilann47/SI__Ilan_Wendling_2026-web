@@ -3,6 +3,12 @@
 Registro honesto de relações/contratos que o frontend precisa e ainda não
 encontram endpoint estável. Não inventar mocks para esconder estas lacunas.
 
+## Eventos e Instalações
+
+- Resolvido: catálogos contextualizados de locais, pátios e setores com busca
+  por nome. A alocação retorna o nome do pátio; cidade tem consulta de leitura
+  própria para os cadastros, sem ampliar os privilégios da API legada.
+
 ## Nota de Entrada
 
 | Necessidade UX | Situação atual | Dependência sugerida |

@@ -3,16 +3,20 @@ import CancelOutlinedIcon from '@mui/icons-material/CancelOutlined';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import PlayArrowOutlinedIcon from '@mui/icons-material/PlayArrowOutlined';
-import { Alert, Box, Button, Card, Chip, Stack, Table,
+import { Alert, Box, Button, Card, Chip, MenuItem, Stack, Table, TextField,
   TableBody, TableCell, TableContainer, TableHead, TableRow, Typography } from '@mui/material';
 import { EmptyState } from '../components/listing/EmptyState';
 import { ErrorState } from '../components/listing/ErrorState';
 import { ListingSkeleton } from '../components/listing/ListingSkeleton';
 import { ListingToolbar } from '../components/listing/ListingToolbar';
+import { AppliedFilterChips } from '../components/listing/AppliedFilterChips';
+import { ListPagination, ListSort } from '../components/listing/ListViewControls';
+import { useCorrectListPage, useListView } from '../components/listing/useListView';
+import type { FilterConfig } from '../components/crud/resourceConfig';
 import { ListingCards } from '../components/listing/ListingCards';
 import { SecondaryActionsMenu, type SecondaryAction } from '../components/listing/SecondaryActionsMenu';
 import { useLinkedDetail } from '../hooks/useLinkedDetail';
-import { DetailDrawer } from '../components/listing/DetailDrawer';
+import { RecordDetailPage } from '../components/listing/RecordDetailPage';
 import { PrimaryButton } from '../components/listing/PrimaryButton';
 import { RelatedItemsTable } from '../components/listing/ResourceDetailBody';
 import { ServiceOrderDocuments } from '../components/sales/ServiceOrderDocuments';
@@ -23,13 +27,24 @@ import { buildServiceOrderPayload, serviceOrdersApi, type ServiceOrder } from '.
 import { describeError } from '../api/client';
 import { tenantQueryKey } from '../api/queryKeys';
 import { useAuth } from '../auth/AuthContext';
+import { allowsAccess } from '../auth/accessPolicy';
 import { ConfirmDialog } from '../components/common/ConfirmDialog';
 import { PageHeader } from '../components/common/PageHeader';
 import { ResourceFormDialog } from '../components/form/ResourceFormDialog';
+import { ResourceFormPage } from '../components/form/ResourceFormPage';
+import { serviceNoteFormName, useFormPageLocation } from '../components/form/useFormPageLocation';
 import type { FieldConfig } from '../components/form/fieldConfig';
 import { useSnackbar } from '../components/SnackbarProvider';
 import { formatCurrency, formatDate, formatStatusLabel } from '../utils/format';
 import { DECIMAL_STEP } from '../utils/fixedDecimal';
+
+const orderSorts = [
+  { value: 'dataAbertura,desc', label: 'Abertura mais recente' },
+  { value: 'dataAbertura,asc', label: 'Abertura mais antiga' },
+];
+const statusOptions = ['RASCUNHO', 'EM_EXECUCAO', 'CONCLUIDA', 'CANCELADA']
+  .map((value) => ({ value, label: formatStatusLabel(value) }));
+const orderFilters: FilterConfig[] = [{ name: 'status', label: 'Situação', type: 'select', options: statusOptions }];
 
 const itemFields: FieldConfig[] = [
   { name: 'servicoId', label: 'Serviço', type: 'reference', required: true, cols: 5,
@@ -68,26 +83,36 @@ export function ServiceOrdersPage() {
 
 function ServiceOrdersWorkspace({ orgId, permissions }: { orgId?: number; permissions: string[] }) {
   const canManage = permissions.includes('service_orders:manage');
+  const canEditOrder = allowsAccess(permissions, { allOf: ['service_orders:manage', 'customers:read', 'catalog:read'] });
   const queryClient = useQueryClient();
   const { notify } = useSnackbar();
   const [editing, setEditing] = useState<ServiceOrder | null | undefined>(undefined);
   const [starting, setStarting] = useState<ServiceOrder | null>(null);
   const [completing, setCompleting] = useState<ServiceOrder | null>(null);
   const [cancelling, setCancelling] = useState<ServiceOrder | null>(null);
-  const [, setSearchParams] = useSearchParams();
-  const linked = useLinkedDetail(orgId, 'service-orders', serviceOrdersApi.get, permissions.includes('service_orders:read'));
+  const [params, setSearchParams] = useSearchParams();
+  const formLocation = useFormPageLocation();
+  const linked = useLinkedDetail(orgId, 'service-orders', serviceOrdersApi.get, permissions.includes('service_orders:read'), true,
+    { listPath: '/app/ordens-servico' });
   const details = linked.data;
-  const setDetails = (order: ServiceOrder) => setSearchParams((current) => {
-    const next = new URLSearchParams(current); next.set('detail', String(order.id)); return next;
-  });
+  const setDetails = (order: ServiceOrder) => linked.open(order.id);
   const closeDetails = linked.close;
   const createIntent = useRef<{ fingerprint: string; key: string } | null>(null);
-  const [search, setSearch] = useState('');
-  const [page, setPage] = useState(0);
-  const queryKey = orgId ? tenantQueryKey(orgId, 'service-orders', page, search) : ['service-orders'];
+  const openForm = (order: ServiceOrder | null) => {
+    save.reset();
+    setEditing(order);
+    formLocation.open(order ? `editar-${order.id}` : 'novo');
+  };
+  const closeForm = () => { formLocation.close(); setEditing(undefined); };
+  const view = useListView(orderSorts);
+  const { page, size, sort } = view;
+  const search = params.get('numero') ?? '';
+  const status = statusOptions.find((option) => option.value === params.get('status'))?.value ?? '';
+  const queryKey = orgId ? tenantQueryKey(orgId, 'service-orders', page, size, sort, search.trim(), status) : ['service-orders'];
   const list = useQuery({ queryKey, queryFn: () => serviceOrdersApi.list({
-    page, size: 10, sort: 'dataAbertura,desc', ...(search.trim() ? { numero: search.trim() } : {}),
+    page, size, sort, ...(search.trim() ? { numero: search.trim() } : {}), ...(status ? { status } : {}),
   }), enabled: !!orgId && permissions.includes('service_orders:read') });
+  useCorrectListPage(view, list.data?.totalElements);
   const done = (message: string, updated: ServiceOrder) => { notify(message, 'success');
     if (orgId) {
       queryClient.setQueryData(tenantQueryKey(orgId, 'linked-detail', 'service-orders', updated.id), updated);
@@ -103,8 +128,8 @@ function ServiceOrdersWorkspace({ orgId, permissions }: { orgId?: number; permis
       createIntent.current = { fingerprint, key: crypto.randomUUID() };
     }
     return serviceOrdersApi.create(body, createIntent.current.key);
-  }, onSuccess: (updated) => { setEditing(undefined); createIntent.current = null;
-    setDetails(updated); done('Ordem de serviço salva.', updated); }, onError: fail });
+  }, onSuccess: (updated) => { createIntent.current = null;
+    done('Ordem de serviço salva.', updated); }, onError: fail });
   const start = useMutation({ mutationFn: (order: ServiceOrder) =>
     serviceOrdersApi.start(order.id, order.version), onSuccess: (updated) => {
       setStarting(null); done('Execução iniciada.', updated); }, onError: fail });
@@ -118,9 +143,25 @@ function ServiceOrdersWorkspace({ orgId, permissions }: { orgId?: number; permis
   if (!orgId || !permissions.includes('service_orders:read')) {
     return <Alert severity="warning">Seu contexto não possui permissão para ordens de serviço.</Alert>;
   }
+  if (canEditOrder && editing !== undefined && formLocation.name === (editing ? `editar-${editing.id}` : 'novo')) {
+    return <ResourceFormPage title={editing ? 'Editar ordem' : 'Nova ordem'} fields={fields}
+      initialValues={editing ? toForm(editing) : undefined} submitting={save.isPending}
+      error={save.error ? describeError(save.error) : null} onClose={closeForm} onSubmit={async (values) => save.mutateAsync(values)}
+      onSaved={(updated) => {
+        setEditing(undefined);
+        setSearchParams((current) => {
+          const next = new URLSearchParams(current);
+          next.delete('formulario'); next.set('detail', String(updated.id));
+          return next;
+        }, { replace: true });
+      }} />;
+  }
   const orders = list.data?.content ?? [];
+  const preparingNote = !!details && details.movimentacaoPatioId == null
+    && details.status === 'CONCLUIDA' && permissions.includes('fiscal:manage')
+    && formLocation.name === serviceNoteFormName(details.id);
   const primaryAction = (order: ServiceOrder) => {
-    if (!canManage) return null;
+    if (!canManage || order.movimentacaoPatioId != null) return null;
     if (order.status === 'RASCUNHO') return <PrimaryButton size="small" startIcon={<PlayArrowOutlinedIcon />}
       onClick={() => setStarting(order)}>Iniciar serviço</PrimaryButton>;
     if (order.status === 'EM_EXECUCAO') return <PrimaryButton size="small" startIcon={<CheckCircleOutlineIcon />}
@@ -129,18 +170,27 @@ function ServiceOrdersWorkspace({ orgId, permissions }: { orgId?: number; permis
   };
   const secondaryActions = (order: ServiceOrder): SecondaryAction[] => [
     { key: 'details', label: 'Ver detalhes', onClick: () => setDetails(order) },
-    ...(canManage && order.status === 'RASCUNHO' ? [{ key: 'edit', label: 'Editar ordem', icon: <EditOutlinedIcon />,
-      onClick: () => setEditing(order) }] : []),
-    ...(canManage && (order.status === 'RASCUNHO' || order.status === 'EM_EXECUCAO') ? [{ key: 'cancel', label: 'Cancelar ordem', danger: true, icon: <CancelOutlinedIcon />,
+    ...(canEditOrder && order.movimentacaoPatioId == null && order.status === 'RASCUNHO' ? [{ key: 'edit', label: 'Editar ordem', icon: <EditOutlinedIcon />,
+      onClick: () => openForm(order) }] : []),
+    ...(canManage && order.movimentacaoPatioId == null && (order.status === 'RASCUNHO' || order.status === 'EM_EXECUCAO') ? [{ key: 'cancel', label: 'Cancelar ordem', danger: true, icon: <CancelOutlinedIcon />,
       onClick: () => setCancelling(order) }] : []),
   ];
-  return <Box><PageHeader title="Ordens de Serviço"
+  return <Box>{!linked.requested && <><PageHeader title="Ordens de Serviço"
     subtitle="Execução de serviços com ciclo operacional e faturamento por Nota de Serviço."
     count={list.data?.totalElements}
-    action={canManage ? <PrimaryButton startIcon={<AddOutlinedIcon />}
-      onClick={() => setEditing(null)}>Nova ordem</PrimaryButton> : undefined} />
+    action={canEditOrder ? <PrimaryButton startIcon={<AddOutlinedIcon />}
+      onClick={() => openForm(null)}>Nova ordem</PrimaryButton> : undefined} />
     <ListingToolbar searchValue={search} searchLabel="Buscar por número"
-      onSearchChange={(value) => { setSearch(value); setPage(0); }} />
+      onSearchChange={(numero) => view.change({ numero, page: null })}
+      sortControl={<ListSort options={orderSorts} value={sort} onChange={view.setSort} />}
+      appliedCount={status ? 1 : 0} onClear={() => view.change({ status: null, page: null })}
+      filterForm={<TextField select label="Situação" value={status} fullWidth
+        onChange={(event) => view.change({ status: event.target.value, page: null })}>
+        <MenuItem value="">Todas</MenuItem>
+        {statusOptions.map((option) => <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>)}
+      </TextField>} />
+    <AppliedFilterChips filters={orderFilters} values={{ status }}
+      onRemove={() => view.change({ status: null, page: null })} onClear={() => view.change({ status: null, page: null })} />
     {list.isLoading && <ListingSkeleton />}
     {list.isError && <ErrorState message={describeError(list.error)} onRetry={() => void list.refetch()} />}
     {!list.isLoading && !list.isError && orders.length === 0 && (
@@ -151,7 +201,7 @@ function ServiceOrdersWorkspace({ orgId, permissions }: { orgId?: number; permis
       <TableCell>Situação</TableCell><TableCell align="right">Total</TableCell><TableCell>Ações</TableCell>
     </TableRow></TableHead><TableBody>{orders.map((order) => <TableRow key={order.id} hover
       onClick={() => setDetails(order)} sx={{ cursor: 'pointer' }}>
-      <TableCell><Button size="small" onClick={(event) => { event.stopPropagation(); setDetails(order); }}>{order.numero}</Button></TableCell><TableCell>{order.clienteNome}</TableCell>
+      <TableCell><Button size="small" onClick={(event) => { event.stopPropagation(); setDetails(order); }}>{order.numero}</Button></TableCell><TableCell>{order.clienteNome ?? 'Estacionamento de evento'}</TableCell>
       <TableCell>{formatDate(order.dataAbertura)}</TableCell><TableCell><Chip size="small"
         color={order.status === 'CONCLUIDA' ? 'success' : order.status === 'CANCELADA'
           ? 'error' : order.status === 'EM_EXECUCAO' ? 'info' : 'default'}
@@ -162,22 +212,21 @@ function ServiceOrdersWorkspace({ orgId, permissions }: { orgId?: number; permis
     </TableRow>)}</TableBody></Table></TableContainer></Card>}
     {orders.length > 0 && <ListingCards rows={orders} getKey={(order) => order.id} getTitle={(order) => order.numero}
       onOpen={setDetails} getActions={secondaryActions} getFields={(order) => [
-        { label: 'Cliente', value: order.clienteNome }, { label: 'Situação', value: formatStatusLabel(order.status) },
+        { label: order.movimentacaoPatioId == null ? 'Cliente' : 'Origem',
+          value: order.clienteNome ?? 'Estacionamento de evento' }, { label: 'Situação', value: formatStatusLabel(order.status) },
         { label: 'Abertura', value: formatDate(order.dataAbertura) }, { label: 'Total', value: formatCurrency(order.valorTotal) },
       ]} />}
-    {list.data && list.data.totalPages > 1 && (
-      <Stack direction="row" justifyContent="space-between" sx={{ mt: 2 }}>
-        <Button disabled={page === 0} onClick={() => setPage((current) => current - 1)}>Anterior</Button>
-        <Button disabled={list.data.last} onClick={() => setPage((current) => current + 1)}>Próxima</Button>
-      </Stack>
-    )}
-    <DetailDrawer open={linked.requested} title={details ? `Ordem ${details.numero}` : 'Ordem de serviço'} subtitle={details?.clienteNome}
-      onClose={closeDetails} actions={details ? <Stack direction="row" spacing={1}>
+    <ListPagination view={view} total={list.data?.totalElements} />
+    </>}
+    {linked.requested && <RecordDetailPage presentingForm={preparingNote} title={details ? `Ordem ${details.numero}` : 'Ordem de serviço'}
+      subtitle={details?.movimentacaoPatioId != null ? `Estacionamento de evento · Estadia ${details.movimentacaoPatioId}` : details?.clienteNome ?? undefined}
+      onBack={closeDetails} actions={details ? <Stack direction="row" spacing={1}>
         {primaryAction(details)}<SecondaryActionsMenu actions={secondaryActions(details).filter((action) => action.key !== 'details')} />
       </Stack> : undefined}>
       {linked.isPending && <ListingSkeleton />}
       {linked.isError && <ErrorState message={describeError(linked.error)} onRetry={() => void linked.refetch()} />}
       {details && <Stack spacing={2.5}>
+        {!preparingNote && <>
         <Box><Typography variant="overline" color="text.secondary">Situação</Typography>
           <Box><Chip size="small" label={formatStatusLabel(details.status)} /></Box></Box>
         <Box sx={{ overflowX: 'auto' }}><RelatedItemsTable title="Serviços" items={details.itens} /></Box>
@@ -192,14 +241,12 @@ function ServiceOrdersWorkspace({ orgId, permissions }: { orgId?: number; permis
           <Typography variant="body2">Desconto da ordem: {formatCurrency(details.valorDesconto)}</Typography>
           <Typography variant="h6">{formatCurrency(details.valorTotal)}</Typography></Box>
         <Alert severity="info">Concluir a ordem não gera contas a receber. A cobrança acontece somente ao emitir internamente a nota de serviço.</Alert>
+        </>}
         <ServiceOrderDocuments key={details.id} order={details} organizationId={orgId} permissions={permissions} />
-        {details.observacao && <Typography variant="body2">{details.observacao}</Typography>}
-        {details.motivoCancelamento && <Alert severity="error">{details.motivoCancelamento}</Alert>}
+        {!preparingNote && details.observacao && <Typography variant="body2">{details.observacao}</Typography>}
+        {!preparingNote && details.motivoCancelamento && <Alert severity="error">{details.motivoCancelamento}</Alert>}
       </Stack>}
-    </DetailDrawer>
-    <ResourceFormDialog open={editing !== undefined} title={editing ? 'Editar ordem' : 'Nova ordem'}
-      fields={fields} initialValues={editing ? toForm(editing) : null} submitting={save.isPending}
-      onClose={() => setEditing(undefined)} onSubmit={(values) => save.mutate(values)} />
+    </RecordDetailPage>}
     <ConfirmDialog open={!!starting} title="Iniciar execução"
       message="A ordem deixará de permitir edição após o início. Nenhuma cobrança será gerada nesta etapa."
       confirmLabel="Iniciar" loading={start.isPending} onClose={() => !start.isPending && setStarting(null)}

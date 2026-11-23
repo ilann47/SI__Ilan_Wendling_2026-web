@@ -971,53 +971,6 @@ export interface ContaReceberRequest {
   observacao?: string;
 }
 
-export interface ContaPagarAvulsaResponse {
-  id: number;
-  organizacaoId?: number;
-  version?: number;
-  descricao: string;
-  fornecedorId?: number;
-  fornecedorNome?: string;
-  formaPagamentoId?: number;
-  formaPagamentoNome?: string;
-  numeroNota?: string;
-  modelo?: string;
-  serie?: string;
-  numeroParcela?: number;
-  totalParcelas?: number;
-  valorOriginal: number;
-  valorPago: number;
-  valorDesconto: number;
-  valorJuros: number;
-  valorMulta: number;
-  valorTotal: number;
-  dataEmissao?: string;
-  dataVencimento: string;
-  dataPagamento?: string;
-  situacao: SituacaoContaPagar;
-  observacao?: string;
-  createdAt: string;
-  updatedAt: string;
-}
-export interface ContaPagarAvulsaRequest {
-  descricao: string;
-  fornecedorId?: number;
-  formaPagamentoId?: number;
-  numeroNota?: string;
-  modelo?: string;
-  serie?: string;
-  numeroParcela?: number;
-  totalParcelas?: number;
-  valorOriginal: number;
-  valorDesconto?: number;
-  valorJuros?: number;
-  valorMulta?: number;
-  valorTotal?: number;
-  dataEmissao?: string;
-  dataVencimento: string;
-  observacao?: string;
-}
-
 // ===================== Relatorios =====================
 export interface ItemPatio {
   movimentacaoId: number;

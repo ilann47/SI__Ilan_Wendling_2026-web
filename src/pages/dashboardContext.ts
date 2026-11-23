@@ -10,11 +10,10 @@ export function financialRange(period: FinancialPeriod, date = dayjs()) {
     label: `${inicio.format('DD/MM/YYYY')} a ${fim.format('DD/MM/YYYY')}` };
 }
 
-/** Somente origens conhecidas; nunca presume que toda saída é conta de fornecedor. */
+/** Somente origens vigentes; não redireciona títulos de outros tipos. */
 export function financialTitlePath(title: Pick<Titulo, 'origem' | 'id'>): string | undefined {
   const paths: Record<string, string> = {
     CONTA_PAGAR: '/app/contas-pagar', CONTA_RECEBER: '/app/contas-receber',
-    DESPESA_AVULSA: '/app/contas-pagar-avulsas',
   };
   return paths[title.origem] && Number.isSafeInteger(title.id) && title.id > 0
     ? `${paths[title.origem]}?detail=${title.id}` : undefined;

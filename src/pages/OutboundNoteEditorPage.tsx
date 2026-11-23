@@ -2,7 +2,8 @@ import { Alert, Box, Button, Card, Stack } from '@mui/material';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRef, useState } from 'react';
 import { FormProvider, useForm } from 'react-hook-form';
-import { useBeforeUnload, useBlocker, useLocation, useNavigate, useParams } from 'react-router-dom';
+import { useBeforeUnload, useLocation, useNavigate, useParams } from 'react-router-dom';
+import { useManagedFormBlocker } from '../context/formNavigationCore';
 import { describeError, getHttpStatus } from '../api/client';
 import { canCorrectRejectedCreate } from '../api/inboundNotes';
 import { buildNotaSaidaPayload, outboundNotesApi, outboundNoteVersion } from '../api/outboundNotes';
@@ -115,7 +116,7 @@ function OutboundEditor({ org, login, note }: { org: number; login?: string; not
   const updateSent = useRef(false);
   const form = useForm<Values>({ defaultValues: valuesFor(note ?? attempt?.body), mode: 'onChange' });
   const dirty = form.formState.isDirty;
-  const blocker = useBlocker(() => !allowedNavigation.current && (dirty || !!attempt));
+  const blocker = useManagedFormBlocker(() => !allowedNavigation.current && (dirty || !!attempt));
   useBeforeUnload((event) => {
     if (!allowedNavigation.current && (dirty || attempt)) event.preventDefault();
   });

@@ -8,10 +8,11 @@ describe('contexto financeiro do resumo', () => {
     expect(financialRange('today', dayjs('2026-09-29'))).toMatchObject({ inicio: '2026-09-29', fim: '2026-09-29' });
     expect(financialRange('month', dayjs('2028-02-12'))).toMatchObject({ inicio: '2028-02-01', fim: '2028-02-29' });
   });
-  it.each([['CONTA_PAGAR', 'contas-pagar'], ['CONTA_RECEBER', 'contas-receber'], ['DESPESA_AVULSA', 'contas-pagar-avulsas']])('resolve %s sem confundir origens', (origem, path) => {
+  it.each([['CONTA_PAGAR', 'contas-pagar'], ['CONTA_RECEBER', 'contas-receber']])('resolve %s sem confundir origens', (origem, path) => {
     expect(financialTitlePath({ origem, id: 23 })).toBe(`/app/${path}?detail=23`);
   });
-  it('não inventa destino para origem desconhecida nem ID inválido', () => {
+  it('não inventa destino para origem removida, desconhecida ou ID inválido', () => {
+    expect(financialTitlePath({ origem: 'DESPESA_AVULSA', id: 1 })).toBeUndefined();
     expect(financialTitlePath({ origem: 'OUTRA', id: 1 })).toBeUndefined();
     expect(financialTitlePath({ origem: 'CONTA_PAGAR', id: -1 })).toBeUndefined();
   });

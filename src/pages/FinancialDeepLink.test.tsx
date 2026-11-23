@@ -17,7 +17,8 @@ describe('conta aberta pela pendência', () => {
     render(<MemoryRouter initialEntries={['/app/contas-receber?detail=99']}><QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
       <CrudResourcePage config={contaReceberConfig} />
     </QueryClientProvider></MemoryRouter>);
-    const drawer = await screen.findByRole('dialog');
+    const drawer = await screen.findByRole('region', { name: /Conta a receber/i });
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     expect(await within(drawer).findByText('Cliente vinculado')).toBeInTheDocument();
     expect(api.get).toHaveBeenCalledWith('/api/contas-receber/99');
     expect(within(drawer).queryByRole('button', { name: /Baixar/ })).not.toBeInTheDocument();

@@ -1,13 +1,16 @@
-> Links: [[core]] · [[auth]] · [[compatibilidade-legada]] · [[unificacao-multitenant]] · [[paridade-api]]
+> Links: [[core]] · [[auth]] · [[compatibilidade-legada]] · [[unificacao-multitenant]] · [[paridade-api]] · [[operacao]] · [[fiscal-financeiro]]
 
 # Clientes
 
 ## Objetivo
 
 Administrar clientes pessoas físicas ou jurídicas dentro da organização ativa,
-preservando a tela e o contrato histórico do Kaneko.
+incluindo os cadastrados automaticamente com nome e CPF/CNPJ no fluxo da NFS-e
+do estacionamento.
 
 ## Contexto
+
+O atalho fica em **Cadastros → Clientes e fornecedores**.
 
 O backend V40 tornou `/api/clientes` tenant-aware sem alterar a URL pública. O
 frontend mantém `/app/clientes` e o formulário existentes, mas passa a exigir
@@ -93,6 +96,8 @@ o cadastro contextual e impede selecionar uma resposta do contexto anterior.
 
 | Data | Ação |
 |---|---|
+| 2026-11-22 | Clientes aceita CNPJ alfanumérico e indica o cadastro fiscal básico; antes de ativar contrato mensalista desse cliente, é exigido um contato válido. |
+| 2026-11-13 | Agrupa o atalho de Clientes com Fornecedores, sem mudar o acesso. |
 | 2026-08-03 | Adapta Clientes ao contrato multiempresa V40. |
 | 2026-09-12 | Valida cadastro contextual, preservação do documento após cancelar/erro/sucesso, seleção da resposta real e RBAC; corrige erros de consulta e isolamento das referências. |
 | 2026-09-28 | Padroniza detalhe e busca global de cliente com rótulos legíveis, estados traduzidos e navegação direta ao registro. |

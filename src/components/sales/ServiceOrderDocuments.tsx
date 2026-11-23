@@ -9,9 +9,11 @@ import { serviceOrdersApi, buildServiceOrderNotePayload, type ServiceOrder,
   type ServiceOrderDocumentsResponse, type ServiceOrderNote, type ServiceOrderNoteRequest } from '../../api/serviceOrders';
 import { describeError, getHttpStatus } from '../../api/client';
 import { tenantQueryKey } from '../../api/queryKeys';
+import { parkingFiscalDraftPagePath } from '../../api/parkingFiscalDrafts';
 import { formatCurrency, formatDate, formatStatusLabel, statusColor } from '../../utils/format';
 import { DECIMAL_STEP } from '../../utils/fixedDecimal';
-import { AppDialog } from '../common/AppDialog';
+import { OperationalFormPage } from '../form/OperationalFormPage';
+import { serviceNoteFormName, useFormPageLocation } from '../form/useFormPageLocation';
 import { ReferenceSelect } from '../form/ReferenceSelect';
 import { ErrorState } from '../listing/ErrorState';
 import { ListingSkeleton } from '../listing/ListingSkeleton';
@@ -29,11 +31,13 @@ export function ServiceOrderDocuments({ order, organizationId, permissions }: Pr
   const client = useQueryClient();
   const fiscalRead = permissions.includes('fiscal:read');
   const financeRead = permissions.includes('finance:read');
-  const canGenerate = permissions.includes('fiscal:manage') && permissions.includes('service_orders:read');
+  const ordemDoPatio = order.movimentacaoPatioId != null;
+  const canGenerate = !ordemDoPatio && permissions.includes('fiscal:manage') && permissions.includes('service_orders:read');
   const paymentsRead = permissions.includes('payments:read');
   const queryKey = tenantQueryKey(organizationId, 'service-orders', order.id, 'documents', fiscalRead, financeRead);
   const query = useQuery({ queryKey, queryFn: () => serviceOrdersApi.documents(order.id) });
-  const [generating, setGenerating] = useState(false);
+  const formLocation = useFormPageLocation();
+  const generating = formLocation.name === serviceNoteFormName(order.id) && canGenerate && order.status === 'CONCLUIDA';
   const [values, setValues] = useState<Record<string, string | number | null>>({});
   const [generationError, setGenerationError] = useState<string | null>(null);
   const [uncertain, setUncertain] = useState(false);
@@ -50,7 +54,7 @@ export function ServiceOrderDocuments({ order, organizationId, permissions }: Pr
     void client.invalidateQueries({ queryKey: tenantQueryKey(organizationId, 'detail', '/api/notas-servico', result.id) });
   };
   const acceptGeneration = (result: ServiceOrderNote) => {
-    remember(result); setGenerating(false); setGenerationError(null); setUncertain(false);
+    remember(result); formLocation.close(); setGenerationError(null); setUncertain(false);
   };
   const reconcile = async () => {
     const result = await query.refetch();
@@ -82,11 +86,56 @@ export function ServiceOrderDocuments({ order, organizationId, permissions }: Pr
     } catch (error) { setGenerationError(describeError(error)); }
   };
 
+  if (generating) return <OperationalFormPage title="Gerar nota de serviço" id="service-note-form"
+    navigationAllowed={formLocation.navigationAllowed}
+    dirty={!uncertain && Object.values(values).some((value) => value != null && value !== '')}
+    busy={create.isPending} submitDisabled={query.isFetching}
+    submitLabel={uncertain ? 'Tentar novamente' : 'Preparar nota'} busyLabel="Preparando…"
+    error={generationError} onSubmit={submit}
+    onClose={() => {
+      if (!uncertain) { setValues({}); setGenerationError(null); }
+      formLocation.close();
+    }}
+    extraActions={uncertain && fiscalRead ? <Button type="button" onClick={() => void reconcile()}
+      disabled={query.isFetching || create.isPending}>Verificar nota</Button> : undefined}>
+    <Alert severity="info">Cliente, serviços e valores vêm da ordem {order.numero}. Preparar a nota não gera cobrança. As contas serão criadas somente ao emitir internamente.</Alert>
+    {uncertain && <Alert severity="warning">Não recebemos a confirmação. Verifique a nota ou repita a mesma solicitação; os dados foram preservados.</Alert>}
+    {fields.map((field) => <TextField key={field.name} fullWidth label={field.label}
+      required={'required' in field && field.required} value={values[field.name] ?? ''}
+      type={'type' in field ? field.type : 'text'} disabled={create.isPending || uncertain}
+      inputProps={'maxLength' in field ? { maxLength: field.maxLength }
+        : field.name === 'aliquotaIss' ? { min: 0, max: 100, step: DECIMAL_STEP }
+          : field.name === 'dataEmissao' ? { max: dayjs().format('YYYY-MM-DD') } : undefined}
+      InputLabelProps={field.name === 'dataEmissao' ? { shrink: true } : undefined}
+      onChange={(event) => setValues((current) => ({ ...current, [field.name]: event.target.value }))} />)}
+    {paymentsRead && <>
+      <ReferenceSelect label="Condição de pagamento" value={Number(values.condicaoPagamentoId) || null}
+        disabled={create.isPending || uncertain} onChange={(id) => setValues((current) => ({ ...current, condicaoPagamentoId: id }))}
+        reference={{ basePath: '/api/condicoes-pagamento', labelField: 'nome', params: { ativo: true } }} />
+      <ReferenceSelect label="Forma de pagamento" value={Number(values.formaPagamentoId) || null}
+        disabled={create.isPending || uncertain} onChange={(id) => setValues((current) => ({ ...current, formaPagamentoId: id }))}
+        reference={{ basePath: '/api/formas-pagamento', labelField: 'nome', params: { ativo: true } }} />
+    </>}
+    <Typography variant="caption" color="text.secondary">Preencha apenas os dados necessários. Campos opcionais em branco usam os padrões existentes. Não há envio ao fisco.</Typography>
+  </OperationalFormPage>;
+
   return <Stack spacing={2.5}>
     {query.isPending && <ListingSkeleton />}
     {query.isError && <ErrorState message={describeError(query.error)} onRetry={() => void query.refetch()} />}
     {!query.isError && query.data && <>
-      {(fiscalRead || canGenerate) && <Box>
+      {ordemDoPatio && fiscalRead && <Box>
+        <Typography variant="subtitle2" component="h3">NFS-e da estadia</Typography>
+        {query.data.nfsePatio?.status === 'PENDENTE_EMISSAO'
+          ? <Alert severity="info" sx={{ mt: 1 }}>
+            <strong>NFS-e pendente de emissão</strong>
+            <Typography variant="body2">Estadia {query.data.nfsePatio.movimentacaoId}. Não transmitida ao fisco.</Typography>
+            <Button component={RouterLink} to={parkingFiscalDraftPagePath(query.data.nfsePatio.movimentacaoId)}>
+              Abrir rascunho em Notas de Serviço
+            </Button>
+          </Alert>
+          : <Typography variant="body2">A pendência fiscal será vinculada automaticamente na saída.</Typography>}
+      </Box>}
+      {!ordemDoPatio && (fiscalRead || canGenerate) && <Box>
         <Typography variant="subtitle2" component="h3">Nota de serviço</Typography>
         {note ? <Stack spacing={1} sx={{ mt: 1 }}>
           <Chip label={formatStatusLabel(note.situacao)} size="small" color={statusColor(note.situacao)} sx={{ alignSelf: 'flex-start' }} />
@@ -99,11 +148,20 @@ export function ServiceOrderDocuments({ order, organizationId, permissions }: Pr
         </Stack> : <Stack spacing={1} sx={{ mt: 1 }}>
           {fiscalRead && <Typography variant="body2">Nenhuma nota vinculada.</Typography>}
           {order.status === 'CONCLUIDA' && canGenerate ? <Button variant="contained" startIcon={<NoteAddOutlinedIcon />}
-            sx={{ alignSelf: 'flex-start' }} onClick={() => setGenerating(true)}>Gerar nota de serviço</Button>
+            sx={{ alignSelf: 'flex-start' }} onClick={() => {
+              if (!uncertain) { setValues({}); setGenerationError(null); }
+              formLocation.open(serviceNoteFormName(order.id));
+            }}>Gerar nota de serviço</Button>
             : order.status !== 'CANCELADA' && <Typography variant="body2" color="text.secondary">A geração fica disponível após concluir o serviço.</Typography>}
         </Stack>}
       </Box>}
-      {financeRead && <Box>
+      {ordemDoPatio && financeRead && <Box>
+        <Typography variant="subtitle2" component="h3">Recebimento</Typography>
+        <Typography variant="body2">{order.status === 'CONCLUIDA'
+          ? 'A cobrança foi registrada no caixa do Pátio. Esta ordem não gera outra cobrança.'
+          : 'O recebimento é controlado pelo caixa do Pátio, conforme o evento.'}</Typography>
+      </Box>}
+      {!ordemDoPatio && financeRead && <Box>
         <Typography variant="subtitle2" component="h3">Parcelas e recebimento</Typography>
         {query.data.contas === null ? <Alert severity="info">As contas não estão disponíveis para este acesso.</Alert>
           : query.data.contas.length === 0 ? <Typography variant="body2">Nenhuma conta vinculada. A cobrança é gerada somente na emissão interna da nota.</Typography>
@@ -122,37 +180,5 @@ export function ServiceOrderDocuments({ order, organizationId, permissions }: Pr
             </Stack>}
       </Box>}
     </>}
-    <AppDialog open={generating} onClose={() => setGenerating(false)} title="Gerar nota de serviço"
-      maxWidth="sm" fullScreenOnMobile busy={create.isPending}
-      actions={<>
-        <Button color="inherit" disabled={create.isPending} onClick={() => setGenerating(false)}>Voltar</Button>
-        {uncertain && fiscalRead && <Button onClick={() => void reconcile()} disabled={query.isFetching || create.isPending}>Verificar nota</Button>}
-        <Button type="submit" form="service-note-form" variant="contained" disabled={create.isPending || query.isFetching}>{create.isPending ? 'Preparando…' : uncertain ? 'Tentar novamente' : 'Preparar nota'}</Button>
-      </>}>
-      <Box component="form" id="service-note-form" onSubmit={submit}>
-        <Stack spacing={2}>
-          <Alert severity="info">Cliente, serviços e valores vêm da ordem {order.numero}. Preparar a nota não gera cobrança. As contas serão criadas somente ao emitir internamente.</Alert>
-          {generationError && <Alert severity="error">{generationError}</Alert>}
-          {uncertain && <Alert severity="warning">Não recebemos a confirmação. Verifique a nota ou repita a mesma solicitação; os dados foram preservados.</Alert>}
-          {fields.map((field) => <TextField key={field.name} fullWidth label={field.label}
-            required={'required' in field && field.required} value={values[field.name] ?? ''}
-            type={'type' in field ? field.type : 'text'} disabled={create.isPending || uncertain}
-            inputProps={'maxLength' in field ? { maxLength: field.maxLength }
-              : field.name === 'aliquotaIss' ? { min: 0, max: 100, step: DECIMAL_STEP }
-                : field.name === 'dataEmissao' ? { max: dayjs().format('YYYY-MM-DD') } : undefined}
-            InputLabelProps={field.name === 'dataEmissao' ? { shrink: true } : undefined}
-            onChange={(event) => setValues((current) => ({ ...current, [field.name]: event.target.value }))} />)}
-          {paymentsRead && <>
-            <ReferenceSelect label="Condição de pagamento" value={Number(values.condicaoPagamentoId) || null}
-              disabled={create.isPending || uncertain} onChange={(id) => setValues((current) => ({ ...current, condicaoPagamentoId: id }))}
-              reference={{ basePath: '/api/condicoes-pagamento', labelField: 'nome', params: { ativo: true } }} />
-            <ReferenceSelect label="Forma de pagamento" value={Number(values.formaPagamentoId) || null}
-              disabled={create.isPending || uncertain} onChange={(id) => setValues((current) => ({ ...current, formaPagamentoId: id }))}
-              reference={{ basePath: '/api/formas-pagamento', labelField: 'nome', params: { ativo: true } }} />
-          </>}
-          <Typography variant="caption" color="text.secondary">Preencha apenas os dados necessários. Campos opcionais em branco usam os padrões existentes. Não há envio ao fisco.</Typography>
-        </Stack>
-      </Box>
-    </AppDialog>
   </Stack>;
 }

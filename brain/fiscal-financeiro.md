@@ -9,8 +9,8 @@ Com a V97 de teste, Nota de Saída e Contas a Receber também aceitam e exibem
 até seis casas em itens, valores, percentuais, parcelas e recebimentos.
 O frontend continua enviando a quantia em reais, não em unidades escaladas.
 Ordem e Nota de Serviço seguem a mesma regra de seis casas em itens, descontos,
-ISS e parcelas. Despesas avulsas, seus pagamentos e o lançamento manual de
-títulos usam a validação compartilhada dos campos monetários.
+ISS e parcelas. O lançamento manual de títulos usa a validação compartilhada
+dos campos monetários.
 Na importação XML, conciliação e contagem validam o decimal digitado antes de
 converter para o payload; XML e lançamentos já registrados não são regravados.
 
@@ -22,12 +22,40 @@ converter para o payload; XML e lançamentos já registrados não são regravado
 - O detalhe consulta itens, totais, ISS e parcelas salvas, pede conferência
   explícita e emite com `If-Match` da versão revisada. Resultado incerto exige
   nova leitura da mesma nota. Alterar dados do rascunho invalida a conferência.
-- A lista busca por número e filtra cliente e situação no backend. A nota
+- A lista unificada busca também por número, OS, placa, evento e cliente
+  e filtra origem, cliente da nota interna e situação no backend. A nota
   avulsa permite múltiplos serviços. Na nota de OS, cliente e serviços são
   herdados e o formulário edita apenas data, ISS, pagamento e observação.
 - Contas geradas têm links com `finance:read`; o cancelamento pede motivo
   e não apaga a nota. Rascunhos anteriores devem ser salvos para registrar
   parcelas. Nenhuma etapa representa envio ou autorização externa de NFS-e.
+
+### Rascunhos do estacionamento (2026-11-22)
+
+**Notas de Serviço** reúne na mesma listagem os rascunhos gerados ao concluir
+uma estadia e as notas internas. A coluna **Origem** distingue Pátio, lançamento
+manual e nota criada pela OS. A coluna **Situação** distingue rascunho fiscal,
+nota pendente, registrada internamente e cancelada. A API pagina e ordena as
+duas fontes juntas em `GET /api/notas-servico/listagem`. As páginas de detalhe e
+o formulário **Nova nota de serviço** mantêm seus comandos e permissões.
+
+Na linha da estadia a lista mostra placa e contexto, sem expor dados do tomador.
+O detalhe também mostra o nome do serviço registrado na OS, quando o evento
+teve um serviço escolhido no cadastro. Rascunhos antigos não são preenchidos.
+O detalhe de cada estadia pode mostrar CPF/CNPJ e nome ou razão social
+do tomador informados no pagamento; um fiscal pode editar ou retirar os
+dados enquanto o documento estiver pendente. A rota
+`/app/notas-servico/estacionamento/:movimentacaoId` exige `fiscal:read`;
+a alteração exige também `fiscal:manage` e envia `If-Match` com a versão
+consultada. Um conflito exige recarregar antes de gravar.
+
+Ao salvar um tomador identificado, a API reutiliza ou cria o cadastro básico
+de [[clientes]] na mesma organização. Retirar a identificação do rascunho
+não exclui o cliente nem interfere em outros registros.
+
+Consultar ou editar um rascunho não transmite NFS-e, não abre uma cobrança
+e não gera conta a receber. Sem identificação, o detalhe mostra
+**Tomador não informado**, sem concluir que a emissão futura é permitida.
 
 ## Fluxo de Saída e reversão fiscal interna (2026-11-05)
 
@@ -150,6 +178,15 @@ O teste de recuperação da confirmação simula timeout no transporte real da a
 (`api.request`), verifica um único POST e reconciliação por GET, sem acesso à rede.
 
 ## Decisões Técnicas
+
+- Títulos a pagar e a receber abrem em página de detalhe, preservando
+  `?detail=...`, links de origem e histórico. Novo lançamento usa página
+  com `?novo=1`, preserva os filtros da lista e confirma o descarte de dados
+  alterados. Baixa e confirmação de cancelamento permanecem em diálogo.
+
+- O editor mantém as mesmas seções e operações. Os rótulos dos campos ficam
+  acima dos controles, e itens e totais ganham zonas visuais separadas,
+  reutilizando o mesmo formulário e as mesmas regras.
 - Editor de Nota usa seletores pesquisáveis; sem digitar IDs.
 - O wizard impede chegada anterior à emissão, quantidade não positiva, valor
   unitário ou despesas negativos e descontos maiores que o valor correspondente;
@@ -160,8 +197,8 @@ O teste de recuperação da confirmação simula timeout no transporte real da a
 - A listagem de notas de entrada mantém somente a ação principal, busca, filtros e registros.
 - O detalhe usa o contrato composto para manter a listagem leve e apresentar o
   encadeamento operacional sem consultas por IDs digitados.
-- Pendências e indicadores abrem a conta real via `?detail=ID`; despesas avulsas
-  seguem rota própria. Baixa/cancelamento exigem `finance:manage` na interface,
+- Pendências e indicadores abrem a conta real via `?detail=ID`.
+  Baixa/cancelamento exigem `finance:manage` na interface,
   inclusive quando o detalhe é aberto por URL. Somente leitura não exibe comandos.
 - O relatório financeiro é delimitado por vencimento; a home mostra pagar e
   receber separados, com as datas explícitas. Filtros globais/histórico completo
@@ -196,8 +233,19 @@ O teste de recuperação da confirmação simula timeout no transporte real da a
 [[estoque]], [[conveniencia]], [[fornecedores]], [[pagamentos]], [[paridade-api]], [[listagens]], [[importacao-xml]].
 
 ## Histórico (data + ação)
+
+- 2026-11-22 — Expõe rascunhos fiscais das estadias em Notas de Serviço e permite revisão versionada do tomador, sem emissão.
+- 2026-11-22 — Salvar tomador válido reutiliza ou cria cliente básico na organização, sem abrir cobrança.
+- 2026-11-22 — Unifica a lista de Notas de Serviço por origem e situação, preservando detalhes e formulário manual.
+- 2026-11-22 — Exibe no rascunho o serviço selecionado no evento e registrado na OS, sem regravar notas antigas.
+
 | Data | Ação |
 |---|---|
+| 2026-11-10 | Remove Despesas Avulsas da navegação, rotas, pendências e relatórios; preserva Contas a Pagar e a Receber. |
+| 2026-11-09 | Edição de notas e criação/edição de OS exibidas somente com acesso aos seletores obrigatórios, sem restringir ações independentes. |
+| 2026-11-08 | Unifica cabeçalho, situação, total e dados do documento para notas de entrada, saída e serviço; mantém a conferência e os efeitos de cada nota. |
+| 2026-11-08 | Abre edição da ordem e preparação/edição de nota de serviço em página; mantém início, conclusão, emissão e cancelamento em confirmação. |
+| 2026-11-08 | Move o lançamento manual a pagar e a receber para página; mantém contrato, campos e permissões, com baixa e cancelamento em modal. |
 | 2026-11-08 | Exibe seis casas na Nota e preserva precisão de quantidade, valor e percentual ao enviar o formulário. |
 | 2026-11-08 | Exibe e valida seis casas da Nota de Saída ao recebimento, reaproveitando a validação decimal da Nota de Entrada. |
 | 2026-11-08 | Leva seis casas à Ordem e à Nota de Serviço, ao ISS, às despesas avulsas e às consultas; valida conciliação e contagem antes de gravar. |

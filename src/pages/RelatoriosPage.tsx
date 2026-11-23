@@ -23,11 +23,12 @@ import PaidIcon from '@mui/icons-material/Paid';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import StorefrontIcon from '@mui/icons-material/Storefront';
 import DesignServicesIcon from '@mui/icons-material/DesignServices';
-import { api, describeError } from '../api/client';
+import { api, describeError, getHttpStatus } from '../api/client';
 import { ErrorState } from '../components/listing/ErrorState';
 import { ListingSkeleton } from '../components/listing/ListingSkeleton';
 import { tenantQueryKey } from '../api/queryKeys';
 import { useAuth } from '../auth/AuthContext';
+import { allowsAccess, REPORTS } from '../auth/accessPolicy';
 import { PageHeader } from '../components/common/PageHeader';
 import { KpiCard } from '../components/common/KpiCard';
 import { StatusChip } from '../components/common/StatusChip';
@@ -40,10 +41,6 @@ import type {
   Titulo,
 } from '../types';
 
-function TabPanel({ value, index, children }: { value: number; index: number; children: ReactNode }) {
-  return value === index ? <Box sx={{ pt: 3 }}>{children}</Box> : null;
-}
-
 const kpiGrid = {
   display: 'grid',
   gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
@@ -52,18 +49,20 @@ const kpiGrid = {
 
 export function tituloOrigemLabel(origem: string): string {
   return ({
-    DESPESA_AVULSA: 'Despesa avulsa',
     CONTA_PAGAR: 'Conta a pagar',
     CONTA_RECEBER: 'Conta a receber',
   } as Record<string, string>)[origem] ?? origem.replace(/_/g, ' ').toLocaleLowerCase('pt-BR');
 }
 
-function FaturamentoTab({ organizationId, enabled }: { organizationId: number; enabled: boolean }) {
+function ReportError({ error, retry }: { error: unknown; retry: () => void }) {
+  return <ErrorState message={describeError(error)} onRetry={getHttpStatus(error) === 403 ? undefined : retry} />;
+}
+
+function FaturamentoTab({ organizationId }: { organizationId: number }) {
   const [inicio, setInicio] = useState<Dayjs>(dayjs());
   const [fim, setFim] = useState<Dayjs>(dayjs());
-  const { data } = useQuery({
+  const query = useQuery({
     queryKey: tenantQueryKey(organizationId, 'rel', 'faturamento', inicio.format('YYYY-MM-DD'), fim.format('YYYY-MM-DD')),
-    enabled,
     queryFn: () =>
       api
         .get<FaturamentoDiaResponse>('/api/relatorios/faturamento', {
@@ -71,6 +70,9 @@ function FaturamentoTab({ organizationId, enabled }: { organizationId: number; e
         })
         .then((r) => r.data),
   });
+  const { data } = query;
+  if (query.isError) return <ReportError error={query.error} retry={() => void query.refetch()} />;
+  if (query.isPending) return <ListingSkeleton />;
 
   return (
     <Stack spacing={3}>
@@ -128,12 +130,11 @@ function TitulosTable({ titulos }: { titulos: Titulo[] }) {
   );
 }
 
-function ContasAVencerTab({ organizationId, enabled }: { organizationId: number; enabled: boolean }) {
+function ContasAVencerTab({ organizationId }: { organizationId: number }) {
   const [inicio, setInicio] = useState<Dayjs>(dayjs());
   const [fim, setFim] = useState<Dayjs>(dayjs().add(30, 'day'));
-  const { data } = useQuery({
+  const query = useQuery({
     queryKey: tenantQueryKey(organizationId, 'rel', 'contas-a-vencer', inicio.format('YYYY-MM-DD'), fim.format('YYYY-MM-DD')),
-    enabled,
     queryFn: () =>
       api
         .get<ContasAVencerResponse>('/api/relatorios/contas-a-vencer', {
@@ -141,6 +142,9 @@ function ContasAVencerTab({ organizationId, enabled }: { organizationId: number;
         })
         .then((r) => r.data),
   });
+  const { data } = query;
+  if (query.isError) return <ReportError error={query.error} retry={() => void query.refetch()} />;
+  if (query.isPending) return <ListingSkeleton />;
 
   return (
     <Stack spacing={3}>
@@ -172,16 +176,14 @@ function ContasAVencerTab({ organizationId, enabled }: { organizationId: number;
   );
 }
 
-function EstoqueTab({ organizationId, enabled }: { organizationId: number; enabled: boolean }) {
+function EstoqueTab({ organizationId }: { organizationId: number }) {
   const query = useQuery({
     queryKey: tenantQueryKey(organizationId, 'rel', 'estoque'),
-    enabled,
     queryFn: () => api.get<EstoqueMinimoResponse>('/api/relatorios/estoque-minimo').then((r) => r.data),
   });
   const { data } = query;
-  if (!enabled) return <Typography>Seu acesso não permite consultar estoque.</Typography>;
   if (query.isLoading) return <ListingSkeleton />;
-  if (query.isError) return <ErrorState message={describeError(query.error)} onRetry={() => void query.refetch()} />;
+  if (query.isError) return <ReportError error={query.error} retry={() => void query.refetch()} />;
   const itens = data?.itens ?? [];
   return (
     <Card>
@@ -224,12 +226,14 @@ function EstoqueTab({ organizationId, enabled }: { organizationId: number; enabl
   );
 }
 
-function MensalistasTab({ organizationId, enabled }: { organizationId: number; enabled: boolean }) {
-  const { data } = useQuery({
+function MensalistasTab({ organizationId }: { organizationId: number }) {
+  const query = useQuery({
     queryKey: tenantQueryKey(organizationId, 'rel', 'mensalistas'),
-    enabled,
     queryFn: () => api.get<MensalistasAtivosResponse>('/api/relatorios/mensalistas-ativos').then((r) => r.data),
   });
+  const { data } = query;
+  if (query.isError) return <ReportError error={query.error} retry={() => void query.refetch()} />;
+  if (query.isPending) return <ListingSkeleton />;
   const itens = data?.itens ?? [];
   return (
     <Stack spacing={3}>
@@ -277,37 +281,26 @@ function MensalistasTab({ organizationId, enabled }: { organizationId: number; e
 
 export function RelatoriosPage() {
   const [params, setParams] = useSearchParams();
-  const tabs = ['faturamento', 'contas', 'estoque', 'mensalistas'];
-  const tab = Math.max(0, tabs.indexOf(params.get('tab') ?? 'faturamento'));
   const { activeOrganization, permissions } = useAuth();
-  const organizationId = activeOrganization!.organizationId;
-  const canOperations = permissions.includes('operations:read');
-  const canFinance = permissions.includes('finance:read');
-  const canFiscal = permissions.includes('fiscal:read');
-  const canStock = permissions.includes('stock:read');
+  const tabs = REPORTS.filter((report) => allowsAccess(permissions, report));
+  const tab = tabs.find(({ id }) => id === params.get('tab'))?.id ?? tabs[0]?.id;
+  if (!tab || !activeOrganization) return null;
+  const organizationId = activeOrganization.organizationId;
+  const panels: Record<typeof tab, ReactNode> = {
+    faturamento: <FaturamentoTab organizationId={organizationId} />,
+    contas: <ContasAVencerTab organizationId={organizationId} />,
+    estoque: <EstoqueTab organizationId={organizationId} />,
+    mensalistas: <MensalistasTab organizationId={organizationId} />,
+  };
   return (
     <Box>
       <PageHeader title="Relatórios" subtitle="Consultas gerenciais consolidadas." />
       <Tabs value={tab} onChange={(_, v) => setParams((current) => {
-        const next = new URLSearchParams(current); next.set('tab', tabs[v]); return next;
-      })} variant="scrollable" scrollButtons="auto">
-        <Tab label="Faturamento" />
-        <Tab label="Contas a vencer" />
-        <Tab label="Estoque mínimo" />
-        <Tab label="Mensalistas ativos" />
+        const next = new URLSearchParams(current); next.set('tab', v); return next;
+      })} variant="scrollable" scrollButtons="auto" aria-label="Relatórios disponíveis">
+        {tabs.map(({ id, label }) => <Tab key={id} id={`report-tab-${id}`} aria-controls={`report-panel-${id}`} value={id} label={label} />)}
       </Tabs>
-      <TabPanel value={tab} index={0}>
-        <FaturamentoTab organizationId={organizationId} enabled={canOperations && canFinance && canFiscal} />
-      </TabPanel>
-      <TabPanel value={tab} index={1}>
-        <ContasAVencerTab organizationId={organizationId} enabled={canFinance} />
-      </TabPanel>
-      <TabPanel value={tab} index={2}>
-        <EstoqueTab organizationId={organizationId} enabled={canStock} />
-      </TabPanel>
-      <TabPanel value={tab} index={3}>
-        <MensalistasTab organizationId={organizationId} enabled={canOperations} />
-      </TabPanel>
+      <Box key={tab} role="tabpanel" id={`report-panel-${tab}`} aria-labelledby={`report-tab-${tab}`} sx={{ pt: 3 }}>{panels[tab]}</Box>
     </Box>
   );
 }

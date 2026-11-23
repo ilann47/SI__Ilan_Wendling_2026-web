@@ -3,7 +3,8 @@ import { render, screen, within, waitFor, fireEvent, act } from '@testing-librar
 import userEvent from '@testing-library/user-event';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
-import { createMemoryRouter, RouterProvider } from 'react-router-dom';
+import { createMemoryRouter, Outlet, RouterProvider } from 'react-router-dom';
+import { FormNavigationProvider } from '../context/FormNavigationProvider';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { api } from '../api/client';
 import { buildNotaEntradaPayload } from '../api/inboundNotes';
@@ -22,10 +23,12 @@ const preview = { nota: { ...note, id: null, version: null }, parcelas: [{ numer
 function setup(path = '/app/notas-entrada/17/editar', direction = -1) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   const router = createMemoryRouter([
-    { path: '/app/notas-entrada', element: <h1>Lista de notas</h1> },
-    { path: '/app/notas-entrada/nova', element: <InboundNoteEditorPage /> },
-    { path: '/app/notas-entrada/:id/editar', element: <InboundNoteEditorPage /> },
-    { path: '/app/notas-entrada/:id', element: <h1>Documento confirmado</h1> },
+    { element: <FormNavigationProvider><Outlet /></FormNavigationProvider>, children: [
+      { path: '/app/notas-entrada', element: <h1>Lista de notas</h1> },
+      { path: '/app/notas-entrada/nova', element: <InboundNoteEditorPage /> },
+      { path: '/app/notas-entrada/:id/editar', element: <InboundNoteEditorPage /> },
+      { path: '/app/notas-entrada/:id', element: <h1>Documento confirmado</h1> },
+    ] },
   ], { initialEntries: direction === -1 ? ['/app/notas-entrada', path] : [path, '/app/notas-entrada'], initialIndex: direction === -1 ? 1 : 0 });
   render(<LocalizationProvider dateAdapter={AdapterDayjs}><QueryClientProvider client={client}><RouterProvider router={router} /></QueryClientProvider></LocalizationProvider>);
   return Object.assign(userEvent.setup(), { router });

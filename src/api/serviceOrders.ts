@@ -4,15 +4,16 @@ import { exactDecimal } from '../utils/fixedDecimal';
 
 export type ServiceOrderStatus = 'RASCUNHO' | 'EM_EXECUCAO' | 'CONCLUIDA' | 'CANCELADA';
 export interface ServiceOrderItem {
-  id: number; sequencia: number; servicoId: number; servico: string; descricao: string;
+  id: number; sequencia: number; servicoId: number | null; servico: string; descricao: string;
   quantidade: number; valorUnitario: number; valorDesconto: number; valorTotal: number;
 }
 export interface ServiceOrder {
   id: number; version: number; numero: string; status: ServiceOrderStatus;
-  clienteId: number; clienteNome: string; dataAbertura: string; previsaoConclusao?: string;
+  clienteId: number | null; clienteNome: string | null; dataAbertura: string; previsaoConclusao?: string;
   iniciadaEm?: string; concluidaEm?: string; moeda: string; subtotal: number;
   valorDesconto: number; valorTotal: number; observacao?: string;
   motivoCancelamento?: string; itens: ServiceOrderItem[];
+  movimentacaoPatioId?: number | null;
 }
 export interface ServiceOrderRequest {
   numero: string; clienteId: number; dataAbertura?: string; previsaoConclusao?: string;
@@ -29,7 +30,11 @@ export interface ServiceOrderReceivable {
   dataVencimento: string; valorOriginal: number; valorRecebido: number;
   valorTotal: number; situacao: string;
 }
-export interface ServiceOrderDocumentsResponse { nota: ServiceOrderNote | null; contas: ServiceOrderReceivable[] | null }
+export interface ServiceOrderDocumentsResponse {
+  nota: ServiceOrderNote | null;
+  contas: ServiceOrderReceivable[] | null;
+  nfsePatio?: { movimentacaoId: number; status: 'PENDENTE_EMISSAO'; valor: string; criadoEm: string } | null;
+}
 export interface ServiceOrderNoteRequest {
   numero: string; modelo?: string; serie?: string; dataEmissao?: string;
   condicaoPagamentoId?: number; formaPagamentoId?: number; aliquotaIss?: number;

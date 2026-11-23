@@ -1,5 +1,5 @@
 import {
-  Alert, Box, Button, Card, Checkbox, Chip, Divider, FormControlLabel, Link, Stack, Typography,
+  Alert, Box, Button, Card, Checkbox, FormControlLabel, Link, Stack, Typography,
 } from '@mui/material';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
@@ -11,7 +11,7 @@ import { tenantQueryKey } from '../api/queryKeys';
 import { useAuth } from '../auth/AuthContext';
 import { ConfirmDialog } from '../components/common/ConfirmDialog';
 import { FiscalReversalDialog } from '../components/common/FiscalReversalDialog';
-import { PageHeader } from '../components/common/PageHeader';
+import { NoteDetailHeader } from '../components/common/NoteDetailHeader';
 import { StatusChip } from '../components/common/StatusChip';
 import { hasResourceActionPermission } from '../components/crud/resourceConfig';
 import { ErrorState } from '../components/listing/ErrorState';
@@ -100,9 +100,18 @@ function OutboundDocument({ org, noteId, permissions }: { org: number; noteId: n
   const effectSummary = 'A confirmação baixa as quantidades no local indicado e gera as parcelas previstas uma única vez.';
 
   return <Box>
-    <PageHeader title={`Nota de Saída ${note.numero}`} subtitle={`Série ${note.serie} · modelo ${note.modelo} · ${note.clienteNome}`} backFallback="/app/notas-saida"
+    <NoteDetailHeader title={`Nota de Saída ${note.numero}`} counterpart={note.clienteNome}
+      series={note.serie} model={note.modelo} backFallback="/app/notas-saida"
+      status={pending ? 'RASCUNHO' : note.situacao} reversed={reversed} total={formatCurrency(note.valorTotal)}
+      facts={[
+        { label: 'Emissão', value: formatDate(note.dataEmissao) },
+        { label: 'Saída', value: formatDate(note.dataSaida) },
+        { label: 'Local de estoque', value: note.localEstoqueNome ?? 'Não informado' },
+        { label: 'Condição de pagamento', value: note.condicaoPagamentoNome ?? 'Não informada' },
+        { label: 'Frete', value: note.tipoFrete },
+      ]}
       action={<Stack direction={{ xs: 'column', sm: 'row' }} gap={1}>
-        {pending && canEdit && <Button variant="outlined" disabled={busy || uncertain} component={RouterLink}
+        {pending && canEdit && <Button variant="contained" disabled={busy || uncertain} component={RouterLink}
           to={`/app/notas-saida/${note.id}/editar`} state={{ outboundDocumentId: note.id }}>Editar rascunho</Button>}
         {pending && manages && <Button color="error" disabled={busy || uncertain || !versionKnown}
           onClick={() => openAction('cancel')}>Cancelar rascunho</Button>}
@@ -123,19 +132,6 @@ function OutboundDocument({ org, noteId, permissions }: { org: number; noteId: n
           : 'A reversão interna não está disponível: há recebimento registrado ou movimento já compensado.'}
       </Alert>}
       <Card variant="outlined" sx={{ p: { xs: 2, md: 2.5 } }}>
-        <Stack direction="row" justifyContent="space-between" alignItems="flex-start" gap={1}>
-          <Box>
-            <Typography component="h2" variant="h6">Dados da nota</Typography>
-            <Typography variant="body2" color="text.secondary">
-              Emissão: {formatDate(note.dataEmissao)} · Saída: {formatDate(note.dataSaida)} · Local: {note.localEstoqueNome ?? 'Não informado'}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Condição: {note.condicaoPagamentoNome ?? 'Não informada'} · Frete: {note.tipoFrete}
-            </Typography>
-          </Box>
-          {reversed ? <Chip size="small" color="warning" label="Revertida" /> : <StatusChip status={pending ? 'RASCUNHO' : note.situacao} />}
-        </Stack>
-        <Divider sx={{ my: 2 }} />
         <Typography component="h2" variant="h6">Produtos e valores</Typography>
         {note.itens.map((item) => <Box key={item.id} sx={{ py: 1, borderBottom: 1, borderColor: 'divider' }}>
           <Typography fontWeight={700}>{item.produtoNome}</Typography>

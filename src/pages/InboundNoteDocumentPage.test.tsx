@@ -23,8 +23,9 @@ function setup(situacao = 'PENDENTE', previa?: InboundNotePreview) {
 describe('Detalhe da Nota e acesso aos efeitos', () => {
   it('mostra identidade e bloqueia vínculos residuais sem leitura do módulo', async () => {
     state.permissions = ['fiscal:read']; setup();
-    expect(await screen.findByRole('heading', { name: 'Nota N9' })).toBeInTheDocument();
-    expect(screen.getByText('Série 3 · modelo 55 · Distribuidora')).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Nota de Entrada N9' })).toBeInTheDocument();
+    expect(screen.getByText('Distribuidora')).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Dados da nota' })).toHaveTextContent('Modelo 55 · Série 3');
     expect(screen.getByText('Seu perfil não permite consultar contas a pagar.')).toBeInTheDocument();
     expect(screen.getByText('Seu perfil não permite consultar o estoque.')).toBeInTheDocument();
     expect(screen.queryByText('Produto restrito')).not.toBeInTheDocument();
@@ -33,7 +34,7 @@ describe('Detalhe da Nota e acesso aos efeitos', () => {
   });
   it('confirmada não oferece edição, cancelamento ou exclusão mesmo ao gestor', async () => {
     state.permissions = ['fiscal:read', 'fiscal:manage']; setup('CONFIRMADA');
-    await screen.findByRole('heading', { name: 'Nota N9' });
+    await screen.findByRole('heading', { name: 'Nota de Entrada N9' });
     expect(screen.queryByRole('button', { name: /Cancelar|Excluir|Confirmar/ })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: /Editar/ })).not.toBeInTheDocument();
   });
@@ -83,8 +84,8 @@ describe('Detalhe da Nota e acesso aos efeitos', () => {
       parcelas: [{ numeroParcela: 1, totalParcelas: 1, valor: 155, dataVencimento: '2026-11-17', formaPagamentoId: null, formaPagamentoNome: 'Boleto' }],
       valorCustoTotal: 155, valorObrigacao: 155, diferencaDescontoGeral: 0, custosMedios: [],
     });
-    expect(await screen.findByRole('heading', { name: 'Nota N9' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Dados da nota' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Nota de Entrada N9' })).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Dados da nota' })).toHaveTextContent('Total da nota');
     expect(screen.getByRole('heading', { name: 'Itens e custos' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Totais' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Lançamentos gerados' })).toBeInTheDocument();
@@ -101,7 +102,7 @@ describe('Detalhe da Nota e acesso aos efeitos', () => {
       parcelas: [{ numeroParcela: 1, totalParcelas: 1, valor: 10, dataVencimento: '2026-10-17', formaPagamentoId: null, formaPagamentoNome: null }],
       valorCustoTotal: 12, valorObrigacao: 10, diferencaDescontoGeral: 2, custosMedios: [],
     });
-    await screen.findByRole('heading', { name: 'Nota N9' });
+    await screen.findByRole('heading', { name: 'Nota de Entrada N9' });
     expect(screen.getByText('Composição do rascunho cancelado')).toBeInTheDocument();
     expect(screen.getByText('Cronograma do rascunho cancelado')).toBeInTheDocument();
     expect(screen.getByText('Valor registrado no rascunho cancelado').parentElement).toHaveTextContent('10,00');

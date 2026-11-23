@@ -1,5 +1,5 @@
 import { useState, type FormEvent, type ReactNode } from 'react';
-import { Link as RouterLink, useSearchParams } from 'react-router-dom';
+import { Link as RouterLink, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Alert,
@@ -41,13 +41,14 @@ import {
 } from '../api/stock';
 import { useAuth } from '../auth/AuthContext';
 import { ConfirmDialog } from '../components/common/ConfirmDialog';
-import { AppDialog } from '../components/common/AppDialog';
 import { PageHeader } from '../components/common/PageHeader';
-import { ResourceFormDialog } from '../components/form/ResourceFormDialog';
+import { ResourceFormPage } from '../components/form/ResourceFormPage';
+import { useFormPageLocation } from '../components/form/useFormPageLocation';
 import { stockLocationFields } from '../resources/estoque';
 import { ReferenceSelect } from '../components/form/ReferenceSelect';
 import { ListingCards } from '../components/listing/ListingCards';
-import { useLinkedDetail } from '../hooks/useLinkedDetail';
+import { linkedDetailId, useLinkedDetail } from '../hooks/useLinkedDetail';
+import { RecordDetailPage } from '../components/listing/RecordDetailPage';
 import { useSnackbar } from '../components/SnackbarProvider';
 import { formatDateTime, formatNumber } from '../utils/format';
 import { toApiDateTime } from '../utils/dateTime';
@@ -220,20 +221,55 @@ interface MovementFilters {
 }
 
 const emptyMovementFilters: MovementFilters = { produtoId: '', localEstoqueId: '', tipo: '', de: '', ate: '' };
+const movementRoutes = { listPath: '/app/estoque', detailBase: '/app/estoque/movimentos' };
+const newLocationForm = 'novo-local';
+const editLocationPrefix = 'editar-local-';
+
+function readMovementDate(value: string | null): string {
+  return value && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2})?$/.test(value) && Number.isFinite(Date.parse(value)) ? value : '';
+}
 
 function MovementPanel({ organizationId }: { organizationId: number }) {
   const { permissions } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
-  const initial = { ...emptyMovementFilters, produtoId: searchParams.get('produtoId') ?? '', localEstoqueId: searchParams.get('localEstoqueId') ?? '' };
-  const [draft, setDraft] = useState(initial);
-  const [filters, setFilters] = useState(initial);
-  const [page, setPage] = useState(0);
-  const detail = useLinkedDetail(organizationId, 'stock-movement', stockApi.movement, true);
+  const navigate = useNavigate();
+  const type = searchParams.get('tipo') ?? '';
+  const filters: MovementFilters = {
+    produtoId: String(linkedDetailId(searchParams.get('produtoId')) ?? ''),
+    localEstoqueId: String(linkedDetailId(searchParams.get('localEstoqueId')) ?? ''),
+    tipo: Object.prototype.hasOwnProperty.call(movementLabels, type) ? type : '',
+    de: readMovementDate(searchParams.get('de')),
+    ate: readMovementDate(searchParams.get('ate')),
+  };
+  const [draft, setDraft] = useState(filters);
+  const page = linkedDetailId(searchParams.get('pagina')) ?? 0;
+  const detail = useLinkedDetail(organizationId, 'stock-movement', stockApi.movement, true, true, movementRoutes);
   const origin = useQuery({ queryKey: stockQueryKey(organizationId, 'origin', detail.data?.id, permissions),
     queryFn: () => stockApi.origin(detail.data!.id), enabled: !!detail.data });
   const originPermission = origin.data ? originPermissions[origin.data.tipo] : undefined;
   const canReadOrigin = !originPermission || permissions.includes(originPermission);
-  const openDetail = (id: number) => setSearchParams((current) => { const next = new URLSearchParams(current); next.set('detail', String(id)); return next; });
+  const openDetail = detail.open;
+  const closeDetail = () => {
+    const tab = searchParams.get('tab');
+    if (tab === 'razao' || tab === 'movimentacoes') detail.close();
+    else {
+      const next = new URLSearchParams(searchParams);
+      next.set('tab', 'razao');
+      next.delete('detail');
+      navigate({ pathname: movementRoutes.listPath, search: next.toString() }, { replace: true });
+    }
+  };
+  const applyFilters = (values: MovementFilters) => {
+    const next = new URLSearchParams({ tab: 'razao' });
+    for (const [field, value] of Object.entries(values)) if (value) next.set(field, value);
+    setSearchParams(next, { replace: true });
+  };
+  const setPage = (value: number) => setSearchParams((current) => {
+    const next = new URLSearchParams(current);
+    if (value > 0) next.set('pagina', String(value));
+    else next.delete('pagina');
+    return next;
+  }, { replace: true });
   const params = {
     page, size: 20,
     produtoId: filters.produtoId ? Number(filters.produtoId) : undefined,
@@ -245,17 +281,34 @@ function MovementPanel({ organizationId }: { organizationId: number }) {
   const movements = useQuery({
     queryKey: stockQueryKey(organizationId, 'movements', params),
     queryFn: () => stockApi.movements(params),
+    enabled: !detail.requested,
   });
 
-  return (
+  return detail.requested ? (
+    <RecordDetailPage title="Detalhe do movimento" onBack={closeDetail}>
+      <QueryFeedback loading={detail.isLoading} error={detail.error} />
+      {detail.data && <Stack spacing={1}><Typography>Produto: {detail.data.produto}</Typography><Typography>Local: {detail.data.localEstoque}</Typography><Typography>Tipo: {movementLabels[detail.data.tipo] ?? detail.data.tipo}</Typography>
+        <Typography>Quantidade movimentada: {formatNumber(detail.data.delta, 3, 6)}</Typography><Typography>Saldo anterior: {formatNumber(detail.data.saldoAnterior, 3, 6)}</Typography><Typography>Saldo posterior: {formatNumber(detail.data.saldoPosterior, 3, 6)}</Typography>
+        <Typography>Responsável: {detail.data.atorNome ?? 'Não informado'}</Typography><Typography>Data: {formatDateTime(detail.data.ocorridoEm)}</Typography><Typography>Motivo: {detail.data.motivo ?? 'Não informado'}</Typography>
+        {fiscalMovementOrigins.has(detail.data.origemTipo) && <Typography variant="body2" color="text.secondary">
+          Movimentos de nota fiscal são revertidos pelo documento de origem, não isoladamente no estoque.
+        </Typography>}
+        <QueryFeedback loading={origin.isLoading} error={origin.error} />
+        {origin.data && (!canReadOrigin ? <Typography color="text.secondary">Seu acesso não permite consultar o documento de origem.</Typography>
+          : origin.data.caminho
+            ? <Button component={RouterLink} to={origin.data.caminho}>{origin.data.descricao}</Button>
+            : <Typography color="text.secondary">{origin.data.descricao}</Typography>)}
+      </Stack>}
+    </RecordDetailPage>
+  ) : (
     <Stack spacing={2}>
-      <Card><CardContent><Stack component="form" onSubmit={(event) => { event.preventDefault(); setFilters(draft); setPage(0); }} direction={{ xs: 'column', lg: 'row' }} spacing={2}>
+      <Card><CardContent><Stack component="form" onSubmit={(event) => { event.preventDefault(); applyFilters(draft); }} direction={{ xs: 'column', lg: 'row' }} spacing={2}>
         <StockReferences draft={draft} change={(field, value) => setDraft({ ...draft, [field]: value })} />
         <TextField select label="Tipo" value={draft.tipo} onChange={(event) => setDraft({ ...draft, tipo: event.target.value })} sx={{ minWidth: 120 }}><MenuItem value="">Todos</MenuItem>{Object.entries(movementLabels).map(([tipo, label]) => <MenuItem key={tipo} value={tipo}>{label}</MenuItem>)}</TextField>
         <TextField label="De" type="datetime-local" value={draft.de} onChange={(event) => setDraft({ ...draft, de: event.target.value })} InputLabelProps={{ shrink: true }} />
         <TextField label="Até" type="datetime-local" value={draft.ate} onChange={(event) => setDraft({ ...draft, ate: event.target.value })} InputLabelProps={{ shrink: true }} />
         <Button type="submit" variant="contained">Filtrar</Button>
-        <Button onClick={() => { setDraft(emptyMovementFilters); setFilters(emptyMovementFilters); setPage(0); setSearchParams({ tab: 'razao' }); }}>Limpar</Button>
+        <Button onClick={() => { setDraft(emptyMovementFilters); applyFilters(emptyMovementFilters); }}>Limpar</Button>
       </Stack></CardContent></Card>
       <QueryFeedback loading={movements.isLoading} error={movements.error} />
       {!movements.isLoading && !movements.isError && (
@@ -277,37 +330,59 @@ function MovementPanel({ organizationId }: { organizationId: number }) {
         <StockPagination total={movements.data?.totalElements ?? 0} page={page} change={setPage} /></Box>
       )}
 
-      <AppDialog open={detail.requested} onClose={detail.close} title="Detalhe do movimento" maxWidth="sm"
-        fullScreenOnMobile actions={<>
-          <Button onClick={detail.close}>Fechar</Button>
-        </>}>
-        <QueryFeedback loading={detail.isLoading} error={detail.error} />
-        {detail.data && <Stack spacing={1}><Typography>Produto: {detail.data.produto}</Typography><Typography>Local: {detail.data.localEstoque}</Typography><Typography>Tipo: {movementLabels[detail.data.tipo] ?? detail.data.tipo}</Typography>
-          <Typography>Quantidade movimentada: {formatNumber(detail.data.delta, 3, 6)}</Typography><Typography>Saldo anterior: {formatNumber(detail.data.saldoAnterior, 3, 6)}</Typography><Typography>Saldo posterior: {formatNumber(detail.data.saldoPosterior, 3, 6)}</Typography>
-          <Typography>Responsável: {detail.data.atorNome ?? 'Não informado'}</Typography><Typography>Data: {formatDateTime(detail.data.ocorridoEm)}</Typography><Typography>Motivo: {detail.data.motivo ?? 'Não informado'}</Typography>
-          {fiscalMovementOrigins.has(detail.data.origemTipo) && <Typography variant="body2" color="text.secondary">
-            Movimentos de nota fiscal são revertidos pelo documento de origem, não isoladamente no estoque.
-          </Typography>}
-          <QueryFeedback loading={origin.isLoading} error={origin.error} />
-          {origin.data && (!canReadOrigin ? <Typography color="text.secondary">Seu acesso não permite consultar o documento de origem.</Typography>
-            : origin.data.caminho
-              ? <Button component={RouterLink} to={origin.data.caminho}>{origin.data.descricao}</Button>
-              : <Typography color="text.secondary">{origin.data.descricao}</Typography>)}
-        </Stack>}
-      </AppDialog>
-
     </Stack>
   );
+}
+
+function StockLocationForm({ organizationId, locationId, onClose }: {
+  organizationId: number; locationId: number | null; onClose: () => void;
+}) {
+  const queryClient = useQueryClient();
+  const { notify } = useSnackbar();
+  const current = useQuery({
+    queryKey: stockQueryKey(organizationId, 'location-form', locationId),
+    queryFn: () => stockLocationApi.getVersioned(locationId!),
+    enabled: locationId !== null,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+  });
+  const save = useMutation({
+    mutationFn: (values: Record<string, unknown>) => {
+      const payload = buildStockLocationPayload(values);
+      if (locationId === null) return stockLocationApi.createVersioned(payload);
+      if (!current.data) throw new Error('Versão do local indisponível.');
+      return stockLocationApi.updateVersioned(locationId, payload, current.data.version);
+    },
+    onSuccess: () => {
+      notify('Local de estoque salvo.', 'success');
+      void queryClient.invalidateQueries({ queryKey: stockInvalidationKey(organizationId) });
+    },
+  });
+  const conflict = locationId !== null && isResourcePreconditionConflict(save.error);
+  const title = locationId === null ? 'Novo local de estoque' : 'Editar local de estoque';
+  const reload = async () => {
+    const result = await current.refetch();
+    if (result.isSuccess) save.reset();
+  };
+
+  if (locationId !== null && !current.data) {
+    return <RecordDetailPage title={title} onBack={onClose}
+      actions={current.isError && <Button onClick={() => void reload()}>Tentar novamente</Button>}>
+      <QueryFeedback loading={current.isLoading} error={current.error} />
+    </RecordDetailPage>;
+  }
+  return <ResourceFormPage title={title} fields={stockLocationFields} initialValues={current.data ? { ...current.data.data } : null}
+    submitting={save.isPending} reloading={current.isFetching} submitDisabled={conflict} resetKey={current.dataUpdatedAt}
+    error={current.error ? describeError(current.error)
+      : conflict ? 'O local foi alterado. Recarregue os dados antes de salvar novamente.'
+        : save.error ? describeError(save.error) : null}
+    onReload={conflict ? () => void reload() : undefined} onClose={onClose} onSubmit={save.mutateAsync} />;
 }
 
 function LocationsPanel({ organizationId, canManage }: { organizationId: number; canManage: boolean }) {
   const queryClient = useQueryClient();
   const { notify } = useSnackbar();
-  const [formOpen, setFormOpen] = useState(false);
-  const [editing, setEditing] = useState<StockLocation | null>(null);
-  const [version, setVersion] = useState<number | null>(null);
-  const [conflict, setConflict] = useState<string | null>(null);
-  const [revision, setRevision] = useState(0);
+  const form = useFormPageLocation();
   const [deleting, setDeleting] = useState<{ row: StockLocation; version: number } | null>(null);
   const [deleteConflict, setDeleteConflict] = useState(false);
   const locations = useQuery({
@@ -317,33 +392,7 @@ function LocationsPanel({ organizationId, canManage }: { organizationId: number;
   const invalidate = () => queryClient.invalidateQueries({
     queryKey: stockInvalidationKey(organizationId),
   });
-  const loadEdit = async (row: StockLocation) => {
-    try {
-      const current = await stockLocationApi.getVersioned(row.id);
-      setEditing(current.data); setVersion(current.version); setConflict(null); setRevision((value) => value + 1); setFormOpen(true);
-    } catch (error) { notify(describeError(error), 'error'); }
-  };
-  const reloadEdit = async () => {
-    if (!editing) return;
-    try {
-      const current = await stockLocationApi.getVersioned(editing.id);
-      setEditing(current.data); setVersion(current.version); setConflict(null); setRevision((value) => value + 1);
-    } catch (error) { notify(describeError(error), 'error'); }
-  };
-  const save = useMutation({
-    mutationFn: (values: Record<string, unknown>) => {
-      const payload = buildStockLocationPayload(values);
-      if (!editing) return stockLocationApi.createVersioned(payload);
-      if (version === null) throw new Error('Versão do local indisponível.');
-      return stockLocationApi.updateVersioned(editing.id, payload, version);
-    },
-    onSuccess: () => { notify('Local de estoque salvo.', 'success'); setFormOpen(false); setEditing(null); setVersion(null); setConflict(null); void invalidate(); },
-    onError: (error) => {
-      if (editing && isResourcePreconditionConflict(error)) {
-        setConflict('O local foi alterado. Recarregue os dados antes de salvar novamente.');
-      } else notify(describeError(error), 'error');
-    },
-  });
+  const loadEdit = (row: StockLocation) => form.open(`${editLocationPrefix}${row.id}`);
   const remove = useMutation({
     mutationFn: () => stockLocationApi.removeVersioned(deleting!.row.id, deleting!.version),
     onSuccess: () => { notify('Local de estoque inativado.', 'success'); setDeleting(null); setDeleteConflict(false); void invalidate(); },
@@ -371,23 +420,22 @@ function LocationsPanel({ organizationId, canManage }: { organizationId: number;
 
   return (
     <Stack spacing={2}>
-      {canManage && <Button variant="contained" startIcon={<AddOutlinedIcon />} sx={{ alignSelf: 'flex-start' }} onClick={() => { setEditing(null); setVersion(null); setConflict(null); setFormOpen(true); }}>Novo local</Button>}
+      {canManage && <Button variant="contained" startIcon={<AddOutlinedIcon />} sx={{ alignSelf: 'flex-start' }} onClick={() => form.open(newLocationForm)}>Novo local</Button>}
       <QueryFeedback loading={locations.isLoading} error={locations.error} />
       {!locations.isLoading && !locations.isError && <Box>
         <ListingCards rows={rows<StockLocation>(locations.data)} getKey={(item) => item.id}
           getTitle={(item) => item.nome}
           getFields={(item) => [{ label: 'Situação', value: <Chip size="small" color={item.ativo ? 'success' : 'default'} label={item.ativo ? 'Ativo' : 'Inativo'} /> }]}
           getActions={canManage ? (item) => [
-            { key: 'edit', label: 'Editar', icon: <EditOutlinedIcon fontSize="small" />, onClick: () => void loadEdit(item) },
+            { key: 'edit', label: 'Editar', icon: <EditOutlinedIcon fontSize="small" />, onClick: () => loadEdit(item) },
             { key: 'disable', label: 'Inativar', icon: <DeleteOutlineIcon fontSize="small" />, danger: true, disabled: !item.ativo, disabledReason: 'Este local já está inativo.', onClick: () => void prepareDelete(item) },
           ] : undefined}
         />
         <Card sx={{ display: { xs: 'none', md: 'block' } }}><TableContainer><Table size="small" aria-label="Locais de estoque"><TableHead><TableRow><TableCell>Nome</TableCell><TableCell>Situação</TableCell>{canManage && <TableCell>Ações</TableCell>}</TableRow></TableHead><TableBody>
-          {rows<StockLocation>(locations.data).map((item) => <TableRow key={item.id}><TableCell>{item.nome}</TableCell><TableCell>{item.ativo ? 'Ativo' : 'Inativo'}</TableCell>{canManage && <TableCell><Button size="small" startIcon={<EditOutlinedIcon />} onClick={() => void loadEdit(item)}>Editar</Button><Button size="small" color="error" startIcon={<DeleteOutlineIcon />} disabled={!item.ativo} onClick={() => void prepareDelete(item)}>Inativar</Button></TableCell>}</TableRow>)}
+          {rows<StockLocation>(locations.data).map((item) => <TableRow key={item.id}><TableCell>{item.nome}</TableCell><TableCell>{item.ativo ? 'Ativo' : 'Inativo'}</TableCell>{canManage && <TableCell><Button size="small" startIcon={<EditOutlinedIcon />} onClick={() => loadEdit(item)}>Editar</Button><Button size="small" color="error" startIcon={<DeleteOutlineIcon />} disabled={!item.ativo} onClick={() => void prepareDelete(item)}>Inativar</Button></TableCell>}</TableRow>)}
         </TableBody></Table></TableContainer></Card>
         {!locations.data?.content.length && <Alert severity="info">Nenhum local de estoque cadastrado.</Alert>}
       </Box>}
-      <ResourceFormDialog open={formOpen} title={editing ? 'Editar local de estoque' : 'Novo local de estoque'} fields={stockLocationFields} initialValues={editing ? { ...editing } : null} submitting={save.isPending} conflictMessage={conflict} onReload={editing ? () => void reloadEdit() : undefined} resetKey={revision} onClose={() => { setFormOpen(false); setEditing(null); setVersion(null); setConflict(null); }} onSubmit={(values) => save.mutate(values)} />
       <ConfirmDialog open={deleting !== null} title="Inativar local de estoque" message={deleteConflict ? 'O local foi alterado. A versão atual foi recarregada; revise e confirme novamente.' : 'Confirma a inativação deste local?'} confirmLabel={deleteConflict ? 'Tentar novamente' : 'Inativar'} confirmColor="error" loading={remove.isPending} onConfirm={() => remove.mutate()} onClose={() => { setDeleting(null); setDeleteConflict(false); }} />
     </Stack>
   );
@@ -395,9 +443,11 @@ function LocationsPanel({ organizationId, canManage }: { organizationId: number;
 
 export function StockPage() {
   const { activeOrganization, permissions } = useAuth();
+  const { detailId } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
+  const form = useFormPageLocation();
   const tabKey = searchParams.get('tab') ?? 'posicao';
-  const tabIndex = tabKey === 'razao' || tabKey === 'movimentacoes'
+  const tabIndex = detailId !== undefined || tabKey === 'razao' || tabKey === 'movimentacoes'
     ? 1
     : tabKey === 'locais'
       ? 2
@@ -412,10 +462,19 @@ export function StockPage() {
 
   if (!canRead || !organizationId) return <Alert severity="warning">Seu contexto não possui permissão de estoque.</Alert>;
 
+  if (tabIndex === 2 && canManage) {
+    const editId = form.name?.startsWith(editLocationPrefix) ? linkedDetailId(form.name.slice(editLocationPrefix.length)) : null;
+    if (form.name === newLocationForm || editId !== null) return <StockLocationForm key={`${organizationId}:${form.name}`}
+      organizationId={organizationId} locationId={editId} onClose={form.close} />;
+  }
+
+  const showingMovement = tabIndex === 1 && (detailId !== undefined || linkedDetailId(searchParams.get('detail')) !== null);
   return <Box>
+    {!showingMovement && <>
     <PageHeader title="Estoque" subtitle="Saldos por produto e local, entradas, saídas e responsáveis por cada movimentação." />
     <Card><Tabs value={tabIndex} onChange={(_, value: number) => setTab(value)} variant="scrollable"
       scrollButtons="auto" allowScrollButtonsMobile aria-label="Áreas do estoque"><Tab label="Posição" /><Tab label="Razão" /><Tab label="Locais" /></Tabs></Card>
+    </>}
     <TabPanel current={tabIndex} index={0}><PositionPanel organizationId={organizationId} /></TabPanel>
     <TabPanel current={tabIndex} index={1}><MovementPanel organizationId={organizationId} /></TabPanel>
     <TabPanel current={tabIndex} index={2}><LocationsPanel organizationId={organizationId} canManage={canManage} /></TabPanel>

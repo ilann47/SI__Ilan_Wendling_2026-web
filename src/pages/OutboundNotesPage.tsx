@@ -1,6 +1,7 @@
 import AddOutlinedIcon from '@mui/icons-material/AddOutlined';
 import { Alert, Box, Button, Card, Chip, Link, Stack, useMediaQuery, useTheme } from '@mui/material';
-import { DataGrid, type GridColDef, type GridPaginationModel } from '@mui/x-data-grid';
+import type { GridColDef, GridPaginationModel } from '@mui/x-data-grid';
+import { OperationalDataGrid } from '../components/listing/OperationalDataGrid';
 import { ptBR } from '@mui/x-data-grid/locales';
 import { useQuery } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
@@ -119,7 +120,7 @@ function OutboundList({ org, canCreate }: { org: number; canCreate: boolean }) {
           { label: 'Total', value: formatCurrency(row.valorTotal) },
         ]} />
       <Card sx={{ display: { xs: 'none', md: 'block' } }}>
-        <DataGrid autoHeight rows={rows} columns={columns} loading={list.isFetching} localeText={gridLocale}
+        <OperationalDataGrid identityField="numero" autoHeight rows={rows} columns={columns} loading={list.isFetching} localeText={gridLocale}
           rowCount={list.data?.totalElements ?? 0} paginationMode="server" paginationModel={pagination}
           onPaginationModelChange={setPagination} pageSizeOptions={[10, 25, 50]}
           disableColumnSorting disableColumnMenu disableRowSelectionOnClick onRowClick={({ row }) => open(row)}

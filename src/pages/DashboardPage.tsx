@@ -10,7 +10,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Alert, Box, Card, CardContent, List, ListItemButton, ListItemText, Stack, Typography } from '@mui/material';
 import { useState, type ReactNode } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
-import { DetailDrawer } from '../components/listing/DetailDrawer';
+import { AppDialog } from '../components/common/AppDialog';
 import { financialRange, financialTitlePath, type FinancialPeriod } from './dashboardContext';
 import { api, describeError } from '../api/client';
 import { eventCatalogApi } from '../api/eventCatalog';
@@ -199,7 +199,7 @@ export function DashboardPage({ embedded = false, financialPeriod = 'week', head
           )}
         </Box>
         {canFinance && <Typography variant="caption" color="text.secondary">
-          Financeiro por vencimento, somente no período indicado. Valores anteriores não estão incluídos. A pagar inclui despesas avulsas.
+          Financeiro por vencimento, somente no período indicado. Valores anteriores não estão incluídos.
         </Typography>}
 
         {!embedded && activityQueries.length > 0 && <Card>
@@ -228,8 +228,8 @@ export function DashboardPage({ embedded = false, financialPeriod = 'week', head
           </CardContent>
         </Card>}
       </Stack>
-      <DetailDrawer open={canFinance && financialDetail !== null} title={financialDetail === 'aPagar' ? 'Contas a pagar do período' : 'Contas a receber do período'}
-        subtitle={range.label} onClose={() => setFinancialDetail(null)}>
+      <AppDialog open={canFinance && financialDetail !== null} title={financialDetail === 'aPagar' ? 'Contas a pagar do período' : 'Contas a receber do período'}
+        description={range.label} onClose={() => setFinancialDetail(null)}>
         {contas.isError ? <ErrorState message={describeError(contas.error)} onRetry={() => void contas.refetch()} />
           : contas.isFetching ? <Typography role="status">Atualizando contas…</Typography>
           : <>
@@ -242,7 +242,7 @@ export function DashboardPage({ embedded = false, financialPeriod = 'week', head
             })}</List>
             {financialDetail && (contas.data?.[financialDetail]?.length ?? 0) === 0 && <Typography>Nenhuma conta aberta neste período.</Typography>}
           </>}
-      </DetailDrawer>
+      </AppDialog>
     </Box>
   );
 }
