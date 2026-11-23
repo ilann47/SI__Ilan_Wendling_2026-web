@@ -176,27 +176,15 @@ function EventSetup({ catalog, loadingCatalog, catalogError, refreshCatalog }: {
           error={form.name !== '' && !!nameError} helperText={form.name !== '' ? nameError : undefined} inputProps={{ maxLength: 180 }} required />
         {organizationId && <EventServiceSelect value={form.service} disabled={loading}
           onChange={(service) => setForm((current) => ({ ...current, service }))} />}
-        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ sm: 'flex-start' }}>
-          <Box sx={{ flex: 1 }}>
-            <InstallationReferenceSelect kind="venues" label="Local do evento" value={form.venueId} existingOption={newVenue}
-              onChange={(venueId) => setForm((current) => ({ ...current, venueId }))} required
-              emptyText={canCreateVenue ? 'Nenhum local ativo. Use Cadastrar local.' : 'Nenhum local ativo. Peça o cadastro a um administrador.'} />
-          </Box>
-          {canCreateVenue && <Button type="button" variant="outlined" onClick={() => setCreatingVenue(true)} sx={{ minHeight: 44 }}>
-            Cadastrar local
-          </Button>}
-        </Stack>
+        <InstallationReferenceSelect kind="venues" label="Local do evento" value={form.venueId} existingOption={newVenue}
+          onChange={(venueId) => setForm((current) => ({ ...current, venueId }))} required
+          onCreate={canCreateVenue ? { label: 'Cadastrar local', run: () => setCreatingVenue(true) } : undefined}
+          emptyText={canCreateVenue ? 'Nenhum local ativo. Use Cadastrar local.' : 'Nenhum local ativo. Peça o cadastro a um administrador.'} />
         {choosingFacility ? <>
-          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ sm: 'flex-start' }}>
-            <Box sx={{ flex: 1 }}>
-              <InstallationReferenceSelect kind="facilities" label="Pátio do evento" value={form.facilityId}
-                existingOption={newFacility} required emptyText="Nenhum pátio ativo. Use Cadastrar pátio."
-                onChange={(id) => setForm((current) => ({ ...current, facilityId: id, startsAt: '', endsAt: '' }))} />
-            </Box>
-            <Button type="button" variant="outlined" onClick={() => setCreatingFacility(true)} sx={{ minHeight: 44 }}>
-              Cadastrar pátio
-            </Button>
-          </Stack>
+          <InstallationReferenceSelect kind="facilities" label="Pátio do evento" value={form.facilityId}
+            existingOption={newFacility} required emptyText="Nenhum pátio ativo. Use Cadastrar pátio."
+            onCreate={{ label: 'Cadastrar pátio', run: () => setCreatingFacility(true) }}
+            onChange={(id) => setForm((current) => ({ ...current, facilityId: id, startsAt: '', endsAt: '' }))} />
           {organizationId && facilityId && timeZone ? <FacilityEventSchedule key={`${organizationId}:${facilityId}`}
             organizationId={organizationId} facilityId={facilityId} timeZone={timeZone}
             startsAt={form.startsAt} endsAt={form.endsAt} onChange={(period) => setForm((current) => ({ ...current, ...period }))} />

@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { api } from '../../api/client';
 import { useAuth } from '../../auth/AuthContext';
@@ -12,6 +12,25 @@ function auth(organizationId?: number) {
   vi.mocked(useAuth).mockReturnValue({ activeOrganization: organizationId ? { organizationId } : null, permissions: [] } as unknown as ReturnType<typeof useAuth>);
 }
 describe('seletores de referência seguros e honestos', () => {
+  it('busca entre opções autorizadas, sem buscar outro cadastro, e só cria com ação fornecida', async () => {
+    auth(2);
+    const get = vi.spyOn(api, 'get');
+    const select = vi.fn();
+    const create = vi.fn();
+    render(<QueryClientProvider client={new QueryClient()}><ReferenceSelect label="Operação" value={null}
+      reference={{ basePath: 'local:operacao', labelField: 'label' }} onChange={select}
+      source={{ options: [{ id: 11, label: 'Entrada Norte' }, { id: 12, label: 'Entrada Sul' }],
+        onCreate: { label: 'Cadastrar pátio', run: create } }} /></QueryClientProvider>);
+    fireEvent.click(screen.getByRole('button', { name: 'Selecionar operação' }));
+    const picker = screen.getByRole('dialog', { name: 'Selecionar operação' });
+    fireEvent.change(within(picker).getByRole('textbox'), { target: { value: 'sul' } });
+    expect(await within(picker).findByRole('button', { name: 'Entrada Sul' })).toBeVisible();
+    expect(within(picker).queryByRole('button', { name: 'Entrada Norte' })).not.toBeInTheDocument();
+    fireEvent.click(within(picker).getByRole('button', { name: 'Cadastrar pátio' }));
+    expect(create).toHaveBeenCalledOnce();
+    expect(select).not.toHaveBeenCalled();
+    expect(get).not.toHaveBeenCalled();
+  });
   it('erro na busca não aparece como lista vazia', async () => {
     auth(2); vi.spyOn(api, 'get').mockRejectedValue(new Error('Falha ao consultar locais.'));
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });

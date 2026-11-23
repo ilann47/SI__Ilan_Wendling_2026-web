@@ -29,8 +29,7 @@ import { EmptyState } from '../components/listing/EmptyState';
 import { ErrorState } from '../components/listing/ErrorState';
 import { ListingSkeleton } from '../components/listing/ListingSkeleton';
 import { formatDateTime } from '../utils/format';
-import { ResourceIdField } from '../components/enterprise/ResourceIdField';
-import { useOperationalWorkspace } from '../workspace/OperationalWorkspaceContext';
+import { OperationalReferenceSelect } from '../components/enterprise/OperationalReferenceSelect';
 import { accessReasonLabel } from '../features/access/accessLabels';
 
 interface AccessAttempt {
@@ -85,7 +84,6 @@ const operationLabels: Record<AccessAttempt['operation'], string> = {
 
 export function AccessAttemptsPage() {
   const { activeOrganization, permissions } = useAuth();
-  const { recent } = useOperationalWorkspace();
   const [draft, setDraft] = useState<Filters>(emptyFilters);
   const [filters, setFilters] = useState<Filters>(emptyFilters);
   const [cursorHistory, setCursorHistory] = useState<(number | null)[]>([null]);
@@ -128,7 +126,7 @@ export function AccessAttemptsPage() {
         <CardContent>
           <Box component="form" onSubmit={applyFilters}>
             <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
-              <ResourceIdField label="Evento" value={draft.eventId} onChange={(eventId) => setDraft({ ...draft, eventId })} recent={recent('event')} required={false} />
+              <OperationalReferenceSelect kind="audit-events" label="Evento" value={draft.eventId} onChange={(eventId) => setDraft({ ...draft, eventId })} required={false} />
               <TextField
                 select
                 label="Decisão"

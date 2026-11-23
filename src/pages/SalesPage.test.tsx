@@ -1,4 +1,5 @@
 import { render, screen, waitFor } from '@testing-library/react';
+import { chooseReference } from '../test/referencePicker';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
@@ -57,18 +58,18 @@ describe('SalesPage', () => {
       recent: () => [], remember: vi.fn(),
     } as unknown as ReturnType<typeof useOperationalWorkspace>);
 
-    const get = vi.spyOn(api, 'get');
+    const get = vi.spyOn(api, 'get').mockResolvedValue({ data: { content: [{ id: 40, label: 'PED-40' }], totalElements: 1 } });
     const post = vi.spyOn(api, 'post').mockResolvedValue({ data: { ...order, status: 'CONFIRMADO', version: 3 } });
     renderSales();
 
     const user = userEvent.setup();
-    await user.type(screen.getByLabelText(/Código de referência — Pedido/), '40');
+    await chooseReference('Pedido', 'PED-40');
     await user.click(screen.getByRole('button', { name: 'Abrir pedido' }));
 
     expect(screen.getByText('Confirmação manual')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Criar pedido' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Consultar' })).not.toBeInTheDocument();
-    expect(get).not.toHaveBeenCalled();
+    expect(get).not.toHaveBeenCalledWith('/api/v1/orders/40');
     const revision = screen.getByLabelText(/Revisão do pedido/);
     await user.clear(revision);
     await user.type(revision, '2');
@@ -80,7 +81,7 @@ describe('SalesPage', () => {
       paymentMethod: 'DINHEIRO', evidenceReference: 'REC-12', reason: 'Pagamento em balcão',
     }, { headers: { 'If-Match': '"2"', 'Idempotency-Key': expect.any(String) } });
     expect(screen.queryByText('Cliente de teste')).not.toBeInTheDocument();
-    expect(get).not.toHaveBeenCalled();
+    expect(get).not.toHaveBeenCalledWith('/api/v1/orders/40');
   });
 
   it('abre detalhes do pedido em uma subpágina e volta aos filtros da listagem', async () => {
@@ -118,11 +119,12 @@ describe('SalesPage', () => {
       expiresAt: '2026-08-03T04:00:00Z', version: 0,
     };
     vi.spyOn(api, 'post').mockResolvedValueOnce({ data: hold });
-    vi.spyOn(api, 'get').mockResolvedValueOnce({ data: hold });
+    vi.spyOn(api, 'get').mockImplementation(async (url) => ({ data: url.endsWith('/sales-products')
+      ? { content: [{ id: 7, label: 'Estacionamento do Festival' }], totalElements: 1 } : hold }));
 
     renderSales();
     const user = userEvent.setup();
-    await user.type(screen.getByLabelText(/Código de referência — Produto/), '7');
+    await chooseReference('Produto', 'Estacionamento do Festival');
     await user.click(screen.getByRole('button', { name: 'Reservar vaga' }));
 
     await waitFor(() => expect(api.post).toHaveBeenCalledOnce());

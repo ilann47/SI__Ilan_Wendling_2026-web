@@ -21,7 +21,7 @@ import { tenantQueryKey } from '../api/queryKeys';
 import { useAuth } from '../auth/AuthContext';
 import { allowsAccess, MEMBERSHIP_INVITE_ACCESS } from '../auth/accessPolicy';
 import { OperationCard } from '../components/enterprise/OperationCard';
-import { ResourceIdField } from '../components/enterprise/ResourceIdField';
+import { OperationalReferenceSelect } from '../components/enterprise/OperationalReferenceSelect';
 import { ResourceSnapshot } from '../components/enterprise/ResourceSnapshot';
 import { ReferenceSelect } from '../components/form/ReferenceSelect';
 import { NumberField } from '../components/form/NumberField';
@@ -156,7 +156,7 @@ const validMembershipId = (value: string) => /^\d+$/.test(value) && Number.isSaf
 
 function MembershipOperations({ canInvite, canManage }: { canInvite: boolean; canManage: boolean }) {
   const { activeOrganization } = useAuth();
-  const { recent, remember } = useOperationalWorkspace();
+  const { remember } = useOperationalWorkspace();
   const { notify } = useSnackbar();
   const navigate = useNavigate();
   const organizationId = activeOrganization!.organizationId;
@@ -191,10 +191,7 @@ function MembershipOperations({ canInvite, canManage }: { canInvite: boolean; ca
 
   return (
     <Stack spacing={2}>
-      <Alert severity="info">
-        A listagem de vínculos ainda não está disponível. Selecione o usuário pelo cadastro global ou consulte um vínculo conhecido.
-      </Alert>
-      {canInvite && <Button variant="contained" startIcon={<GroupAddOutlinedIcon />}
+      {canInvite && !canManage && <Button variant="contained" startIcon={<GroupAddOutlinedIcon />}
         onClick={() => { setError(null); setInviteOpen(true); }} sx={{ alignSelf: 'flex-start' }}>
         Adicionar usuário
       </Button>}
@@ -213,13 +210,14 @@ function MembershipOperations({ canInvite, canManage }: { canInvite: boolean; ca
       </OperationalFormDialog>}
       {canManage && <OperationCard
         title="Consultar vínculo"
-        description="Escolha um vínculo recente ou informe seu código para abrir o registro."
+        description="Busque pelo nome de um usuário vinculado à organização."
       >
         <Stack component="form" spacing={2} onSubmit={(event) => {
           event.preventDefault();
           if (validMembershipId(membershipId)) navigate(`/app/administracao/vinculos/${Number(membershipId)}`, { state: { fromMembershipLookup: true } });
         }}>
-          <ResourceIdField label="Vínculo" value={membershipId} onChange={setMembershipId} recent={recent('membership')} />
+          <OperationalReferenceSelect kind="memberships" label="Vínculo" value={membershipId} onChange={setMembershipId}
+            onCreate={canInvite ? { label: 'Adicionar usuário', run: () => { setError(null); setInviteOpen(true); } } : undefined} />
           <Button type="submit" variant="outlined" disabled={!validMembershipId(membershipId)} startIcon={<SearchOutlinedIcon />} sx={{ alignSelf: 'flex-start' }}>Abrir vínculo</Button>
         </Stack>
       </OperationCard>}
@@ -290,7 +288,6 @@ const roleLabels: Record<(typeof roleCodes)[number], string> = {
 
 function RoleOperations({ canGrant, canRevoke }: { canGrant: boolean; canRevoke: boolean }) {
   const { activeOrganization } = useAuth();
-  const { recent } = useOperationalWorkspace();
   const organizationId = activeOrganization!.organizationId;
   const [membershipId, setMembershipId] = useState('');
   const [roleCode, setRoleCode] = useState<(typeof roleCodes)[number]>('OPERADOR');
@@ -346,7 +343,7 @@ function RoleOperations({ canGrant, canRevoke }: { canGrant: boolean; canRevoke:
         error={error}
         result={assignment ? <ResourceSnapshot data={{ id: assignment.id, membershipId: assignment.membershipId, roleCode: assignment.roleCode, version: assignment.version, revokedAt: assignment.revokedAt }} /> : undefined}
       >
-        <ResourceIdField label="Vínculo" value={membershipId} onChange={setMembershipId} recent={recent('membership')} />
+        <OperationalReferenceSelect kind="memberships" label="Vínculo" value={membershipId} onChange={setMembershipId} />
         <TextField select label="Papel" value={roleCode} onChange={(event) => setRoleCode(event.target.value as (typeof roleCodes)[number])}>
           {roleCodes.map((code) => <MenuItem key={code} value={code}>{roleLabels[code]}</MenuItem>)}
         </TextField>

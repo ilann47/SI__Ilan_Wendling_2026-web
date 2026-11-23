@@ -246,11 +246,11 @@ export function FacilityForm({ onClose, navigationAllowed, item, onSaved }: Page
   );
 }
 
-function SectorForm({ onClose, navigationAllowed, item, facility }: PageFormProps & {
-  item?: SectorResponse; facility?: { id: number; name: string };
+function SectorForm({ onClose, navigationAllowed, item, facility, onSaved }: PageFormProps & {
+  item?: SectorResponse; facility?: { id: number; name: string }; onSaved?: (item: SectorResponse) => void;
 }) {
   const { remember } = useOperationalWorkspace();
-  const { activeOrganization } = useAuth();
+  const { activeOrganization, permissions } = useAuth();
   const queries = useQueryClient();
   const { notify } = useSnackbar();
   const initial = item ? { code: item.code, name: item.name, capacity: String(item.capacity), categories: item.categories } : sectorInitial;
@@ -259,6 +259,7 @@ function SectorForm({ onClose, navigationAllowed, item, facility }: PageFormProp
   const [form, setForm] = useState(initial);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [newFacility, setNewFacility] = useState(false);
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     if (!facilityId) return;
@@ -272,9 +273,12 @@ function SectorForm({ onClose, navigationAllowed, item, facility }: PageFormProp
       remember('sector', { id: response.data.id, label: response.data.name, version: response.data.version, snapshot: { ...response.data } });
       void queries.invalidateQueries({ queryKey: installationCatalogKey(activeOrganization?.organizationId, 'sectors') });
       notify(item ? 'Setor atualizado com sucesso.' : 'Setor cadastrado com sucesso.', 'success');
-      onClose();
+      if (onSaved) onSaved(response.data); else onClose();
     } catch (cause) { setError(saveError(cause)); } finally { setLoading(false); }
   };
+  if (newFacility && permissions.includes('facilities:manage')) return <FacilityForm
+    onClose={() => setNewFacility(false)} navigationAllowed={navigationAllowed}
+    onSaved={(saved) => { setFacilityId(String(saved.id)); setNewFacility(false); }} />;
   return (
     <OperationalFormPage onClose={onClose} navigationAllowed={navigationAllowed} title={item ? 'Editar setor' : 'Novo setor'}
       description="Defina a capacidade e as categorias de vaga aceitas neste setor." id="sector-create-form"
@@ -282,7 +286,8 @@ function SectorForm({ onClose, navigationAllowed, item, facility }: PageFormProp
       dirty={(!initialFacility && facilityId !== '') || JSON.stringify(form) !== JSON.stringify(initial)} onSubmit={(event) => void submit(event)}>
       {item || facility ? <TextField label="Pátio" value={item?.parkingFacilityName ?? facility?.name ?? 'Não disponível'} InputProps={{ readOnly: true }} />
         : <InstallationReferenceSelect kind="facilities" label="Pátio" value={facilityId} onChange={setFacilityId} required
-          emptyText="Nenhum pátio ativo. Cadastre um na aba Pátios." />}
+          onCreate={permissions.includes('facilities:manage') ? { label: 'Cadastrar pátio', run: () => setNewFacility(true) } : undefined}
+          emptyText="Nenhum pátio ativo cadastrado." />}
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
         <TextField label="Código" value={form.code} onChange={(event) => setForm((current) => ({ ...current, code: event.target.value }))} inputProps={{ maxLength: 40 }} required fullWidth />
         <TextField label="Nome" value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} inputProps={{ maxLength: 120 }} required fullWidth />
@@ -301,13 +306,14 @@ function SectorForm({ onClose, navigationAllowed, item, facility }: PageFormProp
 
 function SpaceImportForm({ onClose, navigationAllowed, fixedSector }: PageFormProps & { fixedSector?: { id: number; name: string } }) {
   const { remember } = useOperationalWorkspace();
-  const { activeOrganization } = useAuth();
+  const { activeOrganization, permissions } = useAuth();
   const queries = useQueryClient();
   const { notify } = useSnackbar();
   const [sectorId, setSectorId] = useState(fixedSector ? String(fixedSector.id) : '');
   const [text, setText] = useState(spacesInitial);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [newSector, setNewSector] = useState(false);
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     if (!sectorId) return;
@@ -325,6 +331,9 @@ function SpaceImportForm({ onClose, navigationAllowed, fixedSector }: PageFormPr
       onClose();
     } catch (cause) { setError(describeError(cause)); } finally { setLoading(false); }
   };
+  if (newSector && permissions.includes('facilities:manage')) return <SectorForm
+    onClose={() => setNewSector(false)} navigationAllowed={navigationAllowed}
+    onSaved={(saved) => { setSectorId(String(saved.id)); setNewSector(false); }} />;
   return (
     <OperationalFormPage onClose={onClose} navigationAllowed={navigationAllowed} title="Importar vagas"
       description="Informe uma vaga por linha: código; categoria; acessível; posição." id="spaces-import-form"
@@ -332,6 +341,7 @@ function SpaceImportForm({ onClose, navigationAllowed, fixedSector }: PageFormPr
       dirty={(!fixedSector && sectorId !== '') || text !== spacesInitial} onSubmit={(event) => void submit(event)}>
       {fixedSector ? <TextField label="Setor" value={fixedSector.name} InputProps={{ readOnly: true }} />
         : <InstallationReferenceSelect kind="sectors" label="Setor" value={sectorId} onChange={setSectorId} required
+          onCreate={permissions.includes('facilities:manage') ? { label: 'Cadastrar setor', run: () => setNewSector(true) } : undefined}
           emptyText="Nenhum setor ativo. Cadastre um setor no pátio." />}
       <TextField label="Vagas" value={text} onChange={(event) => setText(event.target.value)} multiline minRows={8} required helperText="Categorias: Comum, VIP, PCD, Equipe, Ônibus, Van ou Cortesia" />
     </OperationalFormPage>
@@ -341,7 +351,7 @@ function SpaceImportForm({ onClose, navigationAllowed, fixedSector }: PageFormPr
 function SpaceForm({ item, initialSector = '', fixedSector, onClose, navigationAllowed }: PageFormProps & {
   item?: SpaceDetail; initialSector?: string; fixedSector?: { id: number; name: string };
 }) {
-  const { activeOrganization } = useAuth();
+  const { activeOrganization, permissions } = useAuth();
   const queries = useQueryClient();
   const { notify } = useSnackbar();
   const { remember } = useOperationalWorkspace();
@@ -352,6 +362,7 @@ function SpaceForm({ item, initialSector = '', fixedSector, onClose, navigationA
   const [sector, setSector] = useState(fixedSector ? String(fixedSector.id) : initialSector);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [newSector, setNewSector] = useState(false);
   const org = activeOrganization?.organizationId;
   const sectorDetail = useQuery({
     queryKey: [...installationCatalogKey(org, 'sectors'), 'space-form', sector],
@@ -380,6 +391,14 @@ function SpaceForm({ item, initialSector = '', fixedSector, onClose, navigationA
     } catch (cause) { setError(saveError(cause)); } finally { setBusy(false); }
   };
 
+  const selectSector = (id: string) => {
+    setSector(id);
+    setForm((current) => ({ ...current, type: '' }));
+    setError(null);
+  };
+  if (newSector && permissions.includes('facilities:manage')) return <SectorForm
+    onClose={() => setNewSector(false)} navigationAllowed={navigationAllowed}
+    onSaved={(saved) => { selectSector(String(saved.id)); setNewSector(false); }} />;
   return <OperationalFormPage onClose={onClose} navigationAllowed={navigationAllowed} title={item ? 'Editar vaga' : 'Nova vaga'}
     description={item ? 'Edite o cadastro da vaga. O setor e a situação não mudam nesta tela.'
       : fixedSector ? 'Informe os dados da vaga.' : 'Escolha o setor e informe os dados da vaga.'} id={item ? 'space-edit-form' : 'space-create-form'}
@@ -389,11 +408,9 @@ function SpaceForm({ item, initialSector = '', fixedSector, onClose, navigationA
       <TextField label="Setor" value={`${item.sectorName} · ${item.parkingFacilityName}`} InputProps={{ readOnly: true }} fullWidth />
       <TextField label="Situação" value={spaceStatusLabels[item.status]} InputProps={{ readOnly: true }} fullWidth />
     </Stack> : fixedSector ? <TextField label="Setor" value={fixedSector.name} InputProps={{ readOnly: true }} />
-      : <InstallationReferenceSelect kind="sectors" label="Setor" value={sector} onChange={(id) => {
-      setSector(id);
-      setForm((current) => ({ ...current, type: '' }));
-      setError(null);
-    }} required emptyText="Nenhum setor ativo. Cadastre um na aba Setores." />}
+      : <InstallationReferenceSelect kind="sectors" label="Setor" value={sector} onChange={selectSector} required
+        onCreate={permissions.includes('facilities:manage') ? { label: 'Cadastrar setor', run: () => setNewSector(true) } : undefined}
+        emptyText="Nenhum setor ativo cadastrado." />}
     {!item && sector && sectorDetail.isError && <ErrorState message={describeError(sectorDetail.error)}
       onRetry={() => void sectorDetail.refetch()} />}
     <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>

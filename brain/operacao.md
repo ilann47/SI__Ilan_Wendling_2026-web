@@ -176,6 +176,8 @@ pagamento foi confirmado; sem mudança de API, schema ou permissões. Prévia 51
 
 ## Decisões Técnicas
 
+Os seletores de evento/pátio e pátio de entrada pesquisam entre as operações autorizadas pelo caixa. A lista pode abrir o cadastro de pátio apenas para quem pode gerenciar instalações.
+
 ### Portaria e caixa (2026-11-22)
 
 O operador abre em **Portaria**, com entrada e saída por placa em destaque, lado a
@@ -228,6 +230,7 @@ são exibidas para operations:manage.
 
 | Data | Ação |
 |---|---|
+| 2026-11-22 | Padroniza seletores da Portaria sem mudar entrada, saída ou cobrança. |
 | 2026-11-22 | Identificação fiscal reutiliza ou cadastra cliente básico; pagamento e classificação da estadia permanecem iguais. |
 | 2026-11-22 | Adiciona identificação fiscal opcional no pagamento de estadia de evento, sem duplicar a cobrança na saída. |
 | 2026-11-22 | Aceita identificador livre no campo Placa da portaria e nas ações da estadia. |

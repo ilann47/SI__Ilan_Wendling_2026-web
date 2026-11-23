@@ -32,6 +32,14 @@ export interface RefOption {
   [key: string]: unknown;
 }
 
+export interface ReferenceSource {
+  options?: readonly RefOption[];
+  list?: (term: string, signal: AbortSignal) => Promise<{ content: RefOption[]; totalElements: number }>;
+  lookup?: (id: number, signal: AbortSignal) => Promise<RefOption | undefined>;
+  cacheKey?: readonly unknown[];
+  onCreate?: { label: string; run: () => void };
+}
+
 /** Rotulo de uma opcao: campo principal e (se houver) secundario apos um traco. */
 export function optionLabel(option: RefOption, ref: ReferenceConfig): string {
   const main = option[ref.labelField];
@@ -46,6 +54,9 @@ export function optionLabel(option: RefOption, ref: ReferenceConfig): string {
 interface Props {
   open: boolean;
   reference: ReferenceConfig;
+  source?: ReferenceSource;
+  emptyText?: string;
+  allowCatalogChanges?: boolean;
   /** Nome do recurso no singular (ex.: 'Cidade'), para titulos e botoes. */
   singular: string;
   value: number | null | undefined;
@@ -59,7 +70,7 @@ interface Props {
  * reusa o "criar na hora" (recursivo), de modo que, ao cadastrar uma Cidade,
  * pode-se abrir este mesmo seletor para o Estado e, dentro dele, para o Pais.
  */
-export function ReferencePickerDialog({ open, reference, singular, value, onSelect, onClose }: Props) {
+export function ReferencePickerDialog({ open, reference, source, emptyText, allowCatalogChanges = true, singular, value, onSelect, onClose }: Props) {
   const quick = useQuickCreate();
   const queries = useQueryClient();
   const resourceConfig = quick?.configFor(reference.basePath);
@@ -69,9 +80,9 @@ export function ReferencePickerDialog({ open, reference, singular, value, onSele
   const canRead = (!!orgId || (resourceConfig && !resourceConfig.tenantAware))
     && (!resourceConfig || hasResourceActionPermission(resourceConfig, 'read', permissions))
     && (reference.readPermissions?.every((permission) => permissions.includes(permission)) ?? true);
-  const canCreate = !!canRead && !!quick && !!createConfig && createConfig.canCreate !== false
+  const canCreate = allowCatalogChanges && !!canRead && !!quick && !!createConfig && createConfig.canCreate !== false
     && hasResourceActionPermission(createConfig, 'create', permissions);
-  const canEdit = !!quick && !!resourceConfig && resourceConfig.canEdit !== false
+  const canEdit = allowCatalogChanges && !!quick && !!resourceConfig && resourceConfig.canEdit !== false
     && hasResourceActionPermission(resourceConfig, 'update', permissions);
 
   const [search, setSearch] = useState('');
@@ -93,23 +104,26 @@ export function ReferencePickerDialog({ open, reference, singular, value, onSele
     return () => clearTimeout(t);
   }, [search]);
 
-  const prefix = orgId ? tenantQueryKey(orgId, 'reference-picker', reference.basePath)
-    : ['reference-picker', 'global', reference.basePath];
+  const prefix = source?.cacheKey ?? (orgId ? tenantQueryKey(orgId, 'reference-picker', reference.basePath)
+    : ['reference-picker', 'global', reference.basePath]);
   const { data, isFetching, isError, error, refetch } = useQuery({
     queryKey: [...prefix, debounced, reference.params],
-    queryFn: () =>
-      api
+    queryFn: ({ signal }) => source?.list
+      ? source.list(debounced.trim(), signal)
+      : api
         .get<Page<RefOption>>(reference.basePath, {
           params: { size: 50, [reference.searchField ?? resourceConfig?.searchFilter ?? reference.labelField]: debounced || undefined, ...reference.params },
         })
         .then((r) => r.data),
-    enabled: open && !!canRead,
+    enabled: open && !!canRead && !source?.options,
     staleTime: 30_000,
   });
 
-  const term = debounced.trim().toLowerCase();
-  const options = (data?.content ?? [])
-    .filter((o) => !term || optionLabel(o, reference).toLowerCase().includes(term))
+  const term = (source?.options ? search : debounced).trim().toLowerCase();
+  const searching = !source?.options && search !== debounced;
+  const options = (source?.options ?? data?.content ?? [])
+    .filter((o) => !term || (!source?.options && (source?.list || reference.searchOnServer))
+      || optionLabel(o, reference).toLowerCase().includes(term))
     .sort((a, b) => optionLabel(a, reference).localeCompare(optionLabel(b, reference), 'pt-BR'));
 
   const nomeSingular = singular.toLowerCase();
@@ -152,7 +166,12 @@ export function ReferencePickerDialog({ open, reference, singular, value, onSele
       fullScreenOnMobile
       actions={(
         <>
-          {canCreate ? (
+          {allowCatalogChanges && canRead && source?.onCreate ? (
+            <Button type="button" startIcon={<AddCircleOutlineIcon />} onClick={() => {
+              onClose();
+              source.onCreate?.run();
+            }}>{source.onCreate.label}</Button>
+          ) : canCreate ? (
             <Button startIcon={<AddCircleOutlineIcon />} onClick={handleCreate}>
               Cadastrar {reference.createSeparatelyAt ? createConfig.singular.toLowerCase() : nomeSingular}
             </Button>
@@ -181,7 +200,7 @@ export function ReferencePickerDialog({ open, reference, singular, value, onSele
         />
         {created && <Alert severity="success" sx={{ mb: 1 }}>Cadastro salvo. Selecione o registro na lista ou pesquise pelo nome.</Alert>}
         {!canRead ? <Alert severity="warning">Você não possui contexto ou permissão para consultar este cadastro.</Alert>
-          : isFetching ? (
+          : isFetching || searching ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
             <CircularProgress size={22} />
           </Box>
@@ -189,7 +208,7 @@ export function ReferencePickerDialog({ open, reference, singular, value, onSele
           {describeError(error)}
         </Alert> : options.length === 0 ? (
           <Typography variant="body2" color="text.secondary" sx={{ py: 3, textAlign: 'center' }}>
-            Nenhum registro encontrado.
+            {term ? 'Nenhum registro encontrado.' : emptyText ?? 'Nenhum registro encontrado.'}
           </Typography>
         ) : (
           <List dense sx={{ maxHeight: 320, overflow: 'auto' }}>
@@ -227,7 +246,7 @@ export function ReferencePickerDialog({ open, reference, singular, value, onSele
             ))}
           </List>
         )}
-        {!isError && data && data.totalElements > data.content.length && <Typography variant="caption" color="text.secondary">
+        {!searching && !isFetching && !isError && data && data.totalElements > data.content.length && <Typography variant="caption" color="text.secondary">
           Exibindo até {data.content.length} registros. Refine a pesquisa para localizar o cadastro.
         </Typography>}
     </AppDialog>

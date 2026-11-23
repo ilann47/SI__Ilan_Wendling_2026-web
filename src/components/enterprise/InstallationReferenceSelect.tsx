@@ -1,9 +1,7 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useState } from 'react';
-import { describeError } from '../../api/client';
 import { installationCatalogKey, searchInstallationCatalog, type InstallationCatalogKind } from '../../api/installationCatalog';
 import { useAuth } from '../../auth/AuthContext';
-import { NamedResourceSelect } from './NamedResourceSelect';
+import { ReferenceSelect } from '../form/ReferenceSelect';
+import type { ReferenceSource } from '../form/ReferencePickerDialog';
 
 interface Props {
   kind: InstallationCatalogKind;
@@ -15,36 +13,29 @@ interface Props {
   emptyText?: string;
   existingOption?: { id: number; label: string };
   allSectors?: boolean;
+  onCreate?: ReferenceSource['onCreate'];
+  allowCatalogChanges?: boolean;
 }
 
-/** A lista e o rótulo selecionado vêm do servidor, mesmo numa sessão nova. */
-export function InstallationReferenceSelect({ kind, label, value, onChange, required, disabled, emptyText, existingOption, allSectors = false }: Props) {
+/** Busca e resolve nomes no catálogo contextual, usando o seletor padrão. */
+export function InstallationReferenceSelect({ kind, label, value, onChange, required, disabled, emptyText, existingOption,
+  allSectors = false, onCreate, allowCatalogChanges }: Props) {
   const { activeOrganization } = useAuth();
   const org = activeOrganization?.organizationId;
-  const queries = useQueryClient();
-  const [input, setInput] = useState('');
-  const [term, setTerm] = useState('');
-  useEffect(() => {
-    const timer = window.setTimeout(() => setTerm(input.trim()), 220);
-    return () => window.clearTimeout(timer);
-  }, [input]);
   const base = installationCatalogKey(org, kind);
-  const key = kind === 'sectors' && allSectors ? [...base, 'all-sectors'] : base;
-  const list = useQuery({ queryKey: [...key, 'name', term], enabled: !!org && !disabled,
-    queryFn: ({ signal }) => searchInstallationCatalog(kind, term ? { name: term } : {}, signal, allSectors) });
-  const waiting = input.trim() !== term;
-  const options = waiting ? [] : list.data?.options ?? [];
-  const selected = useQuery({ queryKey: [...key, 'id', value], enabled: !!org && !!value,
-    queryFn: ({ signal }) => searchInstallationCatalog(kind, { id: Number(value) }, signal, allSectors) });
-  const error = list.error ?? selected.error;
-  return <NamedResourceSelect label={label} value={value} onChange={(id) => {
-    const option = options.find((item) => String(item.id) === id);
-    if (option) queries.setQueryData([...key, 'id', id], { options: [option], total: 1 });
-    onChange(id);
-  }} options={options}
-    selected={selected.data?.options[0] ?? (existingOption && String(existingOption.id) === value ? existingOption : undefined)}
-    onSearch={setInput} loading={waiting || list.isFetching}
-    disabled={disabled || !org} required={required} error={!!error}
-    helperText={error ? describeError(error) : (list.data?.total ?? 0) > 20 ? 'Digite mais do nome para refinar a busca.' : undefined}
-    emptyText={error ? 'Não foi possível consultar os registros.' : term ? 'Nenhum resultado para esse nome.' : emptyText} />;
+  const scope = [...base, allSectors ? 'all-sectors' : 'active'];
+  return <ReferenceSelect label={label} value={value ? Number(value) : null}
+    selectedOption={existingOption ? { ...existingOption } : undefined}
+    reference={{ basePath: `installation:${kind}:${allSectors}`, labelField: 'label',
+      createSeparatelyAt: kind === 'cities' ? '/api/cidades' : undefined, maxSearchLength: 100 }}
+    source={{ cacheKey: scope, onCreate,
+      list: async (term, signal) => {
+        const result = await searchInstallationCatalog(kind, term ? { name: term } : {}, signal, allSectors);
+        return { content: result.options.map((option) => ({ ...option })), totalElements: result.total };
+      },
+      lookup: (id, signal) => searchInstallationCatalog(kind, { id }, signal, allSectors).then((data) =>
+        data.options[0] ? { ...data.options[0] } : undefined),
+    }}
+    onChange={(id) => onChange(id ? String(id) : '')} required={required} disabled={disabled}
+    emptyText={emptyText} allowCatalogChanges={allowCatalogChanges} stackedLabel />;
 }

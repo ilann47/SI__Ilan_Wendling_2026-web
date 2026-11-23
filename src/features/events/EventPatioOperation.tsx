@@ -242,7 +242,8 @@ export function EventPatioOperation({ event, onChanged, advanced, initialFacilit
           {registerFacility && <>
             <Stack direction={{ xs: 'column', sm: 'row' }} alignItems={{ sm: 'start' }} spacing={2}>
               <InstallationReferenceSelect kind="facilities" label="Pátio do evento" value={facility} onChange={setFacility}
-                existingOption={createdFacility} disabled={busy} required emptyText="Nenhum pátio ativo cadastrado." />
+                existingOption={createdFacility} disabled={busy} required emptyText="Nenhum pátio ativo cadastrado."
+                onCreate={permissions.includes('facilities:manage') ? { label: 'Cadastrar pátio', run: () => setNewFacility(true) } : undefined} />
               <NumberField label="Quantos carros podem entrar?" value={capacity} onValueChange={setCapacity} min={1} max={capacityLimit}
                 disabled={busy || !capacityLimit} error={capacityLimit !== undefined && !!capacity && !validCapacity}
                 helperText={capacityLimit === 0 ? 'Sem vagas durante todo o evento. Escolha outro pátio.'
@@ -253,7 +254,6 @@ export function EventPatioOperation({ event, onChanged, advanced, initialFacilit
             </Stack>
             {availability.isError && <Alert severity="error" action={<Button type="button" disabled={busy} onClick={() => void availability.refetch()}>
               Tentar novamente</Button>}>{describeError(availability.error)}</Alert>}
-            <Button type="button" onClick={() => setNewFacility(true)} disabled={busy} sx={{ alignSelf: 'flex-start' }}>Cadastrar pátio</Button>
           </>}
           {chargeFields}
           {canSetPolicy && <TextField select fullWidth label="Permitir reentrada?" value={policy} disabled={busy}

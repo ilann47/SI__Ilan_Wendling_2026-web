@@ -155,6 +155,8 @@ durante o Vitest. Esta manutenção de testes não altera o comportamento da tel
 
 ## Decisoes Tecnicas
 
+Local e pátio usam o mesmo seletor com busca do tipo de serviço. Cadastros contextuais mantêm o rascunho; o serviço continua sendo escolhido explicitamente, sem seleção automática.
+
 - O resumo identifica portaria avulsa; recebimentos de ingressos antecipados
   não são anunciados como incluídos. Valores e diferenças usam texto decimal,
   sem ponto flutuante. Turnos mistos possuem ressalva visível.
@@ -202,6 +204,7 @@ durante o Vitest. Esta manutenção de testes não altera o comportamento da tel
 
 | Data | Acao |
 |---|---|
+| 2026-11-22 | Move o cadastro contextual de local e pátio para dentro da lista. |
 | 2026-11-22 | Usa a lista padrão na seleção de serviço do evento, com cadastro contextual autorizado e escolha manual. |
 | 2026-11-22 | Exige a seleção de serviço ativo em novos eventos, sem preenchimento automático, e exibe a seleção no detalhe. |
 | 2026-11-22 | Separa o retorno ao Pátio da volta da venda antecipada à lista de eventos. |

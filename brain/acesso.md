@@ -64,6 +64,8 @@ motivo sao traduzidos sem perder o valor tecnico no contrato.
 
 ## Decisões Técnicas
 
+A seleção de evento, pátio e credencial usa catálogos autorizados; alterar evento limpa o pátio anterior e a consulta de pátios usa o novo evento. O filtro de tentativas usa seu próprio catálogo de auditoria.
+
 - O QR é campo de senha, não é persistido no navegador pela página.
 - A camera usa `BarcodeDetector` e `getUserMedia` nativos; navegadores sem suporte
   mantem entrada manual, sem upload de imagem ou integracao externa.
@@ -95,6 +97,7 @@ motivo sao traduzidos sem perder o valor tecnico no contrato.
 
 | Data | Ação |
 |---|---|
+| 2026-11-22 | Troca referências digitadas por pesquisa de evento, pátio e credencial. |
 | 2026-10-24 | QA do console substitui rótulos de ID por seleção operacional e fallback de referência com copy neutra. |
 | 2026-08-01 | Implementa operação QR online responsiva para entrada e saída. |
 | 2026-08-01 | Adiciona bloqueio operacional de credencial por Supervisor. |

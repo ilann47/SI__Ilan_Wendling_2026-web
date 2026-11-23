@@ -1,3 +1,4 @@
+import { chooseReference } from '../test/referencePicker';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import userEvent from '@testing-library/user-event';
@@ -47,7 +48,7 @@ describe('FacilitiesPage', () => {
       expect.objectContaining({ params: expect.objectContaining({ sectorId: 11 }) })));
     expect(get).toHaveBeenCalledWith('/api/v1/sectors',
       expect.objectContaining({ params: expect.objectContaining({ parkingFacilityId: 42 }) }));
-    expect(screen.queryByRole('combobox', { name: 'Setor' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('textbox', { name: 'Setor' })).not.toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Nova vaga' }));
     expect(screen.getByRole('textbox', { name: 'Setor' })).toHaveValue('Área Coberta');
     await user.click(screen.getByRole('button', { name: 'Cancelar' }));
@@ -113,8 +114,7 @@ describe('FacilitiesPage', () => {
     expect(screen.getByRole('form', { name: 'Nova vaga' })).toBeInTheDocument();
     const submit = screen.getByRole('button', { name: 'Cadastrar vaga' });
     expect(submit).toBeDisabled();
-    await user.type(screen.getByRole('combobox', { name: 'Setor' }), 'coberta');
-    await user.click(await screen.findByRole('option', { name: /Área Coberta.*Pátio Norte/ }));
+    await chooseReference('Setor', /Área Coberta.*Pátio Norte/, 'coberta');
     await user.type(screen.getByRole('textbox', { name: 'Código' }), 'r-09');
     await user.type(screen.getByRole('textbox', { name: 'Posição' }), 'Rampa');
     await user.click(screen.getByRole('checkbox', { name: 'Vaga acessível' }));
@@ -140,8 +140,7 @@ describe('FacilitiesPage', () => {
     const user = userEvent.setup();
     expect(screen.getByRole('button', { name: 'Importar vagas' })).toBeInTheDocument();
     await user.type(screen.getByPlaceholderText('Buscar vagas por código'), 'a-');
-    await user.type(screen.getByRole('combobox', { name: 'Setor' }), 'coberta');
-    await user.click(await screen.findByRole('option', { name: /Área Coberta.*Pátio Norte/ }));
+    await chooseReference('Setor', /Área Coberta.*Pátio Norte/, 'coberta');
     await user.click(await screen.findByRole('button', { name: /Editar vaga A-01/ }));
     expect(await screen.findByRole('form', { name: 'Editar vaga' })).toBeInTheDocument();
     expect(screen.getByRole('textbox', { name: 'Setor' })).toHaveAttribute('readonly');
@@ -228,8 +227,7 @@ describe('FacilitiesPage', () => {
     for (const [field, value] of [['Nome', 'Pátio de teste'], ['Endereço', 'Rua A'], ['Bairro', 'Centro']]) {
       await user.type(within(form).getByRole('textbox', { name: field }), value);
     }
-    await user.type(within(form).getByRole('combobox', { name: 'Cidade' }), 'Cascavel');
-    await user.click(await screen.findByRole('option', { name: 'Cascavel' }));
+    await chooseReference('Cidade', 'Cascavel', 'Cascavel');
     await user.type(within(form).getByRole('textbox', { name: 'CEP' }), '80000000');
     fireEvent.change(operational, { target: { value: '1010' } });
     expect(operational).toHaveAttribute('max', '100');
@@ -258,15 +256,12 @@ describe('FacilitiesPage', () => {
       data: url.endsWith('installation-cities') && (config?.params.name === 'São José' || config?.params.id === 5)
         ? { content: [city], totalElements: 1 } : { content: [], totalElements: 0 },
     }));
-    const user = userEvent.setup();
     mount('/app/instalacoes?formulario=facility');
-    const field = within(screen.getByRole('form', { name: 'Novo pátio' })).getByRole('combobox', { name: 'Cidade' });
-    await user.type(field, 'São José');
-    expect(await screen.findByRole('option', { name: 'São José dos Pinhais · Paraná' })).toBeVisible();
+    const field = within(screen.getByRole('form', { name: 'Novo pátio' })).getByRole('textbox', { name: 'Cidade' });
+    await chooseReference('Cidade', 'São José dos Pinhais · Paraná', 'São José');
     expect(get).toHaveBeenCalledWith('/api/v1/installation-cities', expect.objectContaining({
       params: expect.objectContaining({ name: 'São José' }),
     }));
-    await user.keyboard('{ArrowDown}{Enter}');
     expect(field).toHaveValue('São José dos Pinhais · Paraná');
     expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
   });
@@ -285,8 +280,7 @@ describe('FacilitiesPage', () => {
     for (const [field, value] of [['Endereço', ' Rua A '], ['Bairro', ' Centro ']]) {
       await user.type(within(form).getByRole('textbox', { name: field }), value);
     }
-    await user.type(within(form).getByRole('combobox', { name: 'Cidade' }), 'Cascavel');
-    await user.click(await screen.findByRole('option', { name: 'Cascavel' }));
+    await chooseReference('Cidade', 'Cascavel', 'Cascavel');
     await user.type(number, 'teste');
     fireEvent.change(cep, { target: { value: 'teste' } });
     expect(number).toHaveValue('');
@@ -322,8 +316,7 @@ describe('FacilitiesPage', () => {
     mount('/app/instalacoes?aba=sector');
     const user = userEvent.setup();
     await user.click(screen.getByRole('button', { name: 'Novo setor' }));
-    await user.type(screen.getByRole('combobox', { name: 'Pátio' }), 'sao jose');
-    await user.click(await screen.findByRole('option', { name: 'Pátio São José' }));
+    await chooseReference('Pátio', 'Pátio São José', 'sao jose');
     await user.type(screen.getByRole('textbox', { name: 'Código' }), 'S1');
     await user.type(screen.getByRole('textbox', { name: 'Nome' }), 'Setor coberto');
     await user.click(screen.getByRole('button', { name: 'Criar setor' }));

@@ -68,6 +68,8 @@ com a versao carregada.
 
 ## Decisoes Tecnicas
 
+Vínculos são pesquisados pelo nome do usuário dentro da organização. Adicionar usuário continua exigindo o acesso de convite e usa o mesmo formulário, disponível também isoladamente para quem só convida.
+
 - Nenhuma listagem e simulada quando o backend nao a oferece.
 - Os papeis selecionaveis sao o catalogo de sistema definido nas migrations.
 - Encerramento de Membership permanece terminal.
@@ -93,6 +95,7 @@ com a versao carregada.
 
 | Data | Acao |
 |---|---|
+| 2026-11-22 | Introduz busca por nome nos seletores de vínculos. |
 | 2026-11-22 | Abre o vínculo organizacional em subpágina e preserva a autorização e o controle de versão existentes. |
 | 2026-11-09 | Separados acesso à Administração, convite, consulta de vínculos e seletor global. |
 | 2026-11-09 | Menu e rotas diretas passam a exigir o perfil legado da API para usuários/geografia e `events:read` para eventos. O caixa sem essas autorizações não vê Administração. |

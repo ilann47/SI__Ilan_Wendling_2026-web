@@ -1,3 +1,4 @@
+import { chooseReference, openReference } from '../test/referencePicker';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -42,12 +43,12 @@ describe('EventsPage', () => {
     vi.mocked(useOperationalWorkspace).mockReturnValue({ recent: () => [], remember: vi.fn() } as unknown as ReturnType<typeof useOperationalWorkspace>);
     const get = vi.spyOn(api, 'get').mockResolvedValue({ data: { content: [], totalElements: 0, totalPages: 0 } });
     renderPage('/app/eventos?formulario=evento');
-    expect(await screen.findByRole('combobox', { name: /Pátio do evento/ })).toBeVisible();
+    expect(await screen.findByRole('textbox', { name: /Pátio do evento/ })).toBeVisible();
     expect(screen.queryByLabelText(/Início/)).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Criar evento' })).toBeDisabled();
     expect(get.mock.calls.some(([path]) => path.includes('/availability'))).toBe(false);
   });
-  it('não usa um fuso arbitrário quando o contexto da organização ainda não o informa', () => {
+  it('não usa um fuso arbitrário quando o contexto da organização ainda não o informa', async () => {
     vi.mocked(useAuth).mockReturnValue({ activeOrganization: { organizationId: 2 },
       permissions: ['events:read', 'events:create', 'organizations:admin'] } as ReturnType<typeof useAuth>);
     vi.mocked(useOperationalWorkspace).mockReturnValue({ recent: () => [], remember: vi.fn() } as unknown as ReturnType<typeof useOperationalWorkspace>);
@@ -55,6 +56,7 @@ describe('EventsPage', () => {
     renderPage('/app/eventos?formulario=evento');
     expect(screen.getByRole('alert')).toHaveTextContent('O fuso da organização não está disponível');
     expect(screen.getByRole('button', { name: 'Criar evento' })).toBeDisabled();
+    await openReference('Local do evento');
     fireEvent.click(screen.getByRole('button', { name: 'Cadastrar local' }));
     expect(screen.getByRole('alert')).toHaveTextContent('O fuso da organização não está disponível');
     expect(screen.getByRole('button', { name: 'Criar local' })).toBeDisabled();
@@ -174,6 +176,7 @@ describe('EventsPage', () => {
     const user = userEvent.setup();
     await user.click(screen.getByRole('button', { name: 'Novo evento' }));
     if (!admin) {
+      await openReference('Local do evento');
       expect(screen.queryByRole('button', { name: 'Cadastrar local' })).not.toBeInTheDocument();
       expect(post).not.toHaveBeenCalled();
       return;
@@ -181,18 +184,19 @@ describe('EventsPage', () => {
     await user.type(screen.getByRole('textbox', { name: 'Nome do evento' }), 'Festival');
     await user.click(screen.getByRole('button', { name: 'Selecionar tipo de serviço' }));
     await user.click(await screen.findByRole('button', { name: 'Estacionamento' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    await openReference('Local do evento');
     await user.click(await screen.findByRole('button', { name: 'Cadastrar local' }));
     expect(screen.queryByLabelText(/Fuso horário/)).not.toBeInTheDocument();
     for (const [label, value] of [['Nome', 'Centro de Eventos'], ['Endereço', 'Rua A'], ['Bairro', 'Centro'], ['CEP', '85000-000']]) {
       await user.type(screen.getByRole('textbox', { name: label }), value);
     }
-    await user.type(screen.getByRole('combobox', { name: 'Cidade' }), 'Cascavel');
-    await user.click(await screen.findByRole('option', { name: 'Cascavel' }));
+    await chooseReference('Cidade', 'Cascavel', 'Cascavel');
     await user.click(screen.getByRole('button', { name: 'Criar local' }));
     expect(post).toHaveBeenCalledWith('/api/v1/venues', expect.objectContaining({ timeZone: 'America/Manaus' }));
     expect(await screen.findByRole('textbox', { name: 'Nome do evento' })).toHaveValue('Festival');
     expect(screen.getByRole('textbox', { name: 'Tipo de serviço' })).toHaveValue('Estacionamento');
-    expect(screen.getByRole('combobox', { name: 'Local do evento' })).toHaveValue('Centro de Eventos');
+    expect(screen.getByRole('textbox', { name: 'Local do evento' })).toHaveValue('Centro de Eventos');
     expect(screen.getByLabelText(/^Início/)).toHaveValue('');
     expect(screen.getByLabelText(/^Fim/)).toHaveValue('');
     expect(screen.getByRole('button', { name: 'Criar evento' })).toBeDisabled();
@@ -269,11 +273,10 @@ describe('EventsPage', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Configurar venda antecipada' }));
     await userEvent.click(screen.getByRole('tab', { name: 'Produto' }));
     await userEvent.click(screen.getByRole('button', { name: 'Novo produto' }));
-    await userEvent.click(screen.getByRole('combobox', { name: /Alocação/ }));
-    await userEvent.click(screen.getByRole('option', { name: 'Evento 1 / Patio 1' }));
+    await chooseReference('Alocação', 'Evento 1 / Patio 1');
 
-    expect(screen.getByRole('combobox', { name: 'Evento' })).toHaveValue('Evento 1');
-    expect(screen.queryByRole('combobox', { name: 'Evento para listar produtos' })).not.toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: 'Evento' })).toHaveValue('Evento 1');
+    expect(screen.queryByRole('textbox', { name: 'Evento para listar produtos' })).not.toBeInTheDocument();
     expect(screen.getByLabelText(/Cota/)).toHaveValue(9);
     expect(screen.getByLabelText(/Início do acesso/)).toHaveValue(fromApiDateTime('2026-08-04T03:34:00Z'));
     expect(screen.getByLabelText(/Fim do acesso/)).toHaveValue(fromApiDateTime('2026-08-04T08:34:00Z'));
@@ -292,7 +295,7 @@ describe('EventsPage', () => {
     const patch = vi.spyOn(api, 'patch').mockResolvedValue({ data: allocation });
     renderPage('/app/eventos?aba=alocacao&evento-catalogo=1&detalhe=3');
     expect(await screen.findByRole('heading', { name: /Pátio Norte/ })).toBeInTheDocument();
-    expect(screen.queryByRole('combobox', { name: 'Evento para listar alocações' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('textbox', { name: 'Evento para listar alocações' })).not.toBeInTheDocument();
     const operational = screen.getByRole('spinbutton', { name: 'Capacidade operacional' });
     fireEvent.change(operational, { target: { value: '9' } });
     expect(screen.getByRole('button', { name: 'Atualizar capacidades' })).toBeDisabled();
@@ -304,7 +307,7 @@ describe('EventsPage', () => {
       { operationalCapacity: 10, sellableCapacity: 9, reservedCapacity: 1 }, { headers: { 'If-Match': '"2"' } });
     await userEvent.click(screen.getByRole('button', { name: 'Voltar' }));
     expect(screen.getByRole('tab', { name: 'Alocação', selected: true })).toBeInTheDocument();
-    expect(screen.getByRole('combobox', { name: 'Evento para listar alocações' })).toHaveValue('Festival');
+    expect(screen.getByRole('textbox', { name: 'Evento para listar alocações' })).toHaveValue('Festival');
   });
 
   it('permite consultar o produto e seus lotes sem conceder publicação ou criação ao leitor', async () => {
@@ -324,7 +327,7 @@ describe('EventsPage', () => {
     expect(screen.queryByRole('table')).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'Voltar' }));
     expect(screen.queryByRole('button', { name: 'Novo produto' })).not.toBeInTheDocument();
-    expect(screen.getByRole('combobox', { name: 'Evento para listar produtos' })).toHaveValue('Festival');
+    expect(screen.getByRole('textbox', { name: 'Evento para listar produtos' })).toHaveValue('Festival');
     opened.unmount();
 
     renderPage('/app/eventos?aba=lote&evento-catalogo=1&produto-catalogo=4&detalhe=9');
@@ -332,7 +335,7 @@ describe('EventsPage', () => {
     expect(screen.getByText(/20,123456/)).toBeInTheDocument();
     expect(get).toHaveBeenCalledWith('/api/v1/parking-products/4/price-tiers');
     await userEvent.click(screen.getByRole('button', { name: 'Voltar' }));
-    expect(await screen.findByRole('combobox', { name: 'Produto para listar lotes' })).toHaveValue(product.name);
+    expect(await screen.findByRole('textbox', { name: 'Produto para listar lotes' })).toHaveValue(product.name);
     expect(screen.queryByRole('button', { name: 'Novo lote de preço' })).not.toBeInTheDocument();
   });
 
@@ -381,8 +384,7 @@ describe('EventsPage', () => {
     fireEvent.change(screen.getByLabelText(/^Fim/), { target: { value: '2026-08-04T19:00' } });
     await user.type(screen.getByLabelText(/Nome do evento/), 'Festival Kaneko');
     expect(screen.queryByLabelText(/Código de referência/)).not.toBeInTheDocument();
-    await user.type(screen.getByRole('combobox', { name: 'Local do evento' }), 'conven');
-    await user.click(await screen.findByRole('option', { name: 'Centro de Convenções' }));
+    await chooseReference('Local do evento', 'Centro de Convenções', 'conven');
     const service = screen.getByRole('textbox', { name: 'Tipo de serviço' });
     expect(service).toHaveValue('');
     expect(screen.getByRole('button', { name: 'Criar evento' })).toBeDisabled();

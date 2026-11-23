@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { IconButton, InputAdornment, TextField, Tooltip } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import SearchIcon from '@mui/icons-material/Search';
@@ -7,7 +7,7 @@ import { api, describeError } from '../../api/client';
 import { tenantQueryKey } from '../../api/queryKeys';
 import type { ReferenceConfig } from './fieldConfig';
 import { useQuickCreate } from '../../context/quickCreateCore';
-import { ReferencePickerDialog, optionLabel, type RefOption } from './ReferencePickerDialog';
+import { ReferencePickerDialog, optionLabel, type RefOption, type ReferenceSource } from './ReferencePickerDialog';
 import { useAuth } from '../../auth/AuthContext';
 import { hasResourceActionPermission } from '../crud/resourceConfig';
 import { FormField } from './FormField';
@@ -18,6 +18,9 @@ interface Props {
   selectedOption?: RefOption;
   onChange: (value: number | null, option?: RefOption) => void;
   reference: ReferenceConfig;
+  source?: ReferenceSource;
+  emptyText?: string;
+  allowCatalogChanges?: boolean;
   required?: boolean;
   error?: string;
   helperText?: string;
@@ -32,12 +35,13 @@ interface Props {
  * resolvido buscando o registro pelo id.
  */
 export function ReferenceSelect({
-  label, value, selectedOption, onChange, reference, required, error, helperText, disabled, reserveHelperSpace, stackedLabel,
+  label, value, selectedOption, onChange, reference, source, emptyText, allowCatalogChanges, required, error, helperText, disabled, reserveHelperSpace, stackedLabel,
 }: Props) {
   const quick = useQuickCreate();
   const resourceConfig = quick?.configFor(reference.basePath);
   const singular = resourceConfig?.singular ?? label;
   const { activeOrganization, permissions } = useAuth();
+  const queries = useQueryClient();
   const orgId = activeOrganization?.organizationId;
   const requiresTenant = !resourceConfig || resourceConfig.tenantAware;
   const canRead = (!requiresTenant || !!orgId) && (!resourceConfig
@@ -49,13 +53,15 @@ export function ReferenceSelect({
   // O valor pode chegar como '' (default do formulario); normaliza para id numerico ou null.
   const parsed = value == null || `${value}`.trim() === '' ? null : Number(value);
   const id = parsed != null && Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
-  const knownOption = selectedOption?.id === id ? selectedOption : undefined;
+  const knownOption = selectedOption?.id === id ? selectedOption : source?.options?.find((option) => option.id === id);
 
+  const selectionKey = (selectedId: number | null) => orgId ? tenantQueryKey(orgId, 'reference-one', reference.basePath, selectedId, reference.params)
+    : ['reference-one', 'global', reference.basePath, selectedId, reference.params];
   const selectedQuery = useQuery({
-    queryKey: orgId ? tenantQueryKey(orgId, 'reference-one', reference.basePath, id)
-      : ['reference-one', 'global', reference.basePath, id],
-    queryFn: () => api.get<RefOption>(`${reference.basePath}/${id}`).then((r) => r.data),
-    enabled: id != null && canRead && !knownOption,
+    queryKey: selectionKey(id),
+    queryFn: ({ signal }) => source?.lookup ? source.lookup(id!, signal).then((option) => option ?? null)
+      : api.get<RefOption>(`${reference.basePath}/${id}`).then((r) => r.data),
+    enabled: id != null && canRead && !knownOption && !source?.options,
     staleTime: 60_000,
   });
 
@@ -64,7 +70,7 @@ export function ReferenceSelect({
   const referenceError = !canRead ? 'Selecione uma organização e confira a permissão de consulta.'
     : lookupFailed ? describeError(selectedQuery.error) : undefined;
   const display = id == null || !canRead ? '' : selected ? optionLabel(selected, reference)
-    : selectedQuery.isPending ? 'Carregando cadastro…' : 'Cadastro indisponível';
+    : !source?.options && selectedQuery.isPending ? 'Carregando cadastro…' : 'Cadastro indisponível';
   const Field = stackedLabel ? FormField : TextField;
 
   return (
@@ -114,9 +120,15 @@ export function ReferenceSelect({
         key={orgId ?? 'global'}
         open={open && canRead}
         reference={reference}
+        source={source}
+        emptyText={emptyText}
+        allowCatalogChanges={allowCatalogChanges}
         singular={singular}
         value={id}
-        onSelect={(selectedId, option) => onChange(selectedId, option)}
+        onSelect={(selectedId, option) => {
+          if (source?.lookup && option) queries.setQueryData(selectionKey(selectedId), option);
+          onChange(selectedId, option);
+        }}
         onClose={() => setOpen(false)}
       />
     </>

@@ -80,6 +80,8 @@ documentos fiscais e serviços sobre o mesmo shell modal.
 
 ## Decisões Técnicas
 
+Referências usam um campo de seleção com lupa e uma lista pesquisável; em telas pequenas abre em tela cheia. Filtros são somente leitura. Ações de cadastro aparecem na lista apenas quando o fluxo de origem e a permissão permitem.
+
 - Roxo `#800084` identifica a ação primária no tema claro; status usa cor
   semântica e rótulo, com contraste próprio para os modos claro e escuro.
 - Ações secundárias ficam no menu ⋮ para não competir com a ação principal.
@@ -145,6 +147,7 @@ documentos fiscais e serviços sobre o mesmo shell modal.
 
 | Data | Ação |
 |---|---|
+| 2026-11-22 | Unifica apresentação e comportamento dos seletores operacionais. |
 | 2026-11-22 | Padroniza subpáginas e retorno às listagens; mantém links antigos e reserva modais para ações pontuais. |
 | 2026-11-09 | Atalhos e busca respeitam o acesso à rota; exclusão dos cadastros globais de geografia permanece restrita ao perfil ADMIN. |
 | 2026-11-08 | Unifica ordenação e paginação de Ordens de Serviço e Financeiro; preserva filtros e retorno pelo histórico ou por link direto. |

@@ -95,6 +95,8 @@ Também cobre cadastro individual em página sem usar a importação em lote.
 
 ## Decisoes Tecnicas
 
+Pátio, setor e cidade usam lista com pesquisa. Novo pátio ou setor é criado pelo formulário existente e devolve o registro ao cadastro de origem; o filtro de setor não tem ações de escrita.
+
 - Capacidades fisica e operacional permanecem campos distintos.
 - Categorias seguem exatamente o enum do backend.
 - Pátio e setor são pesquisados por nome no servidor, sem digitar códigos.
@@ -139,6 +141,7 @@ Também cobre cadastro individual em página sem usar a importação em lote.
 
 | Data | Acao |
 |---|---|
+| 2026-11-22 | Padroniza seleção no cadastro e nos filtros de instalações. |
 | 2026-11-22 | Revisa validação de todos os campos do cadastro compartilhado de pátio e local. |
 | 2026-11-22 | Padroniza a largura da busca e da lista de cidades nos formulários de local e pátio. |
 | 2026-11-22 | Valida Número e CEP no endereço compartilhado de locais e pátios. |

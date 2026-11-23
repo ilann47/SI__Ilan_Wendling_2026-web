@@ -1,4 +1,5 @@
-import { Autocomplete, TextField } from '@mui/material';
+import { ReferenceSelect } from '../form/ReferenceSelect';
+import type { ReferenceSource } from '../form/ReferencePickerDialog';
 
 export interface NamedOption { id: number; label: string }
 
@@ -13,28 +14,18 @@ interface Props {
   disabled?: boolean;
   required?: boolean;
   selected?: NamedOption;
-  onSearch?: (value: string) => void;
-  loading?: boolean;
-  error?: boolean;
+  onCreate?: ReferenceSource['onCreate'];
 }
 
-/** Usa registros reais, sem aceitar texto livre como referência. */
+/** Opções já autorizadas e carregadas pela tela (sem buscar outro escopo). */
 export function NamedResourceSelect({ label, value, onChange, options = [], recent = [],
-  helperText, emptyText = 'Nenhum registro encontrado.', disabled, required, selected, onSearch, loading, error }: Props) {
-  const choices = [...new Map([...recent, ...options].map((option) => [option.id, option])).values()];
-  return <Autocomplete fullWidth size="small" sx={{ minWidth: 0 }}
-    options={choices} getOptionKey={(option) => option.id}
-    value={selected ?? choices.find((option) => String(option.id) === value) ?? null}
-    isOptionEqualToValue={(option, selected) => option.id === selected.id}
-    onChange={(_, option) => onChange(option ? String(option.id) : '')}
-    onInputChange={onSearch ? (_, term, reason) => onSearch(reason === 'input' ? term : '') : undefined}
-    filterOptions={onSearch ? (items) => items : undefined}
-    loading={loading} loadingText="Buscando registros…"
-    disabled={disabled} noOptionsText={emptyText}
-    openText="Mostrar opções" closeText="Recolher opções" clearText="Limpar seleção"
-    renderInput={(params) => <TextField {...params} label={label} required={required} error={error}
-      placeholder="Buscar pelo nome" helperText={helperText} />}
-  />;
+  helperText, emptyText, disabled, required, selected, onCreate }: Props) {
+  const choices = [...new Map([...recent, ...options].map((option) => [option.id, { ...option }])).values()];
+  return <ReferenceSelect label={label} value={value ? Number(value) : null}
+    onChange={(id) => onChange(id ? String(id) : '')} selectedOption={selected ? { ...selected } : undefined}
+    reference={{ basePath: 'local:' + label, labelField: 'label' }}
+    source={{ options: choices, onCreate }} helperText={helperText} emptyText={emptyText} disabled={disabled}
+    required={required} stackedLabel />;
 }
 
 export const namedOptions = (items: readonly { id: number; name: string }[]) =>

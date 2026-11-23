@@ -1,3 +1,5 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { chooseReference } from '../test/referencePicker';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -12,13 +14,26 @@ vi.mock('../workspace/OperationalWorkspaceContext', () => ({ useOperationalWorks
 beforeEach(() => {
   vi.mocked(useAuth).mockReset();
   vi.mocked(useOperationalWorkspace).mockReset();
+  const options: Record<string, { id: number; label: string }> = {
+    'access-events': { id: 5, label: 'Festival' },
+    'access-facilities': { id: 7, label: 'Pátio Norte' },
+    'blocking-credentials': { id: 20, label: 'Credencial de teste' },
+  };
+  vi.spyOn(api, 'get').mockImplementation(async (url) => ({ data: {
+    content: [options[url.split('/').at(-1)!]], totalElements: 1,
+  } }));
 });
 
 afterEach(() => vi.restoreAllMocks());
 
+function renderAccess() {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  render(<QueryClientProvider client={client}><EventAccessPage /></QueryClientProvider>);
+}
+
 describe('EventAccessPage', () => {
   it('registra entrada idempotente e apresenta motivo operacional', async () => {
-    vi.mocked(useAuth).mockReturnValue({ permissions: ['access:checkin'] } as unknown as ReturnType<typeof useAuth>);
+    vi.mocked(useAuth).mockReturnValue({ activeOrganization: { organizationId: 2 }, permissions: ['access:checkin'] } as unknown as ReturnType<typeof useAuth>);
     vi.mocked(useOperationalWorkspace).mockReturnValue({ recent: () => [], remember: vi.fn() } as unknown as ReturnType<typeof useOperationalWorkspace>);
     vi.spyOn(api, 'post').mockResolvedValueOnce({ data: {
       accessAttemptId: 91,
@@ -29,11 +44,14 @@ describe('EventAccessPage', () => {
       decidedAt: '2026-08-03T04:00:00Z',
     } });
 
-    render(<EventAccessPage />);
+    renderAccess();
     const user = userEvent.setup();
     await user.type(screen.getByLabelText(/QR da credencial/), 'token-seguro');
-    await user.type(screen.getByLabelText(/Código de referência — Evento/), '5');
-    await user.type(screen.getByLabelText(/Código de referência — Pátio/), '7');
+    await chooseReference('Evento', 'Festival', 'Festi');
+    await chooseReference('Pátio', 'Pátio Norte');
+    expect(api.get).toHaveBeenCalledWith('/api/v1/operational-options/access-facilities', expect.objectContaining({
+      params: expect.objectContaining({ eventId: 5 }),
+    }));
     await user.click(screen.getByRole('button', { name: 'Registrar entrada' }));
 
     expect(await screen.findAllByText('Acesso autorizado')).toHaveLength(2);
@@ -43,7 +61,7 @@ describe('EventAccessPage', () => {
   });
 
   it('gera uma nova tentativa depois de um sucesso, mesmo com a mesma leitura', async () => {
-    vi.mocked(useAuth).mockReturnValue({ permissions: ['access:checkin'] } as unknown as ReturnType<typeof useAuth>);
+    vi.mocked(useAuth).mockReturnValue({ activeOrganization: { organizationId: 2 }, permissions: ['access:checkin'] } as unknown as ReturnType<typeof useAuth>);
     vi.mocked(useOperationalWorkspace).mockReturnValue({ recent: () => [], remember: vi.fn() } as unknown as ReturnType<typeof useOperationalWorkspace>);
     vi.spyOn(api, 'post')
       .mockResolvedValueOnce({ data: {
@@ -53,11 +71,11 @@ describe('EventAccessPage', () => {
         accessAttemptId: 92, decision: 'RECUSADA', reasonCode: 'ENTRADA_DUPLICADA', decidedAt: '2026-08-03T04:01:00Z',
       } });
 
-    render(<EventAccessPage />);
+    renderAccess();
     const user = userEvent.setup();
     await user.type(screen.getByLabelText(/QR da credencial/), 'token-seguro');
-    await user.type(screen.getByLabelText(/Código de referência — Evento/), '5');
-    await user.type(screen.getByLabelText(/Código de referência — Pátio/), '7');
+    await chooseReference('Evento', 'Festival');
+    await chooseReference('Pátio', 'Pátio Norte');
     const submit = screen.getByRole('button', { name: 'Registrar entrada' });
 
     await user.click(submit);
@@ -73,15 +91,15 @@ describe('EventAccessPage', () => {
   });
 
   it('confirma o bloqueio sem expor versão técnica ao operador', async () => {
-    vi.mocked(useAuth).mockReturnValue({ permissions: ['credentials:block'] } as unknown as ReturnType<typeof useAuth>);
+    vi.mocked(useAuth).mockReturnValue({ activeOrganization: { organizationId: 2 }, permissions: ['credentials:block'] } as unknown as ReturnType<typeof useAuth>);
     vi.mocked(useOperationalWorkspace).mockReturnValue({ recent: () => [], remember: vi.fn() } as unknown as ReturnType<typeof useOperationalWorkspace>);
     vi.spyOn(api, 'post').mockResolvedValueOnce({ data: {
       id: 20, status: 'BLOQUEADA', version: 4,
     } });
 
-    render(<EventAccessPage />);
+    renderAccess();
     const user = userEvent.setup();
-    await user.type(screen.getByLabelText(/Código de referência — Credencial/), '20');
+    await chooseReference('Credencial', 'Credencial de teste');
     await user.type(screen.getByLabelText(/Motivo do bloqueio/), 'Perda informada');
     await user.click(screen.getByRole('button', { name: 'Bloquear credencial' }));
     await user.click(screen.getAllByRole('button', { name: 'Bloquear credencial' }).at(-1)!);

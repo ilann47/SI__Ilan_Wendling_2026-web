@@ -118,6 +118,8 @@ cobre conferência, reversão e links para os títulos e movimentos da nota.
 
 ## Decisoes Tecnicas
 
+Produto, reserva, pedido e credencial são pesquisados por referências operacionais na API. A lista não cria transações; reserva, pedido e emissão continuam nos seus fluxos e permissões existentes.
+
 - A listagem de pedidos usa cursor e ownership do backend.
 - Credenciais sem endpoint de busca sao consultadas por ID ou resposta recente.
 - O token QR nao e logado nem persistido localmente.
@@ -156,6 +158,7 @@ cobre conferência, reversão e links para os títulos e movimentos da nota.
 
 | Data | Acao |
 |---|---|
+| 2026-11-22 | Substitui códigos técnicos e referências recentes por seletores de vendas. |
 | 2026-11-22 | Separa os detalhes de reserva, pedido e credencial da tela de Vendas, com retorno à aba e permissões independentes de leitura e operação. |
 | 2026-11-09 | Separa no menu as ordens operacionais dos documentos fiscais de serviço. |
 | 2026-11-09 | Move o atalho de vendas de eventos para Operação, sem alterar acesso ou rotas. |

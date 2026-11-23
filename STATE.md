@@ -3,7 +3,14 @@
 # Estado do Projeto
 
 **Última atualização:** 2026-11-22
-**Fase atual:** seleção explícita de serviço no cadastro de evento.
+**Fase atual:** padronização dos seletores operacionais.
+
+- Eventos, Instalações, Portaria, Acessos, Vendas e Administração usam a mesma
+  lista com busca. Cadastros contextuais e permissões existentes foram preservados.
+  Listas de consulta e filtros não oferecem ações de escrita.
+- Validado com Chrome em 390 px na prévia 5174 e no banco de teste: seleção de
+  serviço, local, pátio e cidade; entrada, pagamento e saída; seletores de
+  Acessos, Vendas e Administração. Convite continua restrito ao perfil autorizado.
 
 - Novos eventos exigem um serviço ativo escolhido pelo usuário no formulário;
   não há serviço selecionado ou criado automaticamente. O serviço aparece no

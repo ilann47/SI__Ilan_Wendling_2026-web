@@ -70,6 +70,7 @@ export function FilterBar({ filters, values, onChange }: Props) {
           return (
             <Box key={f.name} sx={{ minWidth: 230 }}>
               <ReferenceSelect
+                allowCatalogChanges={false}
                 label={f.label}
                 value={(values[f.name] as number) ?? null}
                 onChange={(v) => set(f.name, v ?? '')}

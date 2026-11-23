@@ -1,4 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { chooseReference, openReference } from '../test/referencePicker';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
@@ -12,9 +13,6 @@ vi.mock('../auth/AuthContext', () => ({ useAuth: vi.fn() }));
 vi.mock('../workspace/OperationalWorkspaceContext', () => ({ useOperationalWorkspace: vi.fn() }));
 vi.mock('../components/SnackbarProvider', () => ({
   useSnackbar: () => ({ notify: vi.fn() }),
-}));
-vi.mock('../components/form/ReferenceSelect', () => ({
-  ReferenceSelect: ({ label }: { label: string }) => <label>{label}<input /></label>,
 }));
 
 afterEach(() => vi.restoreAllMocks());
@@ -40,7 +38,7 @@ describe('AdministrationPage', () => {
 
     renderAdministration();
 
-    expect(screen.getByText(/Selecione o usuário pelo cadastro global/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Selecionar vínculo' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Criar vínculo' })).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'Adicionar usuário' }));
     expect(screen.getByRole('dialog', { name: 'Adicionar usuário' })).toBeInTheDocument();
@@ -57,6 +55,20 @@ describe('AdministrationPage', () => {
     } as unknown as ReturnType<typeof useAuth>);
     renderAdministration();
     expect(screen.queryByRole('button', { name: 'Adicionar usuário' })).not.toBeInTheDocument();
+  });
+
+  it('oferece adicionar usuário dentro da lista somente com permissão e perfil de convite', async () => {
+    vi.mocked(useOperationalWorkspace).mockReturnValue({ remember: vi.fn() } as unknown as ReturnType<typeof useOperationalWorkspace>);
+    vi.mocked(useAuth).mockReturnValue({
+      activeOrganization: { organizationId: 9 }, permissions: ['organizations:admin', 'users:invite'],
+      user: { perfil: 'ADMIN' },
+    } as unknown as ReturnType<typeof useAuth>);
+    vi.spyOn(api, 'get').mockResolvedValue({ data: { content: [], totalElements: 0 } });
+    renderAdministration('/app/administracao?tab=vinculos');
+    expect(screen.queryByRole('button', { name: 'Adicionar usuário' })).not.toBeInTheDocument();
+    await openReference('Vínculo');
+    await userEvent.click(await screen.findByRole('button', { name: 'Adicionar usuário' }));
+    expect(await screen.findByRole('dialog', { name: 'Adicionar usuário' })).toBeVisible();
   });
 
   it('separa concessao e revogacao de papeis', () => {
@@ -108,16 +120,17 @@ describe('AdministrationPage', () => {
   it('consulta um vínculo em uma subpágina e retorna à aba de usuários', async () => {
     vi.mocked(useOperationalWorkspace).mockReturnValue({ recent: () => [], remember: vi.fn() } as unknown as ReturnType<typeof useOperationalWorkspace>);
     vi.mocked(useAuth).mockReturnValue({ activeOrganization: { organizationId: 9 }, permissions: ['organizations:admin'] } as unknown as ReturnType<typeof useAuth>);
-    const get = vi.spyOn(api, 'get').mockResolvedValue({ data: {
+    const get = vi.spyOn(api, 'get').mockImplementation(async (url) => ({ data: url.endsWith('/operational-options/memberships')
+      ? { content: [{ id: 12, label: 'Caixa do evento' }], totalElements: 1 } : {
       id: 12, organizationId: 9, userId: 2, status: 'ATIVO', origin: 'CONVITE', version: 3, joinedAt: '2026-11-22T00:00:00Z',
-    } });
+    } }));
     renderAdministration('/app/administracao?tab=vinculos');
     const user = userEvent.setup();
-    await user.type(screen.getByLabelText(/Código de referência — Vínculo/), '12');
+    await chooseReference('Vínculo', 'Caixa do evento');
     await user.click(screen.getByRole('button', { name: 'Abrir vínculo' }));
     expect(screen.getByRole('heading', { name: 'Vínculo #12' })).toBeInTheDocument();
     expect(await screen.findByRole('button', { name: 'Alterar estado' })).toBeInTheDocument();
-    expect(get).toHaveBeenCalledExactlyOnceWith('/api/v1/organizations/9/memberships/12');
+    expect(get).toHaveBeenCalledWith('/api/v1/organizations/9/memberships/12');
     await user.click(screen.getByRole('button', { name: 'Voltar' }));
     expect(screen.getByRole('tab', { name: 'Usuários e vínculos', selected: true })).toBeInTheDocument();
   });

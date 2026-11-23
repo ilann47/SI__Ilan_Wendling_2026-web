@@ -27,7 +27,7 @@ import { ConfirmDialog } from '../components/common/ConfirmDialog';
 import { PageHeader } from '../components/common/PageHeader';
 import { StatusChip } from '../components/common/StatusChip';
 import { OperationCard } from '../components/enterprise/OperationCard';
-import { ResourceIdField } from '../components/enterprise/ResourceIdField';
+import { OperationalReferenceSelect } from '../components/enterprise/OperationalReferenceSelect';
 import { ResourceSnapshot } from '../components/enterprise/ResourceSnapshot';
 import { NumberField } from '../components/form/NumberField';
 import { OperationalFormPage } from '../components/form/OperationalFormPage';
@@ -65,9 +65,8 @@ interface QrResponse {
 }
 
 function HoldPanel() {
-  const { recent, remember } = useOperationalWorkspace();
+  const { remember } = useOperationalWorkspace();
   const { open } = useSalesNavigation('reservas');
-  const holds = recent('hold');
   const [form, setForm] = useState({ productId: '', quantity: '1', channel: 'WEB', buyerReference: '' });
   const [holdId, setHoldId] = useState('');
   const [loading, setLoading] = useState<string | null>(null);
@@ -88,7 +87,7 @@ function HoldPanel() {
     <Stack spacing={2}>
       <OperationCard title="Reservar vaga temporariamente" description="A reserva escolhe o lote vigente e impede a sobrevenda durante sua validade." error={error}>
         <Stack component="form" spacing={2} onSubmit={(event) => void create(event)}>
-          <ResourceIdField label="Produto" value={form.productId} onChange={(productId) => setForm((current) => ({ ...current, productId }))} recent={recent('product')} />
+          <OperationalReferenceSelect kind="sales-products" label="Produto" value={form.productId} onChange={(productId) => setForm((current) => ({ ...current, productId }))} />
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
             <NumberField label="Quantidade" value={form.quantity} min={1} required fullWidth
               onValueChange={(quantity) => setForm((current) => ({ ...current, quantity }))} />
@@ -100,7 +99,7 @@ function HoldPanel() {
       </OperationCard>
       <OperationCard title="Consultar reserva" description="Somente reservas próprias são visíveis para o usuário autenticado.">
         <Stack component="form" spacing={2} onSubmit={(event) => { event.preventDefault(); if (positiveId(holdId)) open(Number(holdId)); }}>
-          <ResourceIdField label="Reserva" value={holdId} onChange={setHoldId} recent={holds} />
+          <OperationalReferenceSelect kind="sales-holds" label="Reserva" value={holdId} onChange={setHoldId} />
           <Button type="submit" variant="outlined" disabled={!positiveId(holdId)} startIcon={<SearchOutlinedIcon />} sx={{ alignSelf: 'flex-start' }}>Abrir reserva</Button>
         </Stack>
       </OperationCard>
@@ -166,7 +165,6 @@ function useSalesNavigation(tab: string) {
 
 function OrderPanel() {
   const { activeOrganization, permissions } = useAuth();
-  const { recent } = useOperationalWorkspace();
   const organizationId = activeOrganization!.organizationId;
   const canCreate = permissions.includes('orders:create');
   const canRead = permissions.includes('orders:read');
@@ -224,9 +222,9 @@ function OrderPanel() {
         <Stack direction="row" justifyContent="space-between"><Button disabled={cursorHistory.length === 1} onClick={() => changeCursor(cursorHistory.slice(0, -1))}>Anterior</Button><Button disabled={!orders.data?.hasMore || !orders.data.nextCursor} onClick={() => orders.data?.nextCursor && changeCursor([...cursorHistory, orders.data.nextCursor])}>Próxima</Button></Stack>
       </OperationCard>
     )}
-    {(canRead || canManual || canCancel) && <OperationCard title="Localizar pedido" description="Selecione um pedido recente ou informe seu código de referência.">
+    {(canRead || canManual || canCancel) && <OperationCard title="Localizar pedido" description="Busque pelo número do pedido.">
       <Stack component="form" spacing={2} onSubmit={(event) => { event.preventDefault(); if (positiveId(orderId)) open(Number(orderId)); }}>
-        <ResourceIdField label="Pedido" value={orderId} onChange={setOrderId} recent={recent('order')} />
+        <OperationalReferenceSelect kind="sales-orders" label="Pedido" value={orderId} onChange={setOrderId} />
         <Button type="submit" variant="outlined" disabled={!positiveId(orderId)} startIcon={<SearchOutlinedIcon />} sx={{ alignSelf: 'flex-start' }}>Abrir pedido</Button>
       </Stack>
     </OperationCard>}
@@ -235,7 +233,7 @@ function OrderPanel() {
 
 function NewOrderPage() {
   const { activeOrganization, permissions } = useAuth();
-  const { recent, remember } = useOperationalWorkspace();
+  const { remember } = useOperationalWorkspace();
   const { notify } = useSnackbar();
   const queryClient = useQueryClient();
   const organizationId = activeOrganization!.organizationId;
@@ -266,7 +264,7 @@ function NewOrderPage() {
   return <OperationalFormPage title="Criar pedido" description="Converte a reserva do próprio usuário em pedido e preserva o preço selecionado." onClose={goBack}
     onSubmit={(event) => void create(event)} dirty={Object.keys(emptyOrder).some((key) => form[key as keyof typeof form] !== emptyOrder[key as keyof typeof form])}
     navigationAllowed={() => submitted.current} submitLabel="Criar pedido" submitDisabled={!positiveId(form.holdId)} busy={busy} error={error}>
-    <ResourceIdField label="Reserva" value={form.holdId} onChange={(holdId) => setForm((current) => ({ ...current, holdId }))} recent={recent('hold')} />
+    <OperationalReferenceSelect kind="ordering-holds" label="Reserva" value={form.holdId} onChange={(holdId) => setForm((current) => ({ ...current, holdId }))} />
     <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
       <TextField label="Nome do comprador" value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} required fullWidth />
       <TextField label="E-mail" type="email" value={form.email} onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))} required fullWidth />
@@ -348,9 +346,8 @@ function OrderDetailPage({ orderId }: { orderId: number }) {
 }
 
 function CredentialPanel() {
-  const { recent, remember } = useOperationalWorkspace();
+  const { remember } = useOperationalWorkspace();
   const { open } = useSalesNavigation('credenciais');
-  const credentials = recent('credential');
   const [orderId, setOrderId] = useState('');
   const [medium, setMedium] = useState('QR');
   const [credentialId, setCredentialId] = useState('');
@@ -369,14 +366,14 @@ function CredentialPanel() {
     <Stack spacing={2}>
       <OperationCard title="Emitir credencial" description="Emite a próxima credencial disponível de um pedido confirmado." error={error}>
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-          <ResourceIdField label="Pedido" value={orderId} onChange={setOrderId} recent={recent('order')} />
+          <OperationalReferenceSelect kind="issuing-orders" label="Pedido" value={orderId} onChange={setOrderId} />
           <TextField select label="Meio preferido" value={medium} onChange={(event) => setMedium(event.target.value)} fullWidth><MenuItem value="QR">QR</MenuItem><MenuItem value="PLACA">Placa</MenuItem><MenuItem value="RFID">RFID</MenuItem></TextField>
           <Button variant="contained" disabled={!positiveId(orderId) || loading !== null} onClick={() => void issue()} startIcon={loading === 'issue' ? <CircularProgress size={18} color="inherit" /> : <QrCode2OutlinedIcon />}>Emitir</Button>
         </Stack>
       </OperationCard>
       <OperationCard title="Consultar credencial" description="Abra os dados da credencial ou gere uma representação QR.">
         <Stack component="form" spacing={2} onSubmit={(event) => { event.preventDefault(); if (positiveId(credentialId)) open(Number(credentialId)); }}>
-          <ResourceIdField label="Credencial" value={credentialId} onChange={setCredentialId} recent={credentials} />
+          <OperationalReferenceSelect kind="sales-credentials" label="Credencial" value={credentialId} onChange={setCredentialId} />
           <Button type="submit" variant="outlined" disabled={!positiveId(credentialId)} startIcon={<SearchOutlinedIcon />} sx={{ alignSelf: 'flex-start' }}>Abrir credencial</Button>
         </Stack>
       </OperationCard>

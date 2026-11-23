@@ -1,3 +1,4 @@
+import { chooseReference, openReference } from '../test/referencePicker';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, fireEvent, render as renderComponent, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -101,8 +102,7 @@ describe('Operação do pátio', () => {
         valorDevido: '25.120000', diferencaArredondamento: '-0.003456' }] } : { itens: [] } }));
     const post = vi.spyOn(api, 'post').mockResolvedValue({ data: { id: 8, placa: item.placa } });
     render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}><PatioPage /></QueryClientProvider>);
-    fireEvent.mouseDown(await screen.findByRole('combobox', { name: 'Evento e pátio' }));
-    fireEvent.click(screen.getByRole('option', { name: /Festival/ }));
+    await chooseReference('Evento e pátio', /Festival/);
     const plate = screen.getByLabelText('Placa');
     const confirm = screen.getByRole('button', { name: 'Conferir pagamento da entrada' });
     expect(confirm).toBeDisabled();
@@ -127,8 +127,7 @@ describe('Operação do pátio', () => {
         patioId: 1, patioNome: 'Pátio central', modo: 'ENTRADA', valor: '0', valorCalculado: '0.004999', valorDevido: '0' }] } : { itens: [] } }));
     const post = vi.spyOn(api, 'post');
     render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}><PatioPage /></QueryClientProvider>);
-    fireEvent.mouseDown(await screen.findByRole('combobox', { name: 'Evento e pátio' }));
-    fireEvent.click(screen.getByRole('option', { name: /Festival/ }));
+    await chooseReference('Evento e pátio', /Festival/);
     fireEvent.change(screen.getByLabelText('Placa'), { target: { value: item.placa } });
     expect(screen.getByText(/Peça ao gestor para revisar o preço/)).toBeVisible();
     expect(screen.getByRole('button', { name: 'Conferir pagamento da entrada' })).toBeDisabled();
@@ -318,17 +317,18 @@ describe('Operação do pátio', () => {
     render(<QueryClientProvider client={client}><PatioPage /></QueryClientProvider>);
     await screen.findByText(/Nenhum pátio ativo/);
     if (!permitted) {
+      expect(screen.queryByRole('button', { name: 'Selecionar pátio da entrada' })).not.toBeInTheDocument();
       expect(screen.queryByRole('button', { name: 'Cadastrar pátio' })).not.toBeInTheDocument();
       expect(post).not.toHaveBeenCalled();
       return;
     }
     const user = userEvent.setup();
+    await openReference('Pátio da entrada');
     await user.click(screen.getByRole('button', { name: 'Cadastrar pátio' }));
     for (const [label, value] of [['Nome', 'Pátio Norte'], ['Endereço', 'Rua A'], ['Bairro', 'Centro'], ['CEP', '85000-000']]) {
       fireEvent.change(screen.getByRole('textbox', { name: label }), { target: { value } });
     }
-    fireEvent.change(screen.getByRole('combobox', { name: 'Cidade' }), { target: { value: 'Cascavel' } });
-    await user.click(await screen.findByRole('option', { name: 'Cascavel' }));
+    await chooseReference('Cidade', 'Cascavel', 'Cascavel');
     await user.click(screen.getByRole('button', { name: 'Criar pátio' }));
     await screen.findByText('Pátio da entrada: Pátio Norte');
     expect(screen.getByText(/Turno aberto ·/)).toBeVisible();
@@ -358,10 +358,9 @@ describe('Operação do pátio', () => {
     const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
     render(<QueryClientProvider client={client}><PatioPage /></QueryClientProvider>);
 
-    fireEvent.mouseDown(await screen.findByRole('combobox', { name: 'Evento e pátio' }));
-    fireEvent.click(screen.getByRole('option', { name: /Festival teste/ }));
+    await chooseReference('Evento e pátio', /Festival teste/);
     expect(readContext(2, '')).toEqual({ patioId: 1, patioNome: 'Pátio central', eventoId: 12, eventoNome: 'Festival teste' });
-    expect(screen.queryByRole('combobox', { name: 'Evento e pátio' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('textbox', { name: 'Evento e pátio' })).not.toBeInTheDocument();
     fireEvent.change(screen.getByLabelText('Placa'), { target: { value: item.placa } });
     fireEvent.click(screen.getByRole('button', { name: 'Conferir pagamento da entrada' }));
     const receber = await screen.findByRole('dialog', { name: 'Pagamento na entrada' });
@@ -422,8 +421,7 @@ describe('Operação do pátio', () => {
         patioId: 1, patioNome: 'Pátio central', modo: 'ENTRADA', valor: '25.123456' }] } : { itens: [] } }));
     const post = vi.spyOn(api, 'post').mockResolvedValue({ data: { id: 8, placa: 'ABC1D23' } });
     render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}><PatioPage /></QueryClientProvider>);
-    fireEvent.mouseDown(await screen.findByRole('combobox', { name: 'Evento e pátio' }));
-    fireEvent.click(screen.getByRole('option', { name: /Festival/ }));
+    await chooseReference('Evento e pátio', /Festival/);
     fireEvent.change(screen.getByLabelText('Placa'), { target: { value: item.placa } });
     fireEvent.click(screen.getByRole('button', { name: 'Conferir pagamento da entrada' }));
     const dialog = within(await screen.findByRole('dialog', { name: 'Pagamento na entrada' }));

@@ -138,7 +138,7 @@ export function FacilitiesList({ kind, org, search, page, sectorId, onSearch, on
     <ListingToolbar searchLabel={`Buscar ${labels[kind]} por ${spaces ? 'código' : 'nome'}`} searchValue={search}
       onSearchChange={(value) => onSearch(value.slice(0, spaces ? 40 : 160))}
       sortControl={spaces && onSector ? <Box sx={{ width: { xs: '100%', sm: 300 }, flexShrink: 0 }}>
-        <InstallationReferenceSelect kind="sectors" allSectors label="Setor" value={sectorId ? String(sectorId) : ''}
+        <InstallationReferenceSelect kind="sectors" allSectors label="Setor" allowCatalogChanges={false} value={sectorId ? String(sectorId) : ''}
           onChange={onSector} emptyText="Nenhum setor cadastrado." />
       </Box> : undefined} />
     {(changing || query.isPending || (query.isSuccess && page > lastPage)) ? <ListingSkeleton />

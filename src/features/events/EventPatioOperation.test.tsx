@@ -1,3 +1,4 @@
+import { chooseReference } from '../../test/referencePicker';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -45,7 +46,7 @@ describe('Preparação da portaria e resumo do evento', () => {
     mount(['events:read', 'events:create', 'inventory:read', 'inventory:manage', 'facilities:manage'],
       { ...baseSummary, preparacao: { ...baseSummary.preparacao, alocacao: false, cobranca: false, politica: false, pronto: false } });
     expect(await screen.findByRole('form', { name: 'Configurar portaria' })).toContainElement(
-      screen.getByRole('combobox', { name: 'Pátio do evento' }));
+      screen.getByRole('textbox', { name: 'Pátio do evento' }));
     expect(screen.getByLabelText(/Valor por carro/)).toBeInTheDocument();
     expect(screen.getByRole('combobox', { name: 'Permitir reentrada?' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Salvar cobrança do pátio' })).not.toBeInTheDocument();
@@ -127,8 +128,7 @@ describe('Preparação da portaria e resumo do evento', () => {
     mount(['events:read', 'inventory:read', 'inventory:manage', 'facilities:manage'],
       { ...baseSummary, preparacao: { ...baseSummary.preparacao, alocacao: false, pronto: false } });
     const user = userEvent.setup();
-    await user.type(await screen.findByRole('combobox', { name: 'Pátio do evento' }), 'Norte');
-    await user.click(await screen.findByRole('option', { name: 'Pátio Norte' }));
+    await chooseReference('Pátio do evento', 'Pátio Norte', 'Norte');
     await waitFor(() => expect(screen.getByRole('spinbutton', { name: 'Quantos carros podem entrar?' })).toBeEnabled());
     await user.type(screen.getByRole('spinbutton', { name: 'Quantos carros podem entrar?' }), '60');
     await user.click(screen.getByRole('button', { name: 'Salvar configuração' }));
@@ -146,18 +146,14 @@ describe('Preparação da portaria e resumo do evento', () => {
         : original(url, config));
     const post = vi.spyOn(api, 'post').mockResolvedValue({ data: { id: 1 } });
     const user = userEvent.setup();
-    const facility = await screen.findByRole('combobox', { name: 'Pátio do evento' });
-    const capacity = screen.getByRole('spinbutton', { name: 'Quantos carros podem entrar?' });
+    const capacity = await screen.findByRole('spinbutton', { name: 'Quantos carros podem entrar?' });
     expect(capacity).toBeDisabled();
-    await user.type(facility, 'Norte');
-    await user.click(await screen.findByRole('option', { name: 'Pátio Norte' }));
+    await chooseReference('Pátio do evento', 'Pátio Norte', 'Norte');
     await waitFor(() => expect(capacity).toHaveAttribute('max', '63'));
     fireEvent.change(capacity, { target: { value: '100000' } });
     expect(capacity).toHaveValue(null);
     fireEvent.change(capacity, { target: { value: '60' } });
-    await user.clear(facility);
-    await user.type(facility, 'Sul');
-    await user.click(await screen.findByRole('option', { name: 'Pátio Sul' }));
+    await chooseReference('Pátio do evento', 'Pátio Sul', 'Sul');
     await waitFor(() => expect(capacity).toHaveAttribute('max', '10'));
     expect(capacity).toHaveValue(60);
     expect(screen.getByRole('button', { name: 'Salvar configuração' })).toBeDisabled();
@@ -187,8 +183,7 @@ describe('Preparação da portaria e resumo do evento', () => {
       ready = true;
       return { data: { ...current, version: 5, reentryPolicy: 'ENTRADA_UNICA' } };
     });
-    await user.type(await screen.findByRole('combobox', { name: 'Pátio do evento' }), 'Norte');
-    await user.click(await screen.findByRole('option', { name: 'Pátio Norte' }));
+    await chooseReference('Pátio do evento', 'Pátio Norte', 'Norte');
     await waitFor(() => expect(screen.getByRole('spinbutton', { name: 'Quantos carros podem entrar?' })).toBeEnabled());
     await user.type(screen.getByRole('spinbutton', { name: 'Quantos carros podem entrar?' }), '60');
     await user.type(screen.getByLabelText(/Valor por carro/), '12,345678');

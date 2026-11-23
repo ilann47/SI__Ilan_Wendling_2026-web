@@ -35,6 +35,8 @@ export interface ReferenceConfig {
   readPermissions?: string[];
   /** Parâmetro de busca e limite quando o seletor usa uma consulta contextual. */
   searchField?: string;
+  /** A busca do servidor já inclui código e outros campos de referência. */
+  searchOnServer?: boolean;
   maxSearchLength?: number;
   /** Cadastro para um seletor que usa outro endpoint; criar não seleciona o registro. */
   createSeparatelyAt?: string;

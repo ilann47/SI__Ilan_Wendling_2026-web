@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { Alert, Box, Button, Card, CardContent, Chip, FormControlLabel, LinearProgress, MenuItem,
+import { Alert, Box, Button, Card, CardContent, Chip, FormControlLabel, LinearProgress,
   Radio, RadioGroup, Stack, Tab, Tabs, TextField, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material';
 import LoginIcon from '@mui/icons-material/Login';
 import ViewModuleOutlinedIcon from '@mui/icons-material/ViewModuleOutlined';
@@ -19,6 +19,7 @@ import { PrimaryButton } from '../components/listing/PrimaryButton';
 import { formatDateTime, minutesToHuman } from '../utils/format';
 import type { PatioAtualResponse } from '../types';
 import { FacilityForm } from './FacilitiesPage';
+import { NamedResourceSelect } from '../components/enterprise/NamedResourceSelect';
 import { cashChange, decimalInput, isValidPatioPlate, normalizePatioPlate, PATIO_PLATE_MAX_LENGTH, readContext, writeContext,
   type OperationContext } from '../features/patio/operation';
 import { CashReceived, CorrectionDialog, QuickExit, ReceiptPage, ReceiptHistory } from '../features/patio/PatioTools';
@@ -335,6 +336,10 @@ function PatioWorkspace({ org, operador, podeConsultar, podeOperar, podeCadastra
   const faltaTomadorNaSaida = !semCobranca && previaAtual?.evento?.modo === 'SAIDA' && tomadorSaida && !tomadorNaSaida;
   const ultimoFechado = caixaQ.data?.ultimoFechado;
   const semPatioAtivo = caixaQ.isSuccess && patios.length === 0;
+  const operacoes = [{ id: 1, label: 'Pátio comum · sem evento' },
+    ...eventos.map((item, index) => ({ id: index + 2, label: `${item.nome} · ${item.patioNome}` }))];
+  const indexEvento = eventos.findIndex((item) => chaveOpcao(item) === eventoSelecionado);
+  const cadastroPatio = podeCadastrarPatio ? { label: 'Cadastrar pátio', run: () => setCadastrandoPatio(true) } : undefined;
 
   if (cadastrandoPatio && podeOperar && podeCadastrarPatio) return <FacilityForm
     onClose={() => setCadastrandoPatio(false)} navigationAllowed={() => false}
@@ -444,28 +449,21 @@ function PatioWorkspace({ org, operador, podeConsultar, podeOperar, podeCadastra
       {podeOperar && <Card><CardContent>
         <Typography component="h2" variant="h6" sx={{ mb: 1.5 }}>Entrada pela placa</Typography>
         {semPatioAtivo && <Alert severity="info" sx={{ mb: 1.5 }}>
-          <Stack direction={{ xs: 'column', sm: 'row' }} alignItems={{ sm: 'center' }} gap={1}>
-            {podeCadastrarPatio ? 'Nenhum pátio ativo. Cadastre um para registrar entradas.'
-              : 'Nenhum pátio ativo. Peça a um responsável por Instalações para cadastrá-lo.'}
-            {podeCadastrarPatio && <Button color="inherit" variant="outlined" onClick={() => setCadastrandoPatio(true)}>Cadastrar pátio</Button>}
-          </Stack>
+          {podeCadastrarPatio ? 'Nenhum pátio ativo. Abra a lista de pátios para cadastrar.'
+            : 'Nenhum pátio ativo. Peça a um responsável por Instalações para cadastrá-lo.'}
         </Alert>}
         {!eventoSelecionado && patios.length === 1 && <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
           Pátio da entrada: {patios[0].nome}
         </Typography>}
-        {!contextoFixo && (eventos.length > 0 || eventoSelecionado) && <TextField select label="Evento e pátio" size="small"
-          value={opcaoEvento ? eventoSelecionado : ''} disabled={!turno || entrada.isPending}
-          onChange={(e) => {
-            setEventoSelecionado(e.target.value); setErroEntrada(null);
-            const selected = eventos.find((item) => chaveOpcao(item) === e.target.value);
+        {!contextoFixo && (eventos.length > 0 || eventoSelecionado) && <Box sx={{ mb: 1.5, width: { xs: '100%', sm: 380 } }}>
+          <NamedResourceSelect label="Evento e pátio" options={operacoes}
+          value={String(indexEvento < 0 ? 1 : indexEvento + 2)} disabled={!turno || entrada.isPending}
+          onChange={(id) => {
+            const selected = eventos[Number(id) - 2];
+            setEventoSelecionado(selected ? chaveOpcao(selected) : ''); setErroEntrada(null);
             if (selected) fixarContexto(selected);
-          }}
-          sx={{ mb: 1.5, width: { xs: '100%', sm: 380 } }}>
-          <MenuItem value="">Pátio comum · sem evento</MenuItem>
-          {eventos.map((item) => <MenuItem key={chaveOpcao(item)} value={chaveOpcao(item)}>
-            {item.nome} · {item.patioNome}
-          </MenuItem>)}
-        </TextField>}
+          }} />
+        </Box>}
         {!!eventoSelecionado && !opcaoEvento && <Alert severity="warning" sx={{ mb: 1.5 }}
           action={<Button onClick={() => { setEventoSelecionado(''); setErroEntrada(null); }}>Voltar ao pátio comum</Button>}>
           Este evento não está mais disponível para novas entradas.
@@ -486,14 +484,17 @@ function PatioWorkspace({ org, operador, podeConsultar, podeOperar, podeCadastra
             else if (opcaoEvento) enviarEntradaEvento(opcaoEvento);
             else entrada.mutate({ placa: placaNormalizada, ...(patios.length > 1 ? { patioId } : {}) });
           }}>
-          {!contextoFixo && !eventoSelecionado && patios.length > 1 && <TextField select label="Pátio da entrada" size="small" value={patioId ?? ''}
-            disabled={!turno || entrada.isPending} onChange={(e) => {
-              const id = Number(e.target.value); setPatioSelecionado(id);
+          {!contextoFixo && !eventoSelecionado && (patios.length > 1 || (semPatioAtivo && cadastroPatio)) &&
+            <Box sx={{ width: { xs: '100%', sm: 260 } }}>
+            <NamedResourceSelect label="Pátio da entrada" value={patioId ? String(patioId) : ''}
+            options={patios.map((patio) => ({ id: patio.id, label: patio.nome }))}
+            onCreate={cadastroPatio} emptyText="Nenhum pátio ativo cadastrado."
+            disabled={entrada.isPending || (patios.length > 0 && !turno)} onChange={(value) => {
+              const id = Number(value); if (!id) return;
+              setPatioSelecionado(id);
               fixarContexto(undefined, patios.find((p) => p.id === id));
-            }}
-            sx={{ width: { xs: '100%', sm: 260 } }}>
-            {patios.map((patio) => <MenuItem value={patio.id} key={patio.id}>{patio.nome}</MenuItem>)}
-          </TextField>}
+            }} />
+          </Box>}
           <TextField label="Placa" size="small" inputRef={inputPlaca}
             value={placa} disabled={!online || !turno || !patioId || entrada.isPending || contextoInvalido || trocandoContexto}
             inputProps={{ maxLength: PATIO_PLATE_MAX_LENGTH, autoCapitalize: 'characters', spellCheck: false }}

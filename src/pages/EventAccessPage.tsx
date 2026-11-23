@@ -22,7 +22,7 @@ import { formatStatusLabel } from '../utils/format';
 import { PageHeader } from '../components/common/PageHeader';
 import { ConfirmDialog } from '../components/common/ConfirmDialog';
 import { QrScannerButton } from '../components/enterprise/QrScannerDialog';
-import { ResourceIdField } from '../components/enterprise/ResourceIdField';
+import { OperationalReferenceSelect } from '../components/enterprise/OperationalReferenceSelect';
 import { useOperationalWorkspace } from '../workspace/OperationalWorkspaceContext';
 import { accessReasonLabel } from '../features/access/accessLabels';
 
@@ -52,7 +52,7 @@ interface CredentialResponse {
 
 export function EventAccessPage() {
   const { permissions } = useAuth();
-  const { recent, remember } = useOperationalWorkspace();
+  const { remember } = useOperationalWorkspace();
   const [qrToken, setQrToken] = useState('');
   const [eventId, setEventId] = useState('');
   const [parkingFacilityId, setParkingFacilityId] = useState('');
@@ -166,8 +166,12 @@ export function EventAccessPage() {
               />
               <QrScannerButton onScan={setQrToken} />
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-                <ResourceIdField label="Evento" value={eventId} onChange={setEventId} recent={recent('event')} />
-                <ResourceIdField label="Pátio" value={parkingFacilityId} onChange={setParkingFacilityId} recent={recent('facility')} />
+                <OperationalReferenceSelect kind="access-events" label="Evento" value={eventId} onChange={(id) => {
+                  setEventId(id);
+                  setParkingFacilityId('');
+                }} />
+                <OperationalReferenceSelect kind="access-facilities" label="Pátio" value={parkingFacilityId} onChange={setParkingFacilityId}
+                  eventId={eventId} disabled={!eventId} />
               </Stack>
               <TextField
                 label="Faixa/portão"
@@ -288,7 +292,7 @@ export function EventAccessPage() {
                     Credencial bloqueada com sucesso.
                   </Alert>
                 )}
-                <ResourceIdField label="Credencial" value={credentialId} onChange={setCredentialId} recent={recent('credential')} />
+                <OperationalReferenceSelect kind="blocking-credentials" label="Credencial" value={credentialId} onChange={setCredentialId} />
                 <TextField
                   label="Motivo do bloqueio"
                   value={blockingReason}
