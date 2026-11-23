@@ -6,10 +6,13 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
+    "build:preview": "tsc && node scripts/build-preview.mjs",
     "preview": "vite preview",
+    "preview:local": "vite preview --outDir .preview-dist --host 127.0.0.1 --port 5174 --strictPort",
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --max-warnings=0",
     "test": "vitest run",
+    "test:preview": "node --test scripts/publish-preview.test.mjs",
     "test:watch": "vitest"
   },
   "engines": {

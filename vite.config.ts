@@ -10,7 +10,7 @@ export default defineConfig({
   server: {
     port: 5173,
     watch: {
-      ignored: ['**/.tmp-check/**', '**/tmp/**', '**/.vite-temp/**'],
+      ignored: ['**/.tmp-check/**', '**/tmp/**', '**/.vite-temp/**', '**/.preview-dist/**', '**/.preview-build-*/**'],
     },
     proxy: {
       '/api': { target: backend, changeOrigin: true },
