@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Alert,
   Box,
@@ -61,26 +61,30 @@ interface Props {
  */
 export function ReferencePickerDialog({ open, reference, singular, value, onSelect, onClose }: Props) {
   const quick = useQuickCreate();
-  const createConfig = quick?.configFor(reference.basePath);
+  const queries = useQueryClient();
+  const resourceConfig = quick?.configFor(reference.basePath);
+  const createConfig = reference.createSeparatelyAt ? quick?.configFor(reference.createSeparatelyAt) : resourceConfig;
   const { activeOrganization, permissions } = useAuth();
   const orgId = activeOrganization?.organizationId;
-  const canRead = (!!orgId || (createConfig && !createConfig.tenantAware))
-    && (!createConfig || hasResourceActionPermission(createConfig, 'read', permissions))
+  const canRead = (!!orgId || (resourceConfig && !resourceConfig.tenantAware))
+    && (!resourceConfig || hasResourceActionPermission(resourceConfig, 'read', permissions))
     && (reference.readPermissions?.every((permission) => permissions.includes(permission)) ?? true);
-  const canCreate = !!quick && !!createConfig && createConfig.canCreate !== false
+  const canCreate = !!canRead && !!quick && !!createConfig && createConfig.canCreate !== false
     && hasResourceActionPermission(createConfig, 'create', permissions);
-  const canEdit = !!quick && !!createConfig && createConfig.canEdit !== false
-    && hasResourceActionPermission(createConfig, 'update', permissions);
+  const canEdit = !!quick && !!resourceConfig && resourceConfig.canEdit !== false
+    && hasResourceActionPermission(resourceConfig, 'update', permissions);
 
   const [search, setSearch] = useState('');
   const [debounced, setDebounced] = useState('');
   const [editingId, setEditingId] = useState<number | null>(null);
+  const [created, setCreated] = useState(false);
 
   // limpa a busca sempre que o dialogo reabre
   useEffect(() => {
     if (open) {
       setSearch('');
       setDebounced('');
+      setCreated(false);
     }
   }, [open]);
 
@@ -89,13 +93,14 @@ export function ReferencePickerDialog({ open, reference, singular, value, onSele
     return () => clearTimeout(t);
   }, [search]);
 
+  const prefix = orgId ? tenantQueryKey(orgId, 'reference-picker', reference.basePath)
+    : ['reference-picker', 'global', reference.basePath];
   const { data, isFetching, isError, error, refetch } = useQuery({
-    queryKey: orgId ? tenantQueryKey(orgId, 'reference-picker', reference.basePath, debounced, reference.params)
-      : ['reference-picker', 'global', reference.basePath, debounced, reference.params],
+    queryKey: [...prefix, debounced, reference.params],
     queryFn: () =>
       api
         .get<Page<RefOption>>(reference.basePath, {
-          params: { size: 50, [createConfig?.searchFilter ?? reference.labelField]: debounced || undefined, ...reference.params },
+          params: { size: 50, [reference.searchField ?? resourceConfig?.searchFilter ?? reference.labelField]: debounced || undefined, ...reference.params },
         })
         .then((r) => r.data),
     enabled: open && !!canRead,
@@ -113,6 +118,13 @@ export function ReferencePickerDialog({ open, reference, singular, value, onSele
     if (!quick || !createConfig || !canCreate) return;
     const id = await quick.openCreate(createConfig);
     if (id != null) {
+      if (reference.createSeparatelyAt) {
+        setSearch('');
+        setDebounced('');
+        setCreated(true);
+        await queries.invalidateQueries({ queryKey: prefix });
+        return;
+      }
       const created = await api.get<RefOption>(`${reference.basePath}/${id}`)
         .then((response) => response.data)
         .catch(() => undefined);
@@ -122,10 +134,10 @@ export function ReferencePickerDialog({ open, reference, singular, value, onSele
   };
 
   const handleEdit = async (option: RefOption) => {
-    if (!quick || !createConfig || !canEdit) return;
+    if (!quick || !resourceConfig || !canEdit) return;
     setEditingId(option.id);
     try {
-      await quick.openEdit(createConfig, option.id);
+      await quick.openEdit(resourceConfig, option.id);
     } finally {
       setEditingId(null);
     }
@@ -142,7 +154,7 @@ export function ReferencePickerDialog({ open, reference, singular, value, onSele
         <>
           {canCreate ? (
             <Button startIcon={<AddCircleOutlineIcon />} onClick={handleCreate}>
-              Cadastrar {nomeSingular}
+              Cadastrar {reference.createSeparatelyAt ? createConfig.singular.toLowerCase() : nomeSingular}
             </Button>
           ) : <span />}
           <Button onClick={onClose} color="inherit">Fechar</Button>
@@ -152,7 +164,7 @@ export function ReferencePickerDialog({ open, reference, singular, value, onSele
         <TextField
           autoFocus
           disabled={!canRead}
-          inputProps={{ 'aria-label': `Pesquisar ${nomeSingular}` }}
+          inputProps={{ 'aria-label': `Pesquisar ${nomeSingular}`, maxLength: reference.maxSearchLength }}
           fullWidth
           size="small"
           placeholder={`Pesquisar ${nomeSingular}...`}
@@ -167,6 +179,7 @@ export function ReferencePickerDialog({ open, reference, singular, value, onSele
           }}
           sx={{ mb: 1 }}
         />
+        {created && <Alert severity="success" sx={{ mb: 1 }}>Cadastro salvo. Selecione o registro na lista ou pesquise pelo nome.</Alert>}
         {!canRead ? <Alert severity="warning">Você não possui contexto ou permissão para consultar este cadastro.</Alert>
           : isFetching ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>

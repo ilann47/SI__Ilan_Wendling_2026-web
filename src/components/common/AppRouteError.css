@@ -1,0 +1,64 @@
+.route-error {
+  position: fixed;
+  inset: 0;
+  overflow: auto;
+  display: flex;
+  padding: 16px;
+  box-sizing: border-box;
+  font-family: Montserrat, system-ui, sans-serif;
+  background: radial-gradient(ellipse at top, var(--route-error-tint), transparent 62%), var(--route-error-bg);
+  color: var(--route-error-text);
+}
+
+.route-error__card {
+  width: 100%;
+  max-width: 480px;
+  margin: auto;
+  padding: clamp(20px, 6vw, 36px);
+  box-sizing: border-box;
+  background: var(--route-error-card);
+  border: 1px solid var(--route-error-border);
+  border-top: 3px solid var(--route-error-accent);
+  border-radius: var(--route-error-radius);
+  box-shadow: 0 14px 40px rgb(0 0 0 / 9%);
+}
+
+.route-error__brand { display: flex; align-items: center; gap: 9px; margin-bottom: 24px; }
+.route-error__icon {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border-radius: var(--route-error-radius);
+  color: var(--route-error-accent);
+  background: var(--route-error-tint);
+}
+.route-error h1 { margin: 16px 0 8px; font-size: clamp(1.35rem, 4vw, 1.7rem); line-height: 1.25; }
+.route-error__description { margin: 0; line-height: 1.6; color: var(--route-error-muted); }
+.route-error__actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 24px; }
+.route-error__actions > * {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  padding: 8px 16px;
+  border-radius: var(--route-error-pill);
+  font: inherit;
+  font-weight: 700;
+}
+.route-error__actions > button {
+  border: 0;
+  background: var(--route-error-fill);
+  color: var(--route-error-on-fill);
+  cursor: pointer;
+}
+.route-error__actions > button:hover { background: var(--route-error-hover); }
+.route-error__actions > a { color: var(--route-error-accent); border: 1px solid var(--route-error-border); text-decoration: none; }
+.route-error__actions > a:hover { background: var(--route-error-tint); }
+.route-error :focus-visible { outline: 2px solid var(--route-error-focus); outline-offset: 4px; }
+.route-error__note { margin: 16px 0 0; color: var(--route-error-muted); font-size: .85rem; line-height: 1.5; }
+
+@media (max-width: 420px) {
+  .route-error__actions { flex-direction: column; }
+}

@@ -11,7 +11,8 @@ describe('ListingCards', () => {
       getFields={() => [{ label: 'Situação', value: <Chip label="APROVADA" /> }]}
       onOpen={abrir ? open : undefined} />);
     const chip = screen.getByText('APROVADA').closest('.MuiChip-root');
-    expect(chip?.parentElement?.tagName).toBe('DIV');
+    expect(chip?.parentElement?.tagName).toBe('DD');
+    expect(chip?.closest('dl')).not.toBeNull();
     expect(chip?.closest('p')).toBeNull();
     if (abrir) {
       fireEvent.click(screen.getByRole('button', { name: 'Abrir detalhes' }));

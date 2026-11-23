@@ -5,6 +5,23 @@ import type { FieldConfig } from './fieldConfig';
 import { buildResourcePayload, ResourceFormDialog } from './ResourceFormDialog';
 
 describe('ResourceFormDialog', () => {
+  it('mantém os rótulos associados e os campos na ordem do cadastro', () => {
+    render(<ResourceFormDialog open title="Novo cadastro" onClose={vi.fn()} onSubmit={vi.fn()} fields={[
+      { name: 'nome', label: 'Nome', type: 'text' },
+      { name: 'codigo', label: 'Código', type: 'text' },
+    ]} />);
+    const fields = screen.getAllByRole('textbox');
+    expect(fields.map((field) => field.id)).toEqual([
+      screen.getByLabelText('Nome').id,
+      screen.getByLabelText('Código').id,
+    ]);
+    for (const input of fields) {
+      const field = input.closest('[data-slot="kaneko-form-field"]');
+      expect(field?.firstElementChild).toHaveAttribute('for', input.id);
+      expect(field?.firstElementChild).toHaveAttribute('data-shrink', 'true');
+    }
+  });
+
   it('omite campos desconhecidos e disabled sem perder false, zero ou null', () => {
     const fields: FieldConfig[] = [
       { name: 'nome', label: 'Nome', type: 'text' },

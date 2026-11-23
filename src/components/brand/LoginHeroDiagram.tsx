@@ -6,9 +6,10 @@ import CardMembershipOutlinedIcon from '@mui/icons-material/CardMembershipOutlin
 import DirectionsCarOutlinedIcon from '@mui/icons-material/DirectionsCarOutlined';
 import AccountBalanceWalletOutlinedIcon from '@mui/icons-material/AccountBalanceWalletOutlined';
 import type { SvgIconComponent } from '@mui/icons-material';
-import { HexMark } from './HexMark';
+import { BrandMark } from './BrandMark';
+import { brand } from '../../theme/hubTokens';
 
-/** Nós do diagrama — capacidades reais do estacionamento Kaneko. */
+/** Nós do diagrama — capacidades reais do yes7parking. */
 const NODES = [
   { id: 'patio', label: 'Pátio', Icon: LocalParkingOutlinedIcon, x: 18, y: 18 },
   { id: 'acessos', label: 'Acessos', Icon: QrCodeScannerOutlinedIcon, x: 50, y: 6 },
@@ -44,8 +45,8 @@ function HexTile({
         clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)',
         bgcolor: '#fff',
         boxShadow: center
-          ? '0 12px 28px rgba(107,70,254,0.22)'
-          : '0 8px 18px rgba(27,33,64,0.08)',
+          ? '0 12px 28px rgba(20,13,22,0.22)'
+          : '0 8px 18px rgba(20,13,22,0.12)',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
@@ -55,11 +56,11 @@ function HexTile({
       }}
     >
       {center ? (
-        <HexMark size={42} />
+        <BrandMark size={42} inverted={false} />
       ) : Icon ? (
         <>
-          <Icon sx={{ fontSize: 18, color: '#6B46FE' }} />
-          <Typography sx={{ fontSize: '0.52rem', fontWeight: 800, color: '#1B2140', lineHeight: 1.05, px: 0.25, textAlign: 'center' }}>
+          <Icon sx={{ fontSize: 18, color: brand.purple }} />
+          <Typography sx={{ fontSize: '0.52rem', fontWeight: 800, color: brand.navy, lineHeight: 1.05, px: 0.25, textAlign: 'center' }}>
             {label}
           </Typography>
         </>
@@ -95,7 +96,7 @@ export function LoginHeroDiagram() {
             y1="50"
             x2={node.x}
             y2={node.y}
-            stroke="#7DD3FC"
+            stroke="#F1C3F2"
             strokeWidth="0.7"
             opacity="0.85"
           />

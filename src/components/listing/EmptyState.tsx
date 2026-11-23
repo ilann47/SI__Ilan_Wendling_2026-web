@@ -2,7 +2,7 @@ import InboxOutlinedIcon from '@mui/icons-material/InboxOutlined';
 import { Box, Button, Typography } from '@mui/material';
 import type { ReactNode } from 'react';
 import { useColorMode } from '../../context/ColorModeContext';
-import { getThemeTokens } from '../../theme/hubTokens';
+import { componentRadius, getThemeTokens } from '../../theme/hubTokens';
 
 interface Props {
   title: string;
@@ -26,8 +26,8 @@ export function EmptyState({ title, description, action }: Props) {
         py: { xs: 6, md: 8 },
         gap: 1,
         minHeight: 280,
-        border: `1px dashed ${colors.border}`,
-        borderRadius: 3,
+        border: `1px solid ${colors.border}`,
+        borderRadius: `${componentRadius.surface}px`,
         bgcolor: colors.card,
       }}
     >
@@ -35,9 +35,10 @@ export function EmptyState({ title, description, action }: Props) {
         sx={{
           width: 56,
           height: 56,
-          borderRadius: 3,
+          borderRadius: '50%',
           bgcolor: colors.brandHover,
           color: colors.purple,
+          boxShadow: `0 0 0 7px ${colors.surfaceMuted}`,
           display: 'grid',
           placeItems: 'center',
           mb: 1,
@@ -45,7 +46,7 @@ export function EmptyState({ title, description, action }: Props) {
       >
         <InboxOutlinedIcon sx={{ fontSize: 28 }} />
       </Box>
-      <Typography sx={{ fontWeight: 800, color: colors.text }}>{title}</Typography>
+      <Typography sx={{ fontWeight: 750, color: colors.text }}>{title}</Typography>
       {description && (
         <Typography variant="body2" sx={{ maxWidth: 420, color: colors.textMuted }}>
           {description}

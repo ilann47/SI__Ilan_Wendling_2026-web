@@ -10,10 +10,12 @@ import { useQuickCreate } from '../../context/quickCreateCore';
 import { ReferencePickerDialog, optionLabel, type RefOption } from './ReferencePickerDialog';
 import { useAuth } from '../../auth/AuthContext';
 import { hasResourceActionPermission } from '../crud/resourceConfig';
+import { FormField } from './FormField';
 
 interface Props {
   label: string;
   value: number | null | undefined;
+  selectedOption?: RefOption;
   onChange: (value: number | null, option?: RefOption) => void;
   reference: ReferenceConfig;
   required?: boolean;
@@ -21,6 +23,7 @@ interface Props {
   helperText?: string;
   disabled?: boolean;
   reserveHelperSpace?: boolean;
+  stackedLabel?: boolean;
 }
 
 /**
@@ -29,7 +32,7 @@ interface Props {
  * resolvido buscando o registro pelo id.
  */
 export function ReferenceSelect({
-  label, value, onChange, reference, required, error, helperText, disabled, reserveHelperSpace,
+  label, value, selectedOption, onChange, reference, required, error, helperText, disabled, reserveHelperSpace, stackedLabel,
 }: Props) {
   const quick = useQuickCreate();
   const resourceConfig = quick?.configFor(reference.basePath);
@@ -46,30 +49,33 @@ export function ReferenceSelect({
   // O valor pode chegar como '' (default do formulario); normaliza para id numerico ou null.
   const parsed = value == null || `${value}`.trim() === '' ? null : Number(value);
   const id = parsed != null && Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
+  const knownOption = selectedOption?.id === id ? selectedOption : undefined;
 
   const selectedQuery = useQuery({
     queryKey: orgId ? tenantQueryKey(orgId, 'reference-one', reference.basePath, id)
       : ['reference-one', 'global', reference.basePath, id],
     queryFn: () => api.get<RefOption>(`${reference.basePath}/${id}`).then((r) => r.data),
-    enabled: id != null && canRead,
+    enabled: id != null && canRead && !knownOption,
     staleTime: 60_000,
   });
 
-  const selected = canRead && !selectedQuery.isError ? selectedQuery.data : undefined;
+  const lookupFailed = !knownOption && selectedQuery.isError;
+  const selected = canRead && !lookupFailed ? knownOption ?? selectedQuery.data : undefined;
   const referenceError = !canRead ? 'Selecione uma organização e confira a permissão de consulta.'
-    : selectedQuery.isError ? describeError(selectedQuery.error) : undefined;
+    : lookupFailed ? describeError(selectedQuery.error) : undefined;
   const display = id == null || !canRead ? '' : selected ? optionLabel(selected, reference)
     : selectedQuery.isPending ? 'Carregando cadastro…' : 'Cadastro indisponível';
+  const Field = stackedLabel ? FormField : TextField;
 
   return (
     <>
-      <TextField
+      <Field
         fullWidth
         size="small"
         label={label}
         required={required}
         disabled={unavailable}
-        error={!!error || selectedQuery.isError}
+        error={!!error || lookupFailed}
         helperText={error ?? referenceError ?? helperText ?? (reserveHelperSpace ? ' ' : undefined)}
         FormHelperTextProps={reserveHelperSpace ? { sx: { minHeight: '1.25rem', mt: 0.5 } } : undefined}
         placeholder="Selecionar..."

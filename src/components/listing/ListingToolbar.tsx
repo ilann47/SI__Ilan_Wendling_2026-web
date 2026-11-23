@@ -13,7 +13,7 @@ import {
 } from '@mui/material';
 import { useState, type ReactNode } from 'react';
 import { useColorMode } from '../../context/ColorModeContext';
-import { getThemeTokens } from '../../theme/hubTokens';
+import { componentRadius, getThemeTokens } from '../../theme/hubTokens';
 import type { FilterConfig } from '../crud/resourceConfig';
 import { AppDialog } from '../common/AppDialog';
 
@@ -23,16 +23,18 @@ interface Props {
   onSearchChange: (value: string) => void;
   advancedFilters?: FilterConfig[];
   filterForm?: ReactNode;
+  sortControl?: ReactNode;
   appliedCount?: number;
   onClear?: () => void;
 }
 
-/** Toolbar de listagem no padrão ERPGrid do Hub (busca pill + filtros). */
+/** Controles da listagem no mesmo tratamento visual da busca do Seven. */
 export function ListingToolbar({
   searchValue,
   searchLabel = 'Buscar…',
   onSearchChange,
   filterForm,
+  sortControl,
   appliedCount,
   onClear,
 }: Props) {
@@ -51,7 +53,7 @@ export function ListingToolbar({
       contentSx={{ minHeight: 96 }}
       actions={(
         <>
-          {onClear && <Button color="inherit" onClick={onClear}>Limpar filtros</Button>}
+          {onClear && <Button variant="outlined" onClick={onClear}>Limpar filtros</Button>}
           <Button variant="contained" onClick={() => setOpen(false)}>Aplicar</Button>
         </>
       )}
@@ -66,7 +68,7 @@ export function ListingToolbar({
       role="search"
       aria-label="Ferramentas da listagem"
       variant="outlined"
-      sx={{ mb: 2, p: 1, borderRadius: 3, bgcolor: colors.card }}
+      sx={{ mb: 2, p: 1, borderRadius: `${componentRadius.surface}px`, bgcolor: colors.card }}
     >
     <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ sm: 'center' }}>
       <TextField
@@ -92,28 +94,29 @@ export function ListingToolbar({
         }}
         sx={{
           '& .MuiOutlinedInput-root': {
-            borderRadius: 2,
-            bgcolor: colors.background,
+            borderRadius: `${componentRadius.pill}px`,
+            bgcolor: colors.card,
             fontSize: '0.85rem',
           },
         }}
       />
+      {sortControl}
       {filterForm && (
         <Box sx={{ flexShrink: 0 }}>
           <Badge badgeContent={count} color="primary" invisible={count === 0}>
             <Button
-              variant="outlined"
+              color="inherit"
               startIcon={<FilterListOutlinedIcon />}
               onClick={() => setOpen(true)}
               aria-label={count > 0 ? `Filtros, ${count} aplicados` : 'Filtros'}
               sx={{
-                borderRadius: 2,
-                borderColor: colors.border,
-                color: colors.text,
-                bgcolor: colors.card,
+                borderRadius: `${componentRadius.pill}px`,
+                color: colors.purple,
+                bgcolor: colors.brandHover,
+                boxShadow: `inset 0 0 0 1px ${colors.border}`,
                 px: 2,
                 minHeight: 44,
-                '&:hover': { borderColor: colors.purpleSoft, bgcolor: colors.brandHover },
+                '&:hover': { bgcolor: colors.brandHover, boxShadow: `inset 0 0 0 1px ${colors.purple}` },
               }}
             >
               Filtros

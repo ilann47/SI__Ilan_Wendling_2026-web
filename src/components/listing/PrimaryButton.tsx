@@ -1,6 +1,6 @@
 import { Button, type ButtonProps } from '@mui/material';
 
-/** CTA alinhado ao MuiButton do Hub (radius 10 via tema). */
+/** CTA com a variante primária em cápsula do tema, mantendo as métricas da listagem. */
 export function PrimaryButton({ children, sx, ...props }: ButtonProps) {
   return (
     <Button

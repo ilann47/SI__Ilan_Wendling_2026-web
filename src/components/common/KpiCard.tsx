@@ -1,7 +1,7 @@
 import { type ReactNode } from 'react';
 import { Box, Card, CardActionArea, CardContent, Typography } from '@mui/material';
 import { useColorMode } from '../../context/ColorModeContext';
-import { getThemeTokens } from '../../theme/hubTokens';
+import { componentRadius, getThemeTokens } from '../../theme/hubTokens';
 
 interface Props {
   title: string;
@@ -29,7 +29,7 @@ export function KpiCard({
   const { mode } = useColorMode();
   const colors = getThemeTokens(mode);
   const accent = color ?? colors.purple;
-  const softBg = iconBg ?? (mode === 'dark' ? 'rgba(107,70,254,0.18)' : '#F3F0FA');
+  const softBg = iconBg ?? colors.brandHover;
 
   const content = (
       <CardContent sx={{ p: 2.5, '&:last-child': { pb: 2.5 } }}>
@@ -38,7 +38,7 @@ export function KpiCard({
             sx={{
               width: 40,
               height: 40,
-              borderRadius: 1.5,
+              borderRadius: '50%',
               bgcolor: softBg,
               color: accent,
               display: 'flex',
@@ -52,11 +52,11 @@ export function KpiCard({
         </Box>
         <Typography
           variant="caption"
-          sx={{ color: colors.textMuted, fontWeight: 700, letterSpacing: 0.6 }}
+          sx={{ color: colors.textMuted, fontWeight: 700, letterSpacing: '0.035em', textTransform: 'uppercase' }}
         >
           {title}
         </Typography>
-        <Typography variant="h5" sx={{ fontWeight: 750, mt: 0.75, color: colors.text, letterSpacing: -0.4 }}>
+        <Typography variant="h5" sx={{ fontWeight: 800, mt: 0.75, color: colors.purple, letterSpacing: -0.4, fontVariantNumeric: 'tabular-nums' }}>
           {value}
         </Typography>
         {subtitle ? (
@@ -66,7 +66,7 @@ export function KpiCard({
         ) : null}
       </CardContent>
   );
-  return <Card sx={{ height: '100%', borderRadius: 2.5 }}>
+  return <Card sx={{ height: '100%', borderRadius: `${componentRadius.surface}px` }}>
     {onClick ? <CardActionArea onClick={onClick} aria-label={actionLabel ?? title} sx={{ height: '100%' }}>
       {content}
     </CardActionArea> : content}

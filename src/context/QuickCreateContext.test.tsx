@@ -7,10 +7,13 @@ import { api } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
 import { ResourceFormDialog } from '../components/form/ResourceFormDialog';
 import { QuickCreateProvider } from './QuickCreateContext';
+import { FormNavigationProvider } from './FormNavigationProvider';
+import { QuickFormPageHost } from '../components/form/QuickFormPageHost';
+import { createMemoryRouter, RouterProvider } from 'react-router-dom';
 
 vi.mock('../auth/AuthContext', () => ({ useAuth: vi.fn() }));
 afterEach(() => vi.restoreAllMocks());
-function mount(kind: 'Cliente' | 'Fornecedor' | 'Local de estoque', allowed = true) {
+function mount(kind: 'Cliente' | 'Fornecedor' | 'Local de estoque', allowed = true, pagesInLayout = false) {
   const basePath = kind === 'Cliente' ? '/api/clientes'
     : kind === 'Fornecedor' ? '/api/fornecedores' : '/api/v1/stock-locations';
   const permission = kind === 'Cliente' ? 'customers'
@@ -20,7 +23,8 @@ function mount(kind: 'Cliente' | 'Fornecedor' | 'Local de estoque', allowed = tr
   vi.spyOn(api, 'get').mockImplementation(async (url) => ({ data: String(url).endsWith('/41')
     ? { id: 41, nome: 'Cadastro criado' } : { content: [], totalElements: 0 } }));
   const submit = vi.fn(); const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  render(<LocalizationProvider dateAdapter={AdapterDayjs}><QueryClientProvider client={client}><QuickCreateProvider>
+  const content = <LocalizationProvider dateAdapter={AdapterDayjs}><QueryClientProvider client={client}><FormNavigationProvider>
+    <QuickCreateProvider pagesInLayout={pagesInLayout}><QuickFormPageHost>
     <ResourceFormDialog open title="Documento em preenchimento" onClose={vi.fn()} onSubmit={submit}
       fields={[{ name: 'numero', label: 'Número do documento', type: 'text' },
         { name: 'pessoaId', label: kind, type: 'reference', reference: { basePath, labelField: 'nome' } },
@@ -28,8 +32,12 @@ function mount(kind: 'Cliente' | 'Fornecedor' | 'Local de estoque', allowed = tr
           { name: 'quantidade', label: 'Quantidade', type: 'number' }] },
         { name: 'observacao', label: 'Observação da compra/venda', type: 'text' }]}
       initialValues={{ numero: 'DOC-18', itens: [{ descricao: 'Produto preservado', quantidade: 3 }], observacao: 'Manter preenchimento' }} />
-  </QuickCreateProvider></QueryClientProvider></LocalizationProvider>);
-  return { submit, basePath };
+  </QuickFormPageHost></QuickCreateProvider></FormNavigationProvider></QueryClientProvider></LocalizationProvider>;
+  const router = pagesInLayout ? createMemoryRouter([{ path: '*', element: content }], {
+    initialEntries: ['/app', '/app/notas-entrada/nova'], initialIndex: 1,
+  }) : null;
+  render(router ? <RouterProvider router={router} /> : content);
+  return { submit, basePath, router };
 }
 async function openCreate(kind: string) {
   fireEvent.click(screen.getByRole('textbox', { name: kind }));
@@ -37,6 +45,21 @@ async function openCreate(kind: string) {
   return screen.getAllByRole('dialog').find((dialog) => within(dialog).queryByText(`Novo ${kind.toLowerCase()}`))!;
 }
 describe('cadastro no contexto do documento', () => {
+  it('abre fornecedor como página e, ao voltar pelo histórico, restaura o seletor e o documento', async () => {
+    const { router } = mount('Fornecedor', true, true);
+    fireEvent.click(screen.getByRole('textbox', { name: 'Fornecedor' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Cadastrar fornecedor' }));
+    expect(await screen.findByRole('form', { name: 'Novo fornecedor' })).toBeInTheDocument();
+    expect(screen.queryByRole('dialog', { name: 'Selecionar fornecedor' })).not.toBeInTheDocument();
+    fireEvent.change(screen.getByRole('textbox', { name: /Nome \(razão social\)|^Nome$/i }), { target: { value: 'Fornecedor em preenchimento' } });
+    await router!.navigate(-1);
+    expect(await screen.findByRole('alertdialog', { name: 'Descartar alterações?' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Descartar alterações' }));
+    const picker = await screen.findByRole('dialog', { name: 'Selecionar fornecedor' });
+    fireEvent.click(within(picker).getByRole('button', { name: 'Fechar' }));
+    expect(await screen.findByDisplayValue('Produto preservado')).toBeInTheDocument();
+    expect(router!.state.location.pathname).toBe('/app/notas-entrada/nova');
+  });
   it('edita um fornecedor diretamente na lista sem perder o documento em preenchimento', async () => {
     const { submit, basePath } = mount('Fornecedor');
     vi.mocked(api.get).mockImplementation(async (url) => {

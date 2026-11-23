@@ -33,6 +33,11 @@ export interface ReferenceConfig {
   params?: Record<string, unknown>;
   /** Consulta contextual quando o destino não possui configuração no registry genérico. */
   readPermissions?: string[];
+  /** Parâmetro de busca e limite quando o seletor usa uma consulta contextual. */
+  searchField?: string;
+  maxSearchLength?: number;
+  /** Cadastro para um seletor que usa outro endpoint; criar não seleciona o registro. */
+  createSeparatelyAt?: string;
   /**
    * Copia valores do registro selecionado para outros campos do formulário.
    * A chave é o campo da opção e o valor é o campo de destino.
@@ -83,6 +88,8 @@ export interface FieldConfig {
   documentMode?: 'cpf' | 'cnpj' | 'auto';
   /** Para type 'document': nome do campo irmao (ex.: 'tipo') que define CPF/CNPJ. */
   documentTypeFrom?: string;
+  /** Para type 'document': aceita CNPJ alfanumérico no cadastro que suporta esse formato. */
+  allowAlphanumericCnpj?: boolean;
 }
 
 /** Valor inicial de um campo ao abrir o formulario em modo de criacao. */

@@ -1,11 +1,16 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { Box } from '@mui/material';
+import { useContext } from 'react';
+import { UNSAFE_LocationContext } from 'react-router-dom';
 import { describeError } from '../api/client';
 import { tenantQueryKey } from '../api/queryKeys';
 import { createResourceApi } from '../api/resource';
 import { isResourcePreconditionConflict } from '../api/resource';
 import { useSnackbar } from '../components/SnackbarProvider';
 import { ResourceFormDialog } from '../components/form/ResourceFormDialog';
+import { ResourceFormPage } from '../components/form/ResourceFormPage';
+import { requiresFormPage } from '../components/form/formPresentation';
 import { allConfigs, quickCreateOnlyConfigs } from '../resources';
 import {
   hasResourceActionPermission,
@@ -13,6 +18,7 @@ import {
   type ResourceConfig,
 } from '../components/crud/resourceConfig';
 import { QuickCreateContext } from './quickCreateCore';
+import { QuickFormPagesContext, SuspendedDialogContext } from './quickFormPages';
 import { useAuth } from '../auth/AuthContext';
 
 /** Mapa endpoint -> config de cadastro, para "criar na hora" a partir de um select. */
@@ -32,33 +38,35 @@ interface StackEntry {
   submitting: boolean;
   reloading?: boolean;
   organizationId?: number;
+  origin?: string;
   error?: string;
 }
 
 /**
  * Habilita o "criar na hora" em qualquer campo de referência: um botão abre o
- * cadastro do recurso referenciado em um diálogo. Como o cadastro reusa os
+ * cadastro do recurso referenciado em página ou diálogo. Como o cadastro reusa os
  * mesmos campos (que podem, eles próprios, ser referências), o aninhamento é
  * recursivo — ex.: ao cadastrar uma Cidade, pode-se abrir o cadastro do Estado
  * e, dentro dele, o do País, cada um empilhado sobre o anterior.
  */
-export function QuickCreateProvider({ children }: { children: ReactNode }) {
+export function QuickCreateProvider({ children, pagesInLayout = false }: { children: ReactNode; pagesInLayout?: boolean }) {
   const queryClient = useQueryClient();
   const { notify } = useSnackbar();
   const { activeOrganization, permissions } = useAuth();
   const [stack, setStack] = useState<StackEntry[]>([]);
+  const origin = useContext(UNSAFE_LocationContext)?.location.key;
   const seq = useRef(0);
   const pending = useRef(new Set<number>());
   const currentOrganization = useRef(activeOrganization?.organizationId);
   currentOrganization.current = activeOrganization?.organizationId;
 
   useEffect(() => {
-    const invalid = stack.filter((entry) => entry.organizationId !== activeOrganization?.organizationId
+    const invalid = stack.filter((entry) => entry.organizationId !== activeOrganization?.organizationId || entry.origin !== origin
       || !hasResourceActionPermission(entry.config, entry.mode === 'create' ? 'create' : 'update', permissions));
     if (!invalid.length) return;
     invalid.forEach((entry) => entry.resolve(null));
     setStack((current) => current.filter((entry) => !invalid.some((removed) => removed.key === entry.key)));
-  }, [activeOrganization?.organizationId, permissions, stack]);
+  }, [activeOrganization?.organizationId, origin, permissions, stack]);
 
   const configFor = useCallback((basePath: string) => configByBasePath.get(basePath), []);
 
@@ -78,10 +86,11 @@ export function QuickCreateProvider({ children }: { children: ReactNode }) {
           revision: 0,
           submitting: false,
           organizationId: activeOrganization?.organizationId,
+          origin,
         }]);
       });
     },
-    [permissions, activeOrganization?.organizationId],
+    [permissions, activeOrganization?.organizationId, origin],
   );
 
   const openEdit = useCallback(
@@ -111,6 +120,7 @@ export function QuickCreateProvider({ children }: { children: ReactNode }) {
             revision: 0,
             submitting: false,
             organizationId,
+            origin,
           }]);
         });
       } catch (error) {
@@ -118,7 +128,7 @@ export function QuickCreateProvider({ children }: { children: ReactNode }) {
         return null;
       }
     },
-    [activeOrganization?.organizationId, permissions, notify],
+    [activeOrganization?.organizationId, permissions, notify, origin],
   );
 
   const finish = useCallback((key: number, result: number | null) => {
@@ -173,7 +183,7 @@ export function QuickCreateProvider({ children }: { children: ReactNode }) {
           }),
         ]);
         notify(`${entry.config.singular} ${entry.mode === 'edit' ? 'atualizado' : 'cadastrado'}.`, 'success');
-        finish(entry.key, savedId);
+        return savedId;
       } catch (err) {
         if (entry.mode === 'edit' && entry.config.optimisticLocking && isResourcePreconditionConflict(err)) {
           setStack((entries) => entries.map((current) => current.key === entry.key ? {
@@ -187,7 +197,7 @@ export function QuickCreateProvider({ children }: { children: ReactNode }) {
         setStack((s) => s.map((e) => (e.key === entry.key ? { ...e, submitting: false, error: describeError(err) } : e)));
       } finally { pending.current.delete(entry.key); }
     },
-    [permissions, queryClient, notify, finish],
+    [permissions, queryClient, notify],
   );
 
   const reloadEdit = useCallback(async (entry: StackEntry) => {
@@ -217,15 +227,36 @@ export function QuickCreateProvider({ children }: { children: ReactNode }) {
   }, [notify]);
 
   const value = useMemo(() => ({ configFor, openCreate, openEdit }), [configFor, openCreate, openEdit]);
+  const entries = stack.filter((entry) => entry.organizationId === activeOrganization?.organizationId && entry.origin === origin);
+  const pageEntries = pagesInLayout ? entries.filter((entry) => requiresFormPage(entry.config.fields)) : [];
+  const activePage = pageEntries.at(-1)?.key;
+  const title = (entry: StackEntry) => entry.mode === 'edit' ? `Editar ${entry.config.singular.toLowerCase()}` : newResourceLabel(entry.config);
+  const close = (entry: StackEntry) => { if (!entry.submitting) finish(entry.key, null); };
+  const savePage = async (entry: StackEntry, values: Record<string, unknown>) => {
+    const id = await handleSubmit(entry, values);
+    if (id == null) throw new Error('Cadastro não concluído.');
+    return id;
+  };
+  const pages = pageEntries.map((entry) => <SuspendedDialogContext.Provider key={entry.key} value={entry.key !== activePage}>
+    <Box hidden={entry.key !== activePage} sx={{ display: entry.key === activePage ? undefined : 'none' }}>
+      <ResourceFormPage title={title(entry)} fields={entry.config.fields} initialValues={entry.initialValues}
+        resetKey={entry.revision} submitting={entry.submitting} reloading={entry.reloading}
+        error={entry.error} guardNavigation={entry.key === activePage} contextual
+        onReload={entry.mode === 'edit' && entry.error ? () => void reloadEdit(entry) : undefined}
+        onClose={() => close(entry)} onSubmit={(values) => savePage(entry, values)} onSaved={(id) => finish(entry.key, id)} />
+    </Box>
+  </SuspendedDialogContext.Provider>);
 
   return (
     <QuickCreateContext.Provider value={value}>
-      {children}
-      {stack.filter((entry) => entry.organizationId === activeOrganization?.organizationId).map((entry) => (
+      <QuickFormPagesContext.Provider value={{ active: activePage != null, pages }}>
+        {children}
+      </QuickFormPagesContext.Provider>
+      {entries.filter((entry) => !pageEntries.includes(entry)).map((entry) => (
+        <SuspendedDialogContext.Provider key={entry.key} value={activePage != null && entry.key < activePage}>
         <ResourceFormDialog
-          key={entry.key}
           open
-          title={entry.mode === 'edit' ? `Editar ${entry.config.singular.toLowerCase()}` : newResourceLabel(entry.config)}
+          title={title(entry)}
           fields={entry.config.fields}
           initialValues={entry.initialValues}
           submitting={entry.submitting}
@@ -233,9 +264,10 @@ export function QuickCreateProvider({ children }: { children: ReactNode }) {
           onReload={entry.mode === 'edit' ? () => void reloadEdit(entry) : undefined}
           reloading={entry.reloading}
           resetKey={entry.revision}
-          onClose={() => !entry.submitting && finish(entry.key, null)}
-          onSubmit={(values) => handleSubmit(entry, values)}
+          onClose={() => close(entry)}
+          onSubmit={(values) => void handleSubmit(entry, values).then((id) => { if (id != null) finish(entry.key, id); })}
         />
+        </SuspendedDialogContext.Provider>
       ))}
     </QuickCreateContext.Provider>
   );

@@ -1,6 +1,8 @@
 import { Box, Chip, Divider, Stack, Typography } from '@mui/material';
+import { alpha } from '@mui/material/styles';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import { formatDetailValue, humanizeField } from '../listing/listingUtils';
+import { componentRadius } from '../../theme/hubTokens';
 
 interface ResourceSnapshotProps {
   title?: string;
@@ -29,7 +31,10 @@ export function ResourceSnapshot({ title = 'Dados confirmados pelo sistema', dat
   ));
 
   return (
-    <Box sx={{ border: 1, borderColor: 'success.light', bgcolor: 'success.50', borderRadius: 2, p: 2 }}>
+    <Box sx={(theme) => ({
+      border: 1, borderColor: alpha(theme.palette.success.main, 0.3),
+      bgcolor: alpha(theme.palette.success.main, 0.08), borderRadius: `${componentRadius.surface}px`, p: 2,
+    })}>
       <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1.5 }}>
         <CheckCircleOutlineIcon color="success" fontSize="small" />
         <Typography variant="subtitle2">{title}</Typography>

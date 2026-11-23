@@ -7,8 +7,8 @@ import {
   type DialogProps,
 } from '@mui/material';
 import { FormProvider, useForm } from 'react-hook-form';
-import { type FieldConfig, defaultValueFor } from './fieldConfig';
-import { FieldRenderer } from './FieldRenderer';
+import type { FieldConfig } from './fieldConfig';
+import { ResourceFormFields, buildResourceDefaults, buildResourcePayload } from './ResourceFormFields';
 import { ConfirmDialog } from '../common/ConfirmDialog';
 import { AppDialog } from '../common/AppDialog';
 
@@ -29,28 +29,7 @@ interface Props {
   onSubmit: (values: Record<string, unknown>) => void;
 }
 
-function buildDefaults(fields: FieldConfig[], initial?: Record<string, unknown> | null) {
-  const out: Record<string, unknown> = {};
-  for (const f of fields) {
-    const v = initial?.[f.name];
-    out[f.name] = v !== undefined && v !== null ? v : defaultValueFor(f);
-  }
-  return out;
-}
-
-export function buildResourcePayload(
-  fields: FieldConfig[],
-  values: Record<string, unknown>,
-): Record<string, unknown> {
-  const out: Record<string, unknown> = {};
-  for (const field of fields) {
-    if (field.disabled || field.type === 'section' || field.type === 'subitems-summary') continue;
-    const v = values[field.name];
-    if (v === '' || v === undefined) continue;
-    out[field.name] = v;
-  }
-  return out;
-}
+export { buildResourcePayload } from './ResourceFormFields';
 
 export function ResourceFormDialog({
   open,
@@ -79,7 +58,7 @@ export function ResourceFormDialog({
 
   useEffect(() => {
     if (open) {
-      methods.reset(buildDefaults(fields, initialValues));
+      methods.reset(buildResourceDefaults(fields, initialValues));
       setDiscardOpen(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -106,7 +85,7 @@ export function ResourceFormDialog({
         busy={submitting}
         actions={(
           <>
-            <Button onClick={requestClose} color="inherit" disabled={submitting}>
+            <Button onClick={requestClose} variant="outlined" disabled={submitting}>
               Cancelar
             </Button>
             <Button form={formId} type="submit" variant="contained"
@@ -142,29 +121,7 @@ export function ResourceFormDialog({
                 {conflictMessage}
               </Alert>
             )}
-            <Box
-              sx={{
-                display: 'grid',
-                gridTemplateColumns: { xs: '1fr', sm: 'repeat(12, 1fr)' },
-                gap: 2,
-                pt: 1,
-              }}
-            >
-              {fields.map((f) => {
-                const cols = f.type === 'subitems' || f.type === 'subitems-summary'
-                  || f.type === 'textarea' || f.type === 'section'
-                  ? 12
-                  : f.cols ?? 6;
-                const renderedField = initialValues && f.disabledOnEdit
-                  ? { ...f, disabled: true }
-                  : f;
-                return (
-                  <Box key={f.name} sx={{ gridColumn: { sm: `span ${cols}` } }}>
-                    <FieldRenderer field={renderedField} />
-                  </Box>
-                );
-              })}
-            </Box>
+            <ResourceFormFields fields={fields} editing={!!initialValues} />
           </Box>
       </AppDialog>
       </FormProvider>

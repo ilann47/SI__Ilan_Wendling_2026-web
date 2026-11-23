@@ -10,7 +10,7 @@ import { type ResourceConfig } from '../components/crud/resourceConfig';
 export interface QuickCreateValue {
   /** Config de cadastro de um endpoint referenciado, se existir um cadastro para ele. */
   configFor: (basePath: string) => ResourceConfig | undefined;
-  /** Abre o cadastro do recurso em um diálogo; resolve com o id criado (ou null se cancelado). */
+  /** Abre o cadastro do recurso na apresentação adequada; resolve com o id criado (ou null se cancelado). */
   openCreate: (config: ResourceConfig) => Promise<number | null>;
   /** Abre a edição do recurso no mesmo formulário; resolve com o id salvo (ou null se cancelado). */
   openEdit: (config: ResourceConfig, id: number) => Promise<number | null>;

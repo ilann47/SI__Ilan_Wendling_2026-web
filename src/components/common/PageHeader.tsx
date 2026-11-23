@@ -1,5 +1,5 @@
 import ArrowBackRoundedIcon from '@mui/icons-material/ArrowBackRounded';
-import { type ReactNode } from 'react';
+import { type ReactNode, type Ref } from 'react';
 import { Box, Button, Stack, Typography } from '@mui/material';
 import { Link as RouterLink, useInRouterContext, useLocation, useNavigate } from 'react-router-dom';
 import { useColorMode } from '../../context/ColorModeContext';
@@ -13,16 +13,20 @@ interface Props {
   /** Quando true, mostra Hub › título (padrão ModuleSubnav). */
   hubCrumb?: boolean;
   backFallback?: string;
+  onBack?: () => void;
+  titleId?: string;
+  titleRef?: Ref<HTMLHeadingElement>;
 }
 
-function RouterBackButton({ color, hoverColor, fallback }: { color: string; hoverColor: string; fallback: string }) {
+function RouterBackButton({ color, hoverColor, fallback, onBack }: { color: string; hoverColor: string; fallback: string; onBack?: () => void }) {
   const location = useLocation();
   const navigate = useNavigate();
 
-  if (location.pathname === '/app') return null;
+  if (location.pathname === '/app' && !onBack) return null;
 
   const goBack = () => {
-    if (location.key === 'default' || window.history.state?.idx === 0) navigate(fallback);
+    if (onBack) onBack();
+    else if (location.key === 'default' || window.history.state?.idx === 0) navigate(fallback);
     else navigate(-1);
   };
 
@@ -40,7 +44,7 @@ function RouterBackButton({ color, hoverColor, fallback }: { color: string; hove
         mb: 0.75,
         color,
         fontWeight: 700,
-        '&:hover': { color: hoverColor, bgcolor: 'transparent' },
+        '&:hover': { color: hoverColor, textDecoration: 'underline', textUnderlineOffset: 3 },
       }}
     >
       Voltar
@@ -48,7 +52,7 @@ function RouterBackButton({ color, hoverColor, fallback }: { color: string; hove
   );
 }
 
-export function PageHeader({ title, subtitle, count, action, hubCrumb = false, backFallback = '/app' }: Props) {
+export function PageHeader({ title, subtitle, count, action, hubCrumb = false, backFallback = '/app', onBack, titleId, titleRef }: Props) {
   const { mode } = useColorMode();
   const colors = getThemeTokens(mode);
   const isInRouter = useInRouterContext();
@@ -62,7 +66,7 @@ export function PageHeader({ title, subtitle, count, action, hubCrumb = false, b
       sx={{ mb: { xs: 2, md: 3 } }}
     >
       <Box>
-        {isInRouter && <RouterBackButton color={colors.textMuted} hoverColor={colors.purple} fallback={backFallback} />}
+        {isInRouter && <RouterBackButton color={colors.textMuted} hoverColor={colors.purple} fallback={backFallback} onBack={onBack} />}
         {hubCrumb ? (
           <Typography variant="body2" sx={{ color: colors.textMuted, mb: 0.75 }}>
             <Box
@@ -83,21 +87,22 @@ export function PageHeader({ title, subtitle, count, action, hubCrumb = false, b
             </Box>
           </Typography>
         ) : null}
-        <Stack direction="row" alignItems="center" spacing={1.25}>
-          <Box aria-hidden="true" sx={{ width: 5, height: { xs: 28, sm: 34 }, borderRadius: 99, background: colors.brandGradient, flexShrink: 0 }} />
-          <Typography
-            component="h1"
-            sx={{
-              fontWeight: 850,
-              fontSize: { xs: '1.5rem', sm: '1.8rem' },
-              color: colors.text,
-              lineHeight: 1.15,
-              letterSpacing: -0.6,
-            }}
-          >
-            {title}
-          </Typography>
-        </Stack>
+        <Typography
+          component="h1"
+          id={titleId}
+          ref={titleRef}
+          tabIndex={titleRef ? -1 : undefined}
+          sx={{
+            fontWeight: 800,
+            fontSize: { xs: '1.5rem', sm: '1.8rem' },
+            color: colors.purple,
+            lineHeight: 1.15,
+            letterSpacing: -0.6,
+            ...(titleRef ? { scrollMarginTop: '124px', '&:focus-visible': { outline: 'none' } } : {}),
+          }}
+        >
+          {title}
+        </Typography>
         {subtitle && (
           <Typography
             variant="body2"
@@ -120,9 +125,9 @@ export function PageHeader({ title, subtitle, count, action, hubCrumb = false, b
               px: 1.25,
               py: 0.35,
               borderRadius: 999,
-              border: `1px solid ${colors.border}`,
-              bgcolor: colors.card,
-              color: colors.textMuted,
+              border: '1px solid transparent',
+              bgcolor: colors.brandHover,
+              color: colors.purple,
               fontWeight: 700,
             }}
           >

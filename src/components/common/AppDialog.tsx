@@ -1,5 +1,6 @@
 import CloseOutlinedIcon from '@mui/icons-material/CloseOutlined';
 import {
+  Box,
   Dialog,
   DialogActions,
   DialogContent,
@@ -15,7 +16,10 @@ import {
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import type { Breakpoint } from '@mui/material/styles';
-import { useId, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useId, useState, type ReactNode } from 'react';
+import { SuspendedDialogContext } from '../../context/quickFormPages';
+
+const NestedDialogContext = createContext(false);
 
 interface Props {
   open: boolean;
@@ -54,6 +58,20 @@ export function AppDialog({
   role = 'dialog',
 }: Props) {
   const theme = useTheme();
+  const suspended = useContext(SuspendedDialogContext);
+  const nested = useContext(NestedDialogContext);
+  const [restoring, setRestoring] = useState(false);
+  useEffect(() => {
+    if (!nested) return;
+    if (suspended) {
+      setRestoring(true);
+    } else if (restoring) {
+      // Registra o seletor depois do diálogo pai para devolver o foco ao topo.
+      const frame = window.requestAnimationFrame(() => setRestoring(false));
+      return () => window.cancelAnimationFrame(frame);
+    }
+  }, [nested, suspended, restoring]);
+  const paused = suspended || restoring;
   const mobile = useMediaQuery(theme.breakpoints.down(fullScreenBreakpoint));
   const titleId = useId();
   const descriptionId = useId();
@@ -66,14 +84,15 @@ export function AppDialog({
 
   return (
     <Dialog
-      open={open}
+      open={open && !paused}
+      keepMounted={paused}
       onClose={requestClose}
       disableEscapeKeyDown={busy}
       fullWidth
       maxWidth={maxWidth}
       fullScreen={fullScreen}
       scroll="paper"
-      sx={fullScreen ? { '& .MuiDialog-container': { p: 0 } } : undefined}
+      sx={paused ? { display: 'none' } : fullScreen ? { '& .MuiDialog-container': { p: 0 } } : undefined}
       aria-labelledby={titleId}
       aria-describedby={description ? descriptionId : undefined}
       slotProps={{
@@ -83,32 +102,39 @@ export function AppDialog({
         },
       }}
     >
-      <DialogTitle id={titleId} sx={{ borderBottom: contentDividers ? '1px solid' : 0, borderColor: 'divider' }}>
+      <DialogTitle id={`${titleId}-header`} component="header" data-slot="dialog-header"
+        sx={{ borderBottom: contentDividers ? '1px solid' : 0, borderColor: 'divider' }}>
         <Stack direction="row" alignItems="flex-start" justifyContent="space-between" gap={2}>
-          <Typography component="span" variant="h6" sx={{ lineHeight: 1.35 }}>
-            {title}
-          </Typography>
+          <Stack spacing={0.55} sx={{ minWidth: 0 }}>
+            <Typography id={titleId} component="h2" variant="h6" sx={{ fontWeight: 750, lineHeight: 1.3, overflowWrap: 'anywhere' }}>
+              {title}
+            </Typography>
+            {description && (
+              <DialogContentText id={descriptionId} component="div" sx={{ fontSize: '0.85rem', fontWeight: 500, lineHeight: 1.45 }}>
+                {description}
+              </DialogContentText>
+            )}
+          </Stack>
           <IconButton
             aria-label={closeLabel ?? `Fechar ${accessibleTitle}`}
             onClick={onClose}
             disabled={busy}
             size="small"
             edge="end"
-            sx={{ mt: -0.75, mr: -0.75, flexShrink: 0 }}
+            sx={{ mt: -0.5, mr: -0.5, flexShrink: 0, color: 'text.secondary', '&:hover': { color: 'primary.main' } }}
           >
-            <CloseOutlinedIcon />
+            <CloseOutlinedIcon fontSize="small" />
           </IconButton>
         </Stack>
       </DialogTitle>
-      <DialogContent dividers={contentDividers} sx={contentSx}>
-        {description && (
-          <DialogContentText id={descriptionId} sx={{ mb: 2 }}>
-            {description}
-          </DialogContentText>
-        )}
-        {children}
+      <DialogContent data-slot="dialog-body" dividers={contentDividers} sx={contentSx}>
+        <NestedDialogContext.Provider value>{children}</NestedDialogContext.Provider>
       </DialogContent>
-      {actions && <DialogActions>{actions}</DialogActions>}
+      {actions && (
+        <Box component="footer" data-slot="dialog-footer" sx={{ flex: '0 0 auto' }}>
+          <DialogActions>{actions}</DialogActions>
+        </Box>
+      )}
     </Dialog>
   );
 }

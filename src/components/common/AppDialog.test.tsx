@@ -19,7 +19,12 @@ describe('AppDialog', () => {
       </AppDialog>,
     );
 
-    expect(screen.getByRole('dialog', { name: 'Novo cadastro' })).toBeInTheDocument();
+    const dialog = screen.getByRole('dialog', { name: 'Novo cadastro' });
+    expect(dialog).toHaveAccessibleDescription('Preencha os dados obrigatorios.');
+    const header = screen.getByRole('heading', { name: 'Novo cadastro' }).closest('header');
+    expect(header).toContainElement(screen.getByText('Preencha os dados obrigatorios.'));
+    expect(header).not.toContainElement(screen.getByText('Conteudo do formulario'));
+    expect(screen.getByRole('button', { name: 'Salvar' }).closest('footer')).not.toBeNull();
     expect(screen.getByText('Preencha os dados obrigatorios.')).toBeInTheDocument();
     expect(screen.getByText('Conteudo do formulario')).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'Fechar Novo cadastro' }));

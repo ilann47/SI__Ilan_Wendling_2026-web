@@ -1,12 +1,10 @@
 import { Controller, useFormContext, useWatch } from 'react-hook-form';
 import {
   Box,
-  Divider,
   FormControlLabel,
   InputAdornment,
   MenuItem,
   Switch,
-  TextField,
   Typography,
 } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
@@ -18,6 +16,7 @@ import { DocumentField } from './DocumentField';
 import { normalizeNumericInput } from './NumberField';
 import { applyContactMask } from './contactMask';
 import { DECIMAL_STEP, exactDecimal } from '../../utils/fixedDecimal';
+import { FormField, formFieldSlot } from './FormField';
 
 interface Props {
   field: FieldConfig;
@@ -73,12 +72,11 @@ export function FieldRenderer({ field, namePrefix = '', dense }: Props) {
 
   if (field.type === 'section') {
     return (
-      <Box sx={{ pt: 0.5 }}>
-        <Typography variant="subtitle1" fontWeight={700}>{field.label}</Typography>
+      <Box component="header" sx={{ px: 1.75, py: 1.15, borderRadius: '10px', bgcolor: 'action.hover', boxShadow: (theme) => `inset 3px 0 0 ${theme.palette.primary.main}` }}>
+        <Typography component="h3" variant="subtitle2" fontWeight={750} color="primary.main">{field.label}</Typography>
         {field.helperText && (
           <Typography variant="body2" color="text.secondary">{field.helperText}</Typography>
         )}
-        <Divider sx={{ mt: 1 }} />
       </Box>
     );
   }
@@ -145,6 +143,7 @@ export function FieldRenderer({ field, namePrefix = '', dense }: Props) {
             error={fieldState.error?.message}
             helperText={field.helperText}
             reserveHelperSpace={dense}
+            stackedLabel
           />
         )}
       />
@@ -169,6 +168,7 @@ export function FieldRenderer({ field, namePrefix = '', dense }: Props) {
                 sx: (theme) => ({ zIndex: theme.zIndex.modal + 1 }),
               },
               textField: {
+                ...formFieldSlot,
                 fullWidth: true,
                 size,
                 required: field.required,
@@ -190,7 +190,7 @@ export function FieldRenderer({ field, namePrefix = '', dense }: Props) {
         control={control}
         rules={rules}
         render={({ field: f, fieldState }) => (
-          <TextField
+          <FormField
             select
             fullWidth
             size={size}
@@ -211,7 +211,7 @@ export function FieldRenderer({ field, namePrefix = '', dense }: Props) {
                 {opt.label}
               </MenuItem>
             ))}
-          </TextField>
+          </FormField>
         )}
       />
     );
@@ -227,7 +227,7 @@ export function FieldRenderer({ field, namePrefix = '', dense }: Props) {
       control={control}
       rules={rules}
       render={({ field: f, fieldState }) => (
-        <TextField
+        <FormField
           fullWidth
           size={size}
           label={field.label}

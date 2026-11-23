@@ -1,6 +1,10 @@
 import '@testing-library/jest-dom/vitest';
-import { cleanup } from '@testing-library/react';
+import { cleanup, configure } from '@testing-library/react';
 import { afterEach, vi } from 'vitest';
+
+// As listas carregam dados e podem fazer debounce. A suíte completa em Windows
+// concorre com o build/API; mantenha a mesma asserção aguardando a resposta real.
+configure({ asyncUtilTimeout: 5000 });
 
 afterEach(() => {
   cleanup();

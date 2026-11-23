@@ -4,13 +4,12 @@ import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import { Box, Card, Stack, useMediaQuery } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import {
-  DataGrid,
   type GridColDef,
   type GridPaginationModel,
 } from '@mui/x-data-grid';
 import { ptBR } from '@mui/x-data-grid/locales';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useLinkedDetail } from '../../hooks/useLinkedDetail';
 import { describeError, getHttpStatus } from '../../api/client';
@@ -21,15 +20,18 @@ import {
   type PageParams,
 } from '../../api/resource';
 import { useAuth } from '../../auth/AuthContext';
+import { canDeleteLegacyResource } from '../../auth/administrationAccess';
 import { ConfirmDialog } from '../common/ConfirmDialog';
 import { PageHeader } from '../common/PageHeader';
-import { ResourceFormDialog } from '../form/ResourceFormDialog';
+import { ResourceFormPage } from '../form/ResourceFormPage';
+import { useFormPageLocation } from '../form/useFormPageLocation';
 import { AppliedFilterChips } from '../listing/AppliedFilterChips';
-import { DetailDrawer } from '../listing/DetailDrawer';
+import { RecordDetailPage } from '../listing/RecordDetailPage';
 import { EmptyState, EmptyStateAction } from '../listing/EmptyState';
 import { ErrorState } from '../listing/ErrorState';
 import { ListingCards } from '../listing/ListingCards';
 import { ListingSkeleton } from '../listing/ListingSkeleton';
+import { OperationalDataGrid } from '../listing/OperationalDataGrid';
 import { ListingToolbar } from '../listing/ListingToolbar';
 import { countAppliedFilters, formatDetailValue, primarySearchFilter } from '../listing/listingUtils';
 import { PrimaryButton } from '../listing/PrimaryButton';
@@ -98,27 +100,33 @@ export async function loadResourcePageById(
   }
 }
 
-export function CrudResourcePage({ config, onOpenDetail }: {
+export function CrudResourcePage({ config, onOpenDetail, afterListHeader }: {
   config: ResourceConfig;
-  onOpenDetail?: (id: number) => void;
+  onOpenDetail?: (id: number, replace?: boolean) => void;
+  afterListHeader?: ReactNode;
 }) {
   const queryClient = useQueryClient();
   const { notify } = useSnackbar();
-  const { activeOrganization, permissions } = useAuth();
+  const { activeOrganization, permissions, user } = useAuth();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [searchParams] = useSearchParams();
+  const formLocation = useFormPageLocation();
   const resource = useMemo(() => createResourceApi<ResourceRow, Record<string, unknown>>(config.basePath), [config.basePath]);
 
+  const filterParams = new URLSearchParams(searchParams);
+  filterParams.delete('detail');
+  filterParams.delete('formulario');
+  const filterSearch = filterParams.toString();
   const initialFilters = useMemo(() => {
     const next: Record<string, unknown> = {};
     const known = new Set((config.filters ?? []).map((filter) => filter.name));
-    searchParams.forEach((value, key) => {
+    new URLSearchParams(filterSearch).forEach((value, key) => {
       if (!known.has(key) || !value) return;
       next[key] = value;
     });
     return next;
-  }, [config.filters, searchParams]);
+  }, [config.filters, filterSearch]);
 
   const [pagination, setPagination] = useState<GridPaginationModel>({ page: 0, pageSize: 10 });
   const [filters, setFilters] = useState<Record<string, unknown>>(initialFilters);
@@ -134,12 +142,11 @@ export function CrudResourcePage({ config, onOpenDetail }: {
   const [deletingVersion, setDeletingVersion] = useState<number | null>(null);
   const [deleteConflict, setDeleteConflict] = useState(false);
   const [running, setRunning] = useState<{ action: RowAction; row: ResourceRow } | null>(null);
-  const [selectedDetail, setDetail] = useState<ResourceRow | null>(null);
-  const openDetail = (row: ResourceRow) => onOpenDetail ? onOpenDetail(row.id) : setDetail(row);
   const linked = useLinkedDetail(activeOrganization?.organizationId, config.key, resource.get,
-    hasResourceActionPermission(config, 'read', permissions));
-  const detail = selectedDetail ?? linked.data ?? null;
-  const closeDetail = () => { setDetail(null); if (linked.requested) linked.close(); };
+    hasResourceActionPermission(config, 'read', permissions), true,
+    onOpenDetail ? undefined : { listPath: `/app/${config.key}` });
+  const detail = linked.data ? asRow(linked.data) : null;
+  const openDetail = (row: ResourceRow) => onOpenDetail ? onOpenDetail(row.id) : linked.open(row.id);
 
   useEffect(() => {
     setFilters(initialFilters);
@@ -150,6 +157,7 @@ export function CrudResourcePage({ config, onOpenDetail }: {
   const canEdit = config.canEdit !== false
     && hasResourceActionPermission(config, 'update', permissions);
   const canDelete = config.canDelete !== false
+    && canDeleteLegacyResource(config.key, user?.perfil)
     && hasResourceActionPermission(config, 'delete', permissions);
 
   const operationalFilterConfigs = useMemo<FilterConfig[]>(
@@ -207,15 +215,6 @@ export function CrudResourcePage({ config, onOpenDetail }: {
     placeholderData: keepPreviousData,
   });
 
-  const detailQuery = useQuery({
-    queryKey: resourceQueryKey(config, activeOrganization?.organizationId, 'detail', config.basePath, detail?.id),
-    queryFn: async () => {
-      const row = asRow(await resource.get(detail!.id));
-      return row ?? detail;
-    },
-    enabled: selectedDetail !== null,
-  });
-
   const invalidate = () => Promise.all([queryClient.invalidateQueries({
     queryKey: resourceQueryKey(config, activeOrganization?.organizationId, 'list', config.basePath),
   }), ...(linked.requested ? [linked.refetch()] : [])]);
@@ -226,11 +225,13 @@ export function CrudResourcePage({ config, onOpenDetail }: {
   };
 
   const loadEditing = async (row: ResourceRow) => {
+    saveMutation.reset();
     if (!config.optimisticLocking) {
       setEditing(row);
       setEditingVersion(null);
       setEditConflict(null);
       setFormOpen(true);
+      formLocation.open(`editar-${row.id}`);
       return;
     }
     try {
@@ -242,6 +243,7 @@ export function CrudResourcePage({ config, onOpenDetail }: {
       setEditConflict(null);
       setFormRevision((revision) => revision + 1);
       setFormOpen(true);
+      formLocation.open(`editar-${row.id}`);
     } catch (error) {
       notify(describeError(error), 'error');
     }
@@ -258,6 +260,7 @@ export function CrudResourcePage({ config, onOpenDetail }: {
       setEditingVersion(current.version);
       setEditConflict(null);
       setFormRevision((revision) => revision + 1);
+      saveMutation.reset();
     } catch (error) {
       notify(describeError(error), 'error');
     } finally {
@@ -284,6 +287,13 @@ export function CrudResourcePage({ config, onOpenDetail }: {
     }
   };
 
+  const clearForm = () => {
+    setFormOpen(false);
+    setEditing(null);
+    setEditingVersion(null);
+    setEditConflict(null);
+  };
+
   const saveMutation = useMutation({
     mutationFn: async (values: Record<string, unknown>) => {
       if (editing) {
@@ -298,14 +308,9 @@ export function CrudResourcePage({ config, onOpenDetail }: {
         ? (await resource.createVersioned(values)).data
         : await resource.create(values);
     },
-    onSuccess: (created) => {
+    onSuccess: () => {
       notify(`${config.singular} salvo com sucesso.`, 'success');
-      setFormOpen(false);
-      setEditing(null);
-      setEditingVersion(null);
-      setEditConflict(null);
       invalidate();
-      if (created && onOpenDetail) onOpenDetail(created.id);
     },
     onError: (error) => {
       if (config.optimisticLocking && editing && isResourcePreconditionConflict(error)) {
@@ -328,7 +333,7 @@ export function CrudResourcePage({ config, onOpenDetail }: {
       setDeleting(null);
       setDeletingVersion(null);
       setDeleteConflict(false);
-      setDetail(null);
+      if (linked.requested) linked.close();
       invalidate();
     },
     onError: async (error) => {
@@ -426,10 +431,12 @@ export function CrudResourcePage({ config, onOpenDetail }: {
     setPagination((current) => ({ ...current, page: 0 }));
   };
   const openCreate = () => {
+    saveMutation.reset();
     setEditing(null);
     setEditingVersion(null);
     setEditConflict(null);
     setFormOpen(true);
+    formLocation.open('novo');
   };
   const cardFields = (row: ResourceRow) => config.columns
     .filter((column) => column.field !== 'id' && column.field !== '__actions')
@@ -440,10 +447,26 @@ export function CrudResourcePage({ config, onOpenDetail }: {
     }));
 
   const initialValues = editing ? (config.toFormValues ? config.toFormValues(editing) : editing) : null;
-  const detailRow = selectedDetail ? detailQuery.data ?? selectedDetail : linked.data;
+  const detailRow = detail;
+  const canShowForm = formOpen && (editing ? canEdit : canCreate);
+  if (canShowForm && formLocation.name === (editing ? `editar-${editing.id}` : 'novo')) {
+    const close = () => { formLocation.close(); clearForm(); };
+    return <ResourceFormPage
+      title={editing ? `Editar ${config.singular}` : newResourceLabel(config)}
+      fields={config.fields} initialValues={initialValues} submitting={saveMutation.isPending}
+      error={editConflict ?? (saveMutation.error ? describeError(saveMutation.error) : null)}
+      onReload={config.optimisticLocking && editing && editConflict ? () => void reloadEditing() : undefined}
+      reloading={reloadingEdit} resetKey={formRevision} onClose={close}
+      onSubmit={saveMutation.mutateAsync}
+      onSaved={(created) => {
+        if (created && onOpenDetail) { clearForm(); onOpenDetail(created.id, true); }
+        else close();
+      }} />;
+  }
 
   return (
     <Box>
+      {!linked.requested && <>
       <PageHeader
         title={config.plural}
         subtitle={config.subtitle}
@@ -455,6 +478,7 @@ export function CrudResourcePage({ config, onOpenDetail }: {
         ) : undefined}
       />
 
+      {afterListHeader}
       <ListingToolbar
         searchValue={search}
         searchLabel={searchFilter ? `Buscar por ${searchFilter.label.toLowerCase()}` : 'Buscar'}
@@ -482,8 +506,6 @@ export function CrudResourcePage({ config, onOpenDetail }: {
         </Box>
       )}
       {listQuery.isLoading && !listQuery.data && <ListingSkeleton />}
-      {linked.requested && linked.isLoading && <ListingSkeleton />}
-      {linked.requested && linked.isError && <ErrorState message={describeError(linked.error)} onRetry={() => void linked.refetch()} />}
       {!listQuery.isLoading && !listQuery.isError && rows.length === 0 && (
         <EmptyState
           title={resourceNotFoundLabel(config)}
@@ -506,7 +528,8 @@ export function CrudResourcePage({ config, onOpenDetail }: {
             onOpen={openDetail}
           />
           <Card sx={{ display: { xs: 'none', md: 'block' } }}>
-            <DataGrid
+            <OperationalDataGrid
+              identityField={columns.find((column) => column.field !== '__actions' && !column.renderCell)?.field ?? columns[0]?.field}
               autoHeight
               rows={rows}
               columns={columns}
@@ -555,13 +578,13 @@ export function CrudResourcePage({ config, onOpenDetail }: {
         </>
       )}
 
-      <DetailDrawer
-        open={!!detail}
+      </>}
+      {linked.requested && <RecordDetailPage
         title={detail
           ? String(detail.nome ?? detail.numero ?? detail.placa ?? detail.descricao ?? config.singular)
           : config.singular}
         subtitle={detail ? `Código interno ${detail.id}` : undefined}
-        onClose={closeDetail}
+        onBack={linked.close}
         actions={detail ? (
           <Stack direction="row" spacing={1} flexWrap="wrap">
             {visibleActions(detail).map((action) => (
@@ -577,6 +600,8 @@ export function CrudResourcePage({ config, onOpenDetail }: {
           </Stack>
         ) : undefined}
       >
+        {linked.isLoading && <ListingSkeleton />}
+        {linked.isError && <ErrorState message={describeError(linked.error)} onRetry={() => void linked.refetch()} />}
         {detailRow && (
           <ResourceDetailBody
             row={Object.fromEntries(Object.entries(detailRow).filter(([field]) => !config.detailLinks?.some((link) => link.field === field)))}
@@ -584,26 +609,7 @@ export function CrudResourcePage({ config, onOpenDetail }: {
             unavailable={config.unavailableRelations ?? []}
           />
         )}
-      </DetailDrawer>
-
-      <ResourceFormDialog
-        open={formOpen}
-        title={editing ? `Editar ${config.singular}` : newResourceLabel(config)}
-        fields={config.fields}
-        initialValues={initialValues}
-        submitting={saveMutation.isPending}
-        conflictMessage={editConflict}
-        onReload={config.optimisticLocking && editing ? () => void reloadEditing() : undefined}
-        reloading={reloadingEdit}
-        resetKey={formRevision}
-        onClose={() => {
-          setFormOpen(false);
-          setEditing(null);
-          setEditingVersion(null);
-          setEditConflict(null);
-        }}
-        onSubmit={(values) => saveMutation.mutate(values)}
-      />
+      </RecordDetailPage>}
 
       <ConfirmDialog
         open={!!deleting}

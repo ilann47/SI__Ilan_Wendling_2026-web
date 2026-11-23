@@ -30,7 +30,7 @@ export function InboundNoteCostsSummary() {
   if (!rows?.length) return null;
 
   return (
-    <Paper variant="outlined" sx={{ p: 2, bgcolor: 'action.hover' }}>
+    <Paper variant="outlined" sx={{ p: 2, bgcolor: 'action.hover', '& .MuiTypography-root': { fontVariantNumeric: 'tabular-nums' } }}>
       <Typography variant="subtitle2" gutterBottom>Totais dos itens</Typography>
       <Divider sx={{ mb: 1.5 }} />
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 1fr', md: 'repeat(4, 1fr)' }, gap: 2 }}>
@@ -76,9 +76,10 @@ export function SubItemsEditor({ name, label, subFields, summary, disabled }: Pr
 
   return (
     <Box>
-      <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1 }}>
-        <Typography variant="subtitle2">{label}</Typography>
-        <Button size="small" startIcon={<AddIcon />} disabled={disabled}
+      <Stack direction="row" alignItems="center" justifyContent="space-between"
+        sx={{ mb: 1, px: 1.25, borderRadius: '10px', bgcolor: 'action.hover' }}>
+        <Typography component="h3" variant="subtitle2" fontWeight={750} color="primary.main">{label}</Typography>
+        <Button size="small" variant="outlined" startIcon={<AddIcon />} disabled={disabled}
           onClick={() => append(emptyRow())}>
           Adicionar
         </Button>
@@ -105,7 +106,7 @@ export function SubItemsEditor({ name, label, subFields, summary, disabled }: Pr
                     namePrefix={`${name}.${index}.`} dense />
                 </Box>
               ))}
-              <Box sx={{ gridColumn: { sm: 'span 1' }, textAlign: 'right', pt: 0.75 }}>
+              <Box sx={{ gridColumn: { sm: 'span 1' }, textAlign: 'right', pt: { xs: 0, sm: '23px' } }}>
                 <IconButton color="error" disabled={disabled}
                   onClick={() => remove(index)} aria-label="Remover">
                   <DeleteOutlineIcon />
@@ -113,7 +114,8 @@ export function SubItemsEditor({ name, label, subFields, summary, disabled }: Pr
               </Box>
             </Box>
             {inboundNoteCosts?.itens[index] && (
-              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ mt: 1.5 }}>
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}
+                sx={{ pt: 1.25, mt: 0.5, borderTop: 1, borderColor: 'divider' }}>
                 <Chip size="small" label={`Total do item: ${formatCurrency(inboundNoteCosts.itens[index].valorTotal)}`} />
                 <Chip size="small" label={`Despesas rateadas: ${formatCurrency(
                   inboundNoteCosts.itens[index].rateioFrete

@@ -4,9 +4,9 @@
 
 ## Objetivo
 
-Padronizar listagens operacionais no visual do Hub YES7: fundo slate, azul só
-na ação primária, busca imediata, filtros avançados recolhidos e detalhe em
-drawer sem inventar dados.
+Padronizar listagens operacionais com o visual do Seven Tickets Web: fundo
+neutro, roxo para ações e seleção, busca imediata, filtros avançados recolhidos e detalhe
+em página, sem inventar dados.
 
 ## Contexto
 
@@ -15,13 +15,28 @@ comerciais (notas de saída e ordens de serviço)
 reutilizam os mesmos componentes. Preferências visuais ficam em
 `kaneko.ui.{orgId}.{login}`; tokens e dados empresariais não são persistidos.
 
+O padrão visual combina títulos roxos, filtros tonais, abas sobre uma
+superfície neutra e cabeçalhos de tabela em caixa alta. Diálogos e painéis de
+detalhe separam visualmente título, conteúdo e ações; os controles permanecem
+nas mesmas posições e com a mesma navegação por teclado.
+
+`OperationalDataGrid` mantém ordenação, paginação, cliques e colunas do MUI.
+A identificação é destacada na própria célula e as ações ficam na coluna
+existente. No mobile, `ListingCards` separa título e pares de rótulo/valor.
+Nos cadastros, `FormField` mantém rótulo, associação com o controle e erro
+visíveis fora da borda, sem alterar ordem, máscara ou validação.
+
+Abrir um registro leva a uma subpágina com retorno à listagem; seus detalhes
+e ações não são anexados abaixo da tabela. [[eventos]] usa esse padrão para
+Ciclo de vida e preparação do evento.
+
 ## Fluxo (camadas da arquitetura)
 
 ```text
 ResourceConfig -> CrudResourcePage
   -> ListingToolbar / FilterBar / AppliedFilterChips
   -> DataGrid (desktop) ou ListingCards (mobile)
-  -> clique na linha -> GET /{id} -> DetailDrawer
+  -> clique na linha -> GET /{id} -> RecordDetailPage
 ```
 
 ## Endpoints (se houver)
@@ -65,7 +80,8 @@ documentos fiscais e serviços sobre o mesmo shell modal.
 
 ## Decisões Técnicas
 
-- Azul `#1565c0` fica reservado ao botão primário; status usa verde/âmbar/vermelho.
+- Roxo `#800084` identifica a ação primária no tema claro; status usa cor
+  semântica e rótulo, com contraste próprio para os modos claro e escuro.
 - Ações secundárias ficam no menu ⋮ para não competir com a ação principal.
 - Ausência de vínculo vira `Informação não disponível nesta versão`, sem expor
   termos de implementação ao operador.
@@ -75,18 +91,28 @@ documentos fiscais e serviços sobre o mesmo shell modal.
 - Na OS, Iniciar/Concluir é a ação principal conforme estado; Editar/Cancelar
   ficam no menu secundário. O detalhe mantém a ação e o mobile usa `ListingCards`.
   Todas as mutações continuam confirmadas e usam os contratos/versões existentes.
-- Nota de Entrada usa listagem dedicada + rota de detalhe (não só drawer CRUD).
+- Notas usam rotas de documento próprias. Cadastros, títulos e ordens
+  abrem em `/app/<módulo>/<id>`; o razão usa `/app/estoque/movimentos/<id>`.
+  Links antigos com `?detail=...` redirecionam sem descartar os filtros.
+  O detalhe substitui a listagem e mantém a mesma permissão de leitura.
+- Ordens de Serviço e Financeiro compartilham busca, ordenação, filtros e
+  paginação. A URL preserva página, tamanho, ordem e filtros no detalhe;
+  Voltar restaura a entrada original quando ela existe, ou abre a listagem
+  com os parâmetros de filtro presentes na URL.
 - `ResourceFormDialog.submitLabel` permite nomear o comando operacional; o padrão continua `Salvar` para manter compatibilidade.
 - `ResourceFormDialog` anuncia o formulario e o estado ocupado, troca a acao por
   “Salvando…” com progresso visivel e bloqueia fechamento/reenvio enquanto a
   mutacao esta em andamento.
-- Formulários, confirmações, filtros, seletores e detalhes mobile usam
-  `AppDialog`. Filtros deixaram de abrir um drawer lateral vazio e usam um
-  diálogo compacto em qualquer viewport; drawers desktop permanecem apenas para
-  detalhes extensos de consulta.
+- Use `AppDialog` para operações pontuais: ações curtas, confirmações,
+  filtros ou seleção. A criação ou edição principal de cadastros usa
+  `ResourceFormPage`. Campos, permissões, validações e versão do registro
+  permanecem os mesmos. A consulta de um registro não abre
+  sobreposição no desktop nem no celular; o drawer de navegação mobile
+  permanece exclusivo ao menu.
 - Cada item de um seletor de referência oferece “Editar” quando o cadastro
-  possui formulário e o usuário tem permissão de atualização. A edição abre
-  empilhada, retorna à lista e não descarta o formulário principal.
+  possui formulário e o usuário tem permissão de atualização. Formulários
+  curtos abrem em diálogo; os extensos ocupam o conteúdo da página. Ao
+  retornar, o documento e o estado do seletor são preservados.
 - O valor dos campos em `ListingCards` usa `Typography component="div"` para
   aceitar chips de situação sem inserir elementos de bloco dentro de parágrafos.
 - Cards clicaveis aceitam rotulo de abertura contextual, evitando a repeticao
@@ -119,6 +145,15 @@ documentos fiscais e serviços sobre o mesmo shell modal.
 
 | Data | Ação |
 |---|---|
+| 2026-11-22 | Padroniza subpáginas e retorno às listagens; mantém links antigos e reserva modais para ações pontuais. |
+| 2026-11-09 | Atalhos e busca respeitam o acesso à rota; exclusão dos cadastros globais de geografia permanece restrita ao perfil ADMIN. |
+| 2026-11-08 | Unifica ordenação e paginação de Ordens de Serviço e Financeiro; preserva filtros e retorno pelo histórico ou por link direto. |
+| 2026-11-08 | Aplica o critério página/modal a criação e edição no CRUD e nos seletores; preserva o registro, filtros e rascunho de origem. |
+| 2026-11-08 | Padroniza o detalhe como página e mantém modais só para operações pontuais, preservando links diretos e filtros da lista. |
+| 2026-11-08 | Reestrutura a apresentação interna das tabelas, cartões, campos e modais, mantendo os dados e comandos nas posições atuais. |
+| 2026-11-08 | Redesenha os estados vazios, busca e filtros, abas, tabelas e painéis de detalhe a partir das superfícies do Seven Tickets, sem alterar as operações. |
+| 2026-11-08 | Redesenha títulos, filtros e cabeçalhos de tabela com tipografia Montserrat, ações em cápsula e rodapé de diálogo diferenciado, mantendo os pontos de quebra. |
+| 2026-11-08 | Aplica aos botões, tabelas, cartões e filtros os tokens do Seven Tickets Web, mantendo dimensões, layout responsivo e comportamento. |
 | 2026-11-08 | Listas e detalhes preservam até seis casas sem alterar contadores; campos calculados somente leitura não invalidam a edição. |
 | 2026-11-05 | Retira listagem de Pedido de Venda e seus vínculos navegáveis; preserva as listagens de notas e OS. |
 | 2026-10-30 | Remove listagens e detalhes de Ordem/Recebimento de Compra; Notas de Entrada permanecem dedicadas. |

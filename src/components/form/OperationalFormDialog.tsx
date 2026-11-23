@@ -2,6 +2,7 @@ import { Alert, Box, Button, CircularProgress, Stack, type DialogProps } from '@
 import { useState, type FormEvent, type ReactNode } from 'react';
 import { AppDialog } from '../common/AppDialog';
 import { ConfirmDialog } from '../common/ConfirmDialog';
+import { formFieldLayout } from './FormField';
 
 interface OperationalFormDialogProps {
   open: boolean;
@@ -57,7 +58,7 @@ export function OperationalFormDialog({
         busy={submitting}
         actions={(
           <>
-            <Button color="inherit" onClick={requestClose} disabled={submitting}>Cancelar</Button>
+            <Button variant="outlined" onClick={requestClose} disabled={submitting}>Cancelar</Button>
             <Button type="submit" form={formId} variant="contained" disabled={submitting || submitDisabled}
               startIcon={submitting ? <CircularProgress size={18} color="inherit" /> : undefined}>
               {submitLabel}
@@ -65,7 +66,8 @@ export function OperationalFormDialog({
           </>
         )}
       >
-        <Box component="form" id={formId} onSubmit={onSubmit}>
+        <Box component="form" id={formId} onSubmit={onSubmit}
+          sx={{ '& .MuiTextField-root, & .MuiPickersTextField-root': formFieldLayout }}>
           <Stack spacing={2}>
             {error && <Alert severity="error" aria-live="polite">{error}</Alert>}
             {children}

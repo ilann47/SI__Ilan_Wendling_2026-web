@@ -20,6 +20,7 @@ import {
 } from '../../resources/fornecedorConveniencia';
 import { notaEntradaConfig, notaSaidaConfig, notaServicoConfig } from '../../resources/fiscal';
 import { cargosConfig, funcionariosConfig } from '../../resources/rhUsuario';
+import { veiculosConfig } from '../../resources/patio';
 import {
   hasResourceActionPermission,
   newResourceLabel,
@@ -29,6 +30,13 @@ import {
 import { buildResourcePayload } from '../form/ResourceFormDialog';
 
 describe('textos gerados pelo CRUD', () => {
+  it('identifica o vínculo opcional do veículo sem classificar o cliente como mensalista', () => {
+    const cliente = veiculosConfig.fields.find(({ name }) => name === 'clienteId');
+    expect(cliente).toMatchObject({ label: 'Cliente', type: 'reference', reference: { basePath: '/api/clientes' } });
+    expect(cliente?.required).toBeFalsy();
+    expect(veiculosConfig.unavailableRelations).not.toContain('Mensalidade vigente');
+  });
+
   it('respeita o gênero gramatical do recurso', () => {
     expect(newResourceLabel(notaSaidaConfig)).toBe('Nova nota de saída');
     expect(resourceNotFoundLabel(notaSaidaConfig)).toBe('Nenhuma nota de saída encontrada');

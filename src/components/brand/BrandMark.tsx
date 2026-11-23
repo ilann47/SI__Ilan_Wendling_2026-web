@@ -1,7 +1,6 @@
-import { Box, Typography } from '@mui/material';
-import { HexMark } from './HexMark';
+import { Box } from '@mui/material';
 import { useColorMode } from '../../context/ColorModeContext';
-import { getThemeTokens } from '../../theme/hubTokens';
+import { productName } from './brandName';
 
 type Props = {
   size?: number;
@@ -10,63 +9,63 @@ type Props = {
   onClick?: () => void;
 };
 
-export function BrandMark({ size = 36, showName = false, inverted = false, onClick }: Props) {
+const asset = (name: string) => `${import.meta.env.BASE_URL}brand/yes7parking-${name}.svg`;
+
+// Figma: lockups 1:37 / 3:149 and compact symbol 1:202.
+// Scale the exported layers proportionally in their original positions.
+const colorLockup = {
+  ratio: 200 / 64,
+  parts: [
+    { name: 'symbol', left: '0%', top: '0%', width: '41.24%' },
+    { name: 'yes7', left: '43.78%', top: '13.63%', width: '31.45%' },
+    { name: 'parking', left: '43.82%', top: '50%', width: '56.18%' },
+  ],
+};
+const whiteLockup = {
+  ratio: 150 / 47,
+  parts: [
+    { name: 'symbol-lockup-white', left: '0%', top: '0%', width: '41.24%' },
+    { name: 'yes7-white', left: '43.78%', top: '13.63%', width: '31.45%' },
+    { name: 'parking-white', left: '43.82%', top: '49.99%', width: '56.18%' },
+  ],
+};
+
+export function BrandMark({ size = 36, showName = false, inverted, onClick }: Props) {
   const interactive = Boolean(onClick);
   const { mode } = useColorMode();
-  const colors = getThemeTokens(mode);
-  const titleColor = inverted ? '#fff' : colors.text;
-  const subColor = inverted ? 'rgba(255,255,255,0.78)' : colors.textMuted;
+  const white = inverted ?? mode === 'dark';
+  const lockup = white ? whiteLockup : colorLockup;
+  const ratio = showName ? lockup.ratio : white ? 38.9939 / 36 : 82.4802 / 64.0052;
 
   return (
     <Box
       component={interactive ? 'button' : 'div'}
       type={interactive ? 'button' : undefined}
       onClick={onClick}
-      aria-label={interactive ? 'Kaneko' : undefined}
+      aria-label={interactive || showName ? productName : undefined}
+      role={!interactive && showName ? 'img' : undefined}
       sx={{
         appearance: 'none',
         border: 0,
         background: 'none',
         p: 0,
         m: 0,
-        display: 'flex',
-        alignItems: 'center',
-        gap: size >= 48 ? 1.35 : 1,
+        display: 'inline-block',
+        position: 'relative',
+        verticalAlign: 'middle',
+        width: size * ratio,
+        height: size,
         flexShrink: 0,
         overflow: 'visible',
         cursor: interactive ? 'pointer' : 'default',
         textAlign: 'left',
       }}
     >
-      <HexMark size={size} />
-      {showName ? (
-        <Box sx={{ display: 'flex', flexDirection: 'column', lineHeight: 1, minWidth: 0 }}>
-          <Typography
-            sx={{
-              fontWeight: 800,
-              fontSize: size >= 52 ? '1.55rem' : size >= 40 ? '1.12rem' : '0.98rem',
-              color: titleColor,
-              letterSpacing: -0.4,
-              whiteSpace: 'nowrap',
-            }}
-          >
-            Kaneko
-          </Typography>
-          <Typography
-            sx={{
-              fontWeight: 700,
-              fontSize: size >= 52 ? '0.62rem' : '0.52rem',
-              color: subColor,
-              letterSpacing: size >= 52 ? 1.6 : 1.1,
-              textTransform: 'uppercase',
-              whiteSpace: 'nowrap',
-              mt: 0.25,
-            }}
-          >
-            Hub operacional
-          </Typography>
-        </Box>
-      ) : null}
+      {showName
+        ? lockup.parts.map(({ name, left, top, width }) => <Box key={name} component="img"
+          src={asset(name)} alt="" sx={{ position: 'absolute', display: 'block', left, top, width, height: 'auto' }} />)
+        : <Box component="img" src={asset(white ? 'symbol-white' : 'symbol')} alt=""
+          sx={{ display: 'block', width: 'auto', height: size }} />}
     </Box>
   );
 }

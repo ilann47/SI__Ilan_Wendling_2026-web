@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { renderHook, waitFor } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { act, renderHook, waitFor } from '@testing-library/react';
+import { MemoryRouter, useLocation } from 'react-router-dom';
 import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import { useLinkedDetail } from './useLinkedDetail';
@@ -13,6 +13,35 @@ function wrapper(path: string) {
 }
 
 describe('detalhe contextual por URL', () => {
+  it('abre em subpágina e volta à listagem com os filtros da origem', async () => {
+    const load = vi.fn().mockResolvedValue({ id: 5 });
+    const { result } = renderHook(() => {
+      const detail = useLinkedDetail(1, 'contas', load, true, true, { listPath: '/app/contas-pagar' });
+      return { detail, location: useLocation() };
+    }, { wrapper: wrapper('/app/contas-pagar?page=2&situacao=PARCIAL') });
+    act(() => result.current.detail.open(5));
+    expect(result.current.location.pathname).toBe('/app/contas-pagar/5');
+    expect(result.current.location.search).toBe('?page=2&situacao=PARCIAL');
+    await waitFor(() => expect(result.current.detail.data).toEqual({ id: 5 }));
+    act(() => result.current.detail.close());
+    expect(result.current.location.pathname).toBe('/app/contas-pagar');
+    expect(result.current.location.search).toBe('?page=2&situacao=PARCIAL');
+  });
+
+  it('redireciona link legado e volta à aba da listagem mesmo após acesso direto', async () => {
+    const load = vi.fn().mockResolvedValue({ id: 5 });
+    const { result } = renderHook(() => {
+      const detail = useLinkedDetail(1, 'movimentos', load, true, true,
+        { listPath: '/app/estoque', detailBase: '/app/estoque/movimentos' });
+      return { detail, location: useLocation() };
+    }, { wrapper: wrapper('/app/estoque?tab=razao&detail=5') });
+    await waitFor(() => expect(result.current.location.pathname).toBe('/app/estoque/movimentos/5'));
+    expect(result.current.location.search).toBe('?tab=razao');
+    expect(load).toHaveBeenCalledExactlyOnceWith(5);
+    act(() => result.current.detail.close());
+    expect(result.current.location.pathname + result.current.location.search).toBe('/app/estoque?tab=razao');
+  });
+
   it.each(['-1', '1.2', '1e3', 'abc', '9007199254740993'])('não consulta ID inválido %s', (id) => {
     const load = vi.fn();
     renderHook(() => useLinkedDetail(1, 'contas', load, true), { wrapper: wrapper(`/?detail=${id}`) });
