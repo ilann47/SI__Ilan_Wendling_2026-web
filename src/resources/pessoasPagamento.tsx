@@ -1,5 +1,7 @@
 import { type ResourceConfig } from '../components/crud/resourceConfig';
 import { type FieldConfig } from '../components/form/fieldConfig';
+import { formatPercent } from '../utils/format';
+import { mascaraDocumentoFiscal } from '../utils/documento';
 import { cols } from './columns';
 import { estadoCivilOptions, sexoOptions, tipoPessoaOptions } from './options';
 
@@ -8,12 +10,31 @@ export const clientesConfig: ResourceConfig = {
   basePath: '/api/clientes',
   singular: 'Cliente',
   plural: 'Clientes',
+  tenantAware: true,
+  permissions: {
+    read: ['customers:read'],
+    create: ['customers:manage'],
+    update: ['customers:manage'],
+    delete: ['customers:manage'],
+  },
   subtitle: 'Pessoas físicas ou jurídicas atendidas.',
+  searchFilter: 'nome',
+  unavailableRelations: [
+    'Mensalidades',
+    'Movimentações',
+    'Ordens de serviço',
+    'Notas',
+    'Contas a receber',
+  ],
   defaultSort: 'nome,asc',
   columns: [
     cols.id(),
     cols.text('nome', 'Nome'),
-    cols.documento('documento', 'Documento'),
+    cols.documento('documento', 'Documento', {
+      valueFormatter: (value: string) => value ? mascaraDocumentoFiscal(value) : '',
+    }),
+    cols.text('cadastroFiscalBasico', 'Cadastro', { flex: 0, width: 130, sortable: false,
+      valueFormatter: (value: boolean) => value ? 'Básico (NFS-e)' : '—' }),
     cols.text('telefone', 'Telefone', { flex: 0, width: 140 }),
     cols.text('cidadeNome', 'Cidade'),
     cols.bool('ativo', 'Ativo'),
@@ -24,9 +45,9 @@ export const clientesConfig: ResourceConfig = {
     { name: 'ativo', label: 'Situação', type: 'boolean' },
   ],
   fields: [
-    { name: 'nome', label: 'Nome', type: 'text', required: true, cols: 8 },
+    { name: 'nome', label: 'Nome', type: 'text', required: true, maxLength: 160, cols: 8 },
     { name: 'tipo', label: 'Tipo', type: 'select', cols: 4, options: tipoPessoaOptions, defaultValue: 'FISICA' },
-    { name: 'documento', label: 'CPF / CNPJ', type: 'document', documentTypeFrom: 'tipo', required: true, cols: 4 },
+    { name: 'documento', label: 'CPF / CNPJ', type: 'document', documentTypeFrom: 'tipo', allowAlphanumericCnpj: true, required: true, cols: 4 },
     { name: 'rgInscricaoEstadual', label: 'RG / Inscrição Estadual', type: 'text', cols: 4 },
     { name: 'apelido', label: 'Apelido / Nome fantasia', type: 'text', cols: 4 },
     { name: 'dataNascimento', label: 'Nascimento', type: 'date', cols: 4 },
@@ -64,6 +85,14 @@ export const formasPagamentoConfig: ResourceConfig = {
   basePath: '/api/formas-pagamento',
   singular: 'Forma de Pagamento',
   plural: 'Formas de Pagamento',
+  grammaticalGender: 'feminine',
+  tenantAware: true,
+  permissions: {
+    read: ['payments:read'],
+    create: ['payments:manage'],
+    update: ['payments:manage'],
+    delete: ['payments:manage'],
+  },
   subtitle: 'Meios de pagamento aceitos.',
   defaultSort: 'nome,asc',
   columns: [
@@ -86,7 +115,7 @@ export const formasPagamentoConfig: ResourceConfig = {
 const parcelaSubFields: FieldConfig[] = [
   { name: 'numero', label: 'Nº', type: 'integer', cols: 2, required: true },
   { name: 'dias', label: 'Dias', type: 'integer', cols: 3, required: true },
-  { name: 'percentual', label: 'Percentual', type: 'percent', cols: 3, required: true },
+  { name: 'percentual', label: 'Percentual', type: 'percent', cols: 3, required: true, step: 0.000001 },
   {
     name: 'formaPagamentoId',
     label: 'Forma',
@@ -101,14 +130,22 @@ export const condicoesPagamentoConfig: ResourceConfig = {
   basePath: '/api/condicoes-pagamento',
   singular: 'Condição de Pagamento',
   plural: 'Condições de Pagamento',
+  grammaticalGender: 'feminine',
+  tenantAware: true,
+  permissions: {
+    read: ['payments:read'],
+    create: ['payments:manage'],
+    update: ['payments:manage'],
+    delete: ['payments:manage'],
+  },
   subtitle: 'Prazos e parcelas (à vista, 30/60, etc.).',
   defaultSort: 'nome,asc',
   columns: [
     cols.id(),
     cols.text('nome', 'Nome'),
     cols.number('numeroParcelas', 'Parcelas'),
-    cols.percent('percentualJuros', 'Juros'),
-    cols.percent('percentualDesconto', 'Desconto'),
+    cols.percent('percentualJuros', 'Juros', { valueFormatter: (value: number) => formatPercent(value, 6) }),
+    cols.percent('percentualDesconto', 'Desconto', { valueFormatter: (value: number) => formatPercent(value, 6) }),
     cols.bool('ativo', 'Ativo'),
   ],
   filters: [
@@ -117,7 +154,7 @@ export const condicoesPagamentoConfig: ResourceConfig = {
   ],
   toFormValues: (row) => ({
     ...row,
-    parcelas: (row.parcelas ?? []).map((p: any) => ({
+    parcelas: (Array.isArray(row.parcelas) ? row.parcelas : []).map((p: any) => ({
       numero: p.numero,
       dias: p.dias,
       percentual: p.percentual,
@@ -128,9 +165,9 @@ export const condicoesPagamentoConfig: ResourceConfig = {
     { name: 'nome', label: 'Nome', type: 'text', required: true, cols: 6 },
     { name: 'numeroParcelas', label: 'Nº de parcelas', type: 'integer', required: true, cols: 3, defaultValue: 1 },
     { name: 'ativo', label: 'Ativo', type: 'switch', cols: 3 },
-    { name: 'percentualJuros', label: 'Juros', type: 'percent', cols: 4 },
-    { name: 'percentualMulta', label: 'Multa', type: 'percent', cols: 4 },
-    { name: 'percentualDesconto', label: 'Desconto', type: 'percent', cols: 4 },
+    { name: 'percentualJuros', label: 'Juros', type: 'percent', cols: 4, step: 0.000001 },
+    { name: 'percentualMulta', label: 'Multa', type: 'percent', cols: 4, step: 0.000001 },
+    { name: 'percentualDesconto', label: 'Desconto', type: 'percent', cols: 4, step: 0.000001 },
     { name: 'parcelas', label: 'Parcelas', type: 'subitems', subFields: parcelaSubFields },
   ],
 };

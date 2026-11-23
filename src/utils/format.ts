@@ -1,18 +1,22 @@
 import dayjs from 'dayjs';
 
-export function formatCurrency(value?: number | null): string {
+export function formatCurrency(value?: number | null, currency = 'BRL', maximumFractionDigits = 6): string {
   if (value === null || value === undefined) return '—';
-  return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  return value.toLocaleString('pt-BR', { style: 'currency', currency, maximumFractionDigits });
 }
 
-export function formatNumber(value?: number | null, digits = 0): string {
-  if (value === null || value === undefined) return '—';
-  return value.toLocaleString('pt-BR', { minimumFractionDigits: digits, maximumFractionDigits: digits });
+export function formatCurrencyMicros(value?: number | null): string {
+  return formatCurrency(value, 'BRL', 6);
 }
 
-export function formatPercent(value?: number | null): string {
+export function formatNumber(value?: number | null, digits = 0, maximumDigits = digits): string {
   if (value === null || value === undefined) return '—';
-  return `${value.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}%`;
+  return value.toLocaleString('pt-BR', { minimumFractionDigits: digits, maximumFractionDigits: maximumDigits });
+}
+
+export function formatPercent(value?: number | null, maximumFractionDigits = 6): string {
+  if (value === null || value === undefined) return '—';
+  return `${value.toLocaleString('pt-BR', { maximumFractionDigits })}%`;
 }
 
 export function formatDate(iso?: string | null): string {
@@ -38,6 +42,22 @@ export function minutesToHuman(min?: number | null): string {
   return h === 0 ? `${m}min` : `${h}h${m.toString().padStart(2, '0')}`;
 }
 
+export function formatStatusLabel(status?: string | null): string {
+  if (!status) return '—';
+  const knownLabels: Record<string, string> = {
+    EM_EXECUCAO: 'Em execução',
+    CONCLUIDA: 'Concluída',
+    FISICA: 'Física',
+    JURIDICA: 'Jurídica',
+    VIUVO: 'Viúvo',
+    SAIDA: 'Saída',
+    OPERACAO: 'Operação',
+  };
+  if (knownLabels[status]) return knownLabels[status];
+  const normalized = status.replace(/_/g, ' ').toLocaleLowerCase('pt-BR');
+  return normalized.charAt(0).toLocaleUpperCase('pt-BR') + normalized.slice(1);
+}
+
 /** Cor (palette MUI) para uma situacao/status conhecido. */
 export function statusColor(
   status?: string | null,
@@ -49,15 +69,27 @@ export function statusColor(
     case 'PAGA':
     case 'RECEBIDA':
     case 'FECHADO':
+    case 'AUTORIZADA':
+    case 'CONCLUIDA':
+    case 'APROVADA':
+    case 'REGULAR':
       return 'success';
     case 'PENDENTE':
     case 'PARCIAL':
+    case 'PARCIALMENTE_RECEBIDA':
     case 'ABERTO':
+    case 'RASCUNHO':
+    case 'EM_EXECUCAO':
       return 'warning';
     case 'CANCELADA':
     case 'CANCELADO':
+    case 'RECUSADA':
+    case 'REJEITADA':
+    case 'VENCIDO':
+    case 'INATIVO':
       return 'error';
     case 'SUSPENSO':
+    case 'PUBLICADO':
       return 'info';
     default:
       return 'default';

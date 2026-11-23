@@ -47,6 +47,15 @@ export const cols = {
     valueFormatter: (v: number) => formatNumber(v, digits),
     ...extra,
   }),
+  decimal: (field: string, headerName: string, extra: Extra = {}): GridColDef => ({
+    field,
+    headerName,
+    width: 130,
+    align: 'right',
+    headerAlign: 'right',
+    valueFormatter: (v: number) => formatNumber(v, 0, 6),
+    ...extra,
+  }),
   percent: (field: string, headerName: string, extra: Extra = {}): GridColDef => ({
     field,
     headerName,

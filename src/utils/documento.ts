@@ -22,8 +22,8 @@ export function mascaraCpf(v: string): string {
 }
 
 /** Aplica a mascara de CNPJ (00.000.000/0000-00) de forma progressiva. */
-export function mascaraCnpj(v: string): string {
-  const d = soDigitos(v).slice(0, 14);
+export function mascaraCnpj(v: string, alfanumerico = false): string {
+  const d = (alfanumerico ? normalizaDocumentoFiscal(v) : soDigitos(v)).slice(0, 14);
   let out = d.slice(0, 2);
   if (d.length > 2) out += '.' + d.slice(2, 5);
   if (d.length > 5) out += '.' + d.slice(5, 8);
@@ -41,6 +41,16 @@ export function mascaraDocumento(v: string, modo: DocumentoModo = 'auto'): strin
   return usarCnpj ? mascaraCnpj(v) : mascaraCpf(v);
 }
 
+export function normalizaDocumentoFiscal(v: string): string {
+  return v.trim().toUpperCase().replace(/[./-]/g, '');
+}
+
+export function mascaraDocumentoFiscal(v: string, modo: DocumentoModo = 'auto'): string {
+  const documento = normalizaDocumentoFiscal(v);
+  const cnpj = modo === 'cnpj' || (modo === 'auto' && !/^\d{0,11}$/.test(documento));
+  return cnpj ? mascaraCnpj(documento, true) : mascaraCpf(documento);
+}
+
 /** Valida o CPF pelos dois digitos verificadores (rejeita sequencias iguais). */
 export function validaCpf(v: string): boolean {
   const d = soDigitos(v);
@@ -56,9 +66,9 @@ export function validaCpf(v: string): boolean {
 }
 
 /** Valida o CNPJ pelos dois digitos verificadores (rejeita sequencias iguais). */
-export function validaCnpj(v: string): boolean {
-  const d = soDigitos(v);
-  if (d.length !== 14) return false;
+export function validaCnpj(v: string, alfanumerico = false): boolean {
+  const d = alfanumerico ? normalizaDocumentoFiscal(v) : soDigitos(v);
+  if (!/^[A-Z0-9]{12}\d{2}$/.test(d)) return false;
   if (/^(\d)\1{13}$/.test(d)) return false;
   const dv = (len: number): number => {
     const pesos =
@@ -66,7 +76,8 @@ export function validaCnpj(v: string): boolean {
         ? [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]
         : [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
     let soma = 0;
-    for (let i = 0; i < len; i++) soma += Number(d[i]) * pesos[i];
+    // Os dígitos e as letras usam o valor ASCII menos 48.
+    for (let i = 0; i < len; i++) soma += (d.charCodeAt(i) - 48) * pesos[i];
     const r = soma % 11;
     return r < 2 ? 0 : 11 - r;
   };

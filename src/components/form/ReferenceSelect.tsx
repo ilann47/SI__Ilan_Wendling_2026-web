@@ -1,21 +1,32 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { IconButton, InputAdornment, TextField, Tooltip } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import SearchIcon from '@mui/icons-material/Search';
-import { api } from '../../api/client';
+import { api, describeError } from '../../api/client';
+import { tenantQueryKey } from '../../api/queryKeys';
 import type { ReferenceConfig } from './fieldConfig';
 import { useQuickCreate } from '../../context/quickCreateCore';
-import { ReferencePickerDialog, optionLabel, type RefOption } from './ReferencePickerDialog';
+import { ReferencePickerDialog, optionLabel, type RefOption, type ReferenceSource } from './ReferencePickerDialog';
+import { useAuth } from '../../auth/AuthContext';
+import { hasResourceActionPermission } from '../crud/resourceConfig';
+import { FormField } from './FormField';
 
 interface Props {
   label: string;
   value: number | null | undefined;
-  onChange: (value: number | null) => void;
+  selectedOption?: RefOption;
+  onChange: (value: number | null, option?: RefOption) => void;
   reference: ReferenceConfig;
+  source?: ReferenceSource;
+  emptyText?: string;
+  allowCatalogChanges?: boolean;
   required?: boolean;
   error?: string;
+  helperText?: string;
   disabled?: boolean;
+  reserveHelperSpace?: boolean;
+  stackedLabel?: boolean;
 }
 
 /**
@@ -23,44 +34,69 @@ interface Props {
  * (lista + busca + "cadastrar") ao ser clicado. O rotulo do selecionado e
  * resolvido buscando o registro pelo id.
  */
-export function ReferenceSelect({ label, value, onChange, reference, required, error, disabled }: Props) {
+export function ReferenceSelect({
+  label, value, selectedOption, onChange, reference, source, emptyText, allowCatalogChanges, required, error, helperText, disabled, reserveHelperSpace, stackedLabel,
+}: Props) {
   const quick = useQuickCreate();
-  const singular = quick?.configFor(reference.basePath)?.singular ?? label;
+  const resourceConfig = quick?.configFor(reference.basePath);
+  const singular = resourceConfig?.singular ?? label;
+  const { activeOrganization, permissions } = useAuth();
+  const queries = useQueryClient();
+  const orgId = activeOrganization?.organizationId;
+  const requiresTenant = !resourceConfig || resourceConfig.tenantAware;
+  const canRead = (!requiresTenant || !!orgId) && (!resourceConfig
+    || hasResourceActionPermission(resourceConfig, 'read', permissions))
+    && (reference.readPermissions?.every((permission) => permissions.includes(permission)) ?? true);
+  const unavailable = disabled || !canRead;
   const [open, setOpen] = useState(false);
 
   // O valor pode chegar como '' (default do formulario); normaliza para id numerico ou null.
   const parsed = value == null || `${value}`.trim() === '' ? null : Number(value);
-  const id = parsed != null && Number.isFinite(parsed) ? parsed : null;
+  const id = parsed != null && Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
+  const knownOption = selectedOption?.id === id ? selectedOption : source?.options?.find((option) => option.id === id);
 
-  const { data: selected } = useQuery({
-    queryKey: ['reference-one', reference.basePath, id],
-    queryFn: () => api.get<RefOption>(`${reference.basePath}/${id}`).then((r) => r.data),
-    enabled: id != null,
+  const selectionKey = (selectedId: number | null) => orgId ? tenantQueryKey(orgId, 'reference-one', reference.basePath, selectedId, reference.params)
+    : ['reference-one', 'global', reference.basePath, selectedId, reference.params];
+  const selectedQuery = useQuery({
+    queryKey: selectionKey(id),
+    queryFn: ({ signal }) => source?.lookup ? source.lookup(id!, signal).then((option) => option ?? null)
+      : api.get<RefOption>(`${reference.basePath}/${id}`).then((r) => r.data),
+    enabled: id != null && canRead && !knownOption && !source?.options,
     staleTime: 60_000,
   });
 
-  const display = id == null ? '' : selected ? optionLabel(selected, reference) : `#${id}`;
+  const lookupFailed = !knownOption && selectedQuery.isError;
+  const selected = canRead && !lookupFailed ? knownOption ?? selectedQuery.data : undefined;
+  const referenceError = !canRead ? 'Selecione uma organização e confira a permissão de consulta.'
+    : lookupFailed ? describeError(selectedQuery.error) : undefined;
+  const display = id == null || !canRead ? '' : selected ? optionLabel(selected, reference)
+    : !source?.options && selectedQuery.isPending ? 'Carregando cadastro…' : 'Cadastro indisponível';
+  const Field = stackedLabel ? FormField : TextField;
 
   return (
     <>
-      <TextField
+      <Field
         fullWidth
         size="small"
         label={label}
         required={required}
-        disabled={disabled}
-        error={!!error}
-        helperText={error}
+        disabled={unavailable}
+        error={!!error || lookupFailed}
+        helperText={error ?? referenceError ?? helperText ?? (reserveHelperSpace ? ' ' : undefined)}
+        FormHelperTextProps={reserveHelperSpace ? { sx: { minHeight: '1.25rem', mt: 0.5 } } : undefined}
         placeholder="Selecionar..."
         value={display}
         onClick={() => {
-          if (!disabled) setOpen(true);
+          if (!unavailable) setOpen(true);
         }}
-        inputProps={{ readOnly: true, style: { cursor: disabled ? 'default' : 'pointer' } }}
+        onKeyDown={(event) => {
+          if (!unavailable && (event.key === 'Enter' || event.key === ' ')) { event.preventDefault(); setOpen(true); }
+        }}
+        inputProps={{ readOnly: true, style: { cursor: unavailable ? 'default' : 'pointer' } }}
         InputProps={{
           endAdornment: (
             <InputAdornment position="end">
-              {id != null && !disabled ? (
+              {id != null && !unavailable ? (
                 <Tooltip title="Limpar">
                   <IconButton
                     size="small"
@@ -73,7 +109,7 @@ export function ReferenceSelect({ label, value, onChange, reference, required, e
                   </IconButton>
                 </Tooltip>
               ) : null}
-              <IconButton size="small" disabled={disabled} onClick={() => setOpen(true)}>
+              <IconButton aria-label={`Selecionar ${label.toLowerCase()}`} size="small" disabled={unavailable} onClick={() => setOpen(true)}>
                 <SearchIcon fontSize="small" />
               </IconButton>
             </InputAdornment>
@@ -81,11 +117,18 @@ export function ReferenceSelect({ label, value, onChange, reference, required, e
         }}
       />
       <ReferencePickerDialog
-        open={open}
+        key={orgId ?? 'global'}
+        open={open && canRead}
         reference={reference}
+        source={source}
+        emptyText={emptyText}
+        allowCatalogChanges={allowCatalogChanges}
         singular={singular}
         value={id}
-        onSelect={(selectedId) => onChange(selectedId)}
+        onSelect={(selectedId, option) => {
+          if (source?.lookup && option) queries.setQueryData(selectionKey(selectedId), option);
+          onChange(selectedId, option);
+        }}
         onClose={() => setOpen(false)}
       />
     </>

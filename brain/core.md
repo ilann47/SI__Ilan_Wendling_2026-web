@@ -1,0 +1,459 @@
+> Links: [[auth]] · [[acesso]] · [[administracao]] · [[workspace]] · [[listagens]] · [[instalacoes]] · [[eventos]] · [[vendas]] · [[pagamentos]] · [[clientes]] · [[logistica]] · [[fornecedores]] · [[rh]] · [[conveniencia]] · [[estoque]] · [[dashboard]] · [[bloqueios]] · [[paridade-api]] · [[compatibilidade-legada]] · [[unificacao-multitenant]]
+
+# Frontend yes7parking
+
+## Portaria e preparo guiado — 2026-11-22
+
+[[eventos]] abre o caminho de portaria por padrão; venda antecipada é uma escolha
+explícita, sem remover produtos/lotes do fluxo comercial autorizado. O
+detalhe usa um só formulário para preparar a portaria e exige revisão e
+confirmação antes de abrir. Ações auxiliares ficam em Opções avançadas.
+
+A prévia do novo preço conserva base de seis casas e mostra total HALF_UP em
+centavos e ajuste. Essa orientação não substitui o cálculo nem os snapshots da
+API, e não muda a exibição de valores históricos. [[operacao]] e [[auth]]
+documentam o modo Portaria e o destino operacional após seleção de organização.
+
+## Filtros do Pátio — 2026-11-21
+
+[[operacao]] usa os contadores como filtros clicáveis de todos, avulsos e
+mensalistas. A seleção combina com a placa em cartões/listagem e não muda o
+contexto do caixa, as contagens globais da API, os comandos ou as permissões.
+
+## Visualização de veículos — 2026-11-20
+
+[[operacao]] permite escolher cartões ou listagem na consulta dos veículos do
+Pátio, com preferência local por organização/login. Os mesmos dados e handlers
+alimentam ambos os formatos; a listagem é tabela no desktop e linhas no mobile.
+Não altera API, cálculo, permissões nem vínculos financeiros/fiscais.
+
+## Pendências legíveis — 2026-11-20
+
+[[dashboard]] usa a largura do conteúdo e agrupa pendências por categoria,
+com itens de altura natural, valor e data separados e expansão “Ver mais”.
+Não há rolagem confinada nem nova consulta, permissão, rota ou comando de negócio.
+Os caminhos individuais continuam vindo da API. As listagens gerais permitem
+consultar o restante além dos cinco registros carregados por categoria.
+
+## Evolução operacional — 2026-11-19
+
+[[operacao]] concentra contexto por organização/operador, busca de saída no
+servidor, dinheiro/troco exatos, segunda via e correções com permissão de gestão.
+[[eventos]] reúne a preparação avulsa sem produto/lote e o resumo operacional
+com seções financeiras/fiscais limitadas pela API. Nenhum destes fluxos realiza
+transação bancária ou transmissão fiscal externa.
+
+Vitest executa somente os arquivos de teste em src; o teste standalone de
+publicação da prévia usa `npm run test:preview` (node:test).
+As consultas assíncronas da Testing Library aguardam até cinco segundos pelo
+estado esperado, evitando falhas de agendamento na suíte completa em Windows
+sem remover verificações de validação ou efeito.
+
+A identidade pública usa os vetores originais do Figma Yes7 Parking em
+`public/brand/`: versões colorida, branca e símbolo compacto. A mudança visual
+não renomeia organizações, repositórios nem chaves de sessão existentes.
+
+## Recuperação de falhas de tela
+
+A rota raiz usa `AppRouteError`, que não depende de organização ou sessão
+ativa. Se uma tela falhar, o usuário pode recarregar a mesma URL; nas telas
+internas, também pode ir ao início. A recuperação acompanha o modo claro/escuro,
+não mostra detalhes técnicos, não limpa a sessão e não recarrega automaticamente.
+
+A prévia local na porta 5174 serve `.preview-dist` (`npm run preview:local`).
+Atualize-a com `npm run build:preview`: gera fora da pasta servida, adiciona
+arquivos versionados sem substituir os antigos e só então troca o `index.html`.
+As abas abertas seguem usando seu próprio build, enquanto novas navegações de
+documento recebem o índice atual. O `npm run build` comum continua isolado em
+`dist` e não altera a prévia. Não limpe `.preview-dist` com abas da prévia em uso.
+
+## Acesso por organização
+
+As políticas de rota (auth/routeAccess.ts) são usadas no acesso direto, no
+menu, na busca e nos atalhos. Nenhum desses controles substitui a autorização
+no backend. O Pátio separa consulta de veículos de operação do caixa; Relatórios
+mostra apenas abas acessíveis e abre a primeira permitida se necessário.
+Eventos e ofertas e Vendas e credenciais ficam em Operação → Eventos, com
+as mesmas rotas e permissões. Bloqueios e auditoria também ficam em Operação.
+Ordens de Serviço fica em Operação → Serviços; Notas de Serviço permanece em
+Vendas. A ordem oferece acesso direto à nota vinculada quando há leitura fiscal.
+No cabeçalho, o logo yes7parking leva à home. O menu Operação não inclui Início;
+Pátio, Instalações, Movimentações, Veículos, Tarifas, Mensalistas e Relatórios
+ficam no grupo Estacionamento. Clientes e Fornecedores ficam juntos em Cadastros,
+com suas rotas e permissões independentes.
+
+## Pátio e caixa por turno (2026-11-09)
+
+Em `/app/patio`, a placa é digitada diretamente e um pátio ativo é usado
+automaticamente quando único; caso contrário o seletor exibe os nomes. A
+organização e a permissão `operations:checkout` (papel Caixa do pátio) ou
+`operations:manage` controlam os comandos. Prévia,
+pagamento e fechamento são ações curtas em `AppDialog`; o valor da prévia
+vem do servidor e não é calculado no navegador. A conferência mostra recebido
+por meio e a diferença entre dinheiro contado e esperado. Veículos que não
+saíram permanecem visíveis quando o operador fecha seu turno.
+As confirmações de entrada e saída ficam dentro da página para não cobrir
+as ações do Pátio em telas pequenas.
+
+O caixa pode escolher [[eventos|evento]] e pátio, registrar uma placa sem
+reserva e cobrar na entrada ou na saída. A saída pré-paga alerta para não
+cobrar novamente; após encerrar, a tela mostra NFS-e pendente de emissão.
+Na entrada o Pátio mostra o número da OS aberta automaticamente. A saída
+confirma a conclusão da mesma ordem. Em Operação → Serviços → Ordens de Serviço, essas
+ordens são de consulta: a pendência fiscal aparece no detalhe para quem tem
+permissão e não há ação manual de concluir, cancelar ou gerar nota.
+
+## Fluxo vigente PARK-0003 (2026-10-16)
+
+Nota de Entrada é o único documento de novas compras, manual ou XML. O editor em
+`InboundNoteEditorPage` reutiliza `FieldRenderer`/`SubItemsEditor`, seletores e
+cadastros existentes. Rascunho é salvo por ID; edição usa PUT/If-Match. Conferência
+usa a prévia autoritativa da API e exige revisão da versão salva antes da única
+confirmação. Erro inconclusivo exige consulta do mesmo documento; não cria outra
+Nota. Os cadastros aprovados não foram redesenhados.
+Editor, conferência, estoque e contas a pagar apresentam a sexta casa quando
+necessária; a API continua recebendo os valores em unidades usuais.
+
+`FieldRenderer` valida até seis casas para valores, quantidades fracionárias
+e percentuais sem arredondar o texto antes de validar. Contadores e
+identificadores mantêm suas regras anteriores. Listagens, detalhes e relatórios
+mostram até seis casas quando há fração relevante; o fator de persistência do
+backend nunca entra no payload do frontend.
+
+Ordem/Recebimento de Compra foram removidos dos menus, rotas, contratos e telas.
+A venda de mercadorias começa em **Vendas → Notas de Saída**. Não há módulo
+nem vínculos de Pedido de Venda no contrato ativo. Pedidos de eventos e Ordens
+de Serviço são fluxos distintos.
+A home usa apenas Notas de Entrada pendentes. Desconto geral e custo médio
+ponderado seguem o contrato atual;
+não há estorno de Nota confirmada nem integração fiscal/bancária externa.
+
+
+## Objetivo
+
+Fornecer uma única interface React para toda a plataforma Estacionamento Kaneko.
+Os módulos operacionais, administrativos, fiscais, financeiros, de conveniência
+e de eventos são capacidades permanentes do mesmo produto e devem convergir para
+o mesmo contexto multiempresa.
+
+## Contexto
+
+Aplicação React 18 + TypeScript + Vite, com Material UI, React Router, Axios e
+TanStack Query. A autenticação usa JWT e exige seleção de organização antes de
+abrir rotas tenant-aware. O frontend é um repositório Git próprio dentro do
+projeto Java e preserva as telas legadas durante a adoção gradual de `/api/v1`.
+
+## Fluxo (camadas da arquitetura)
+
+```text
+App -> ProtectedRoute -> AuthContext -> organização ativa
+    -> AppLayout (menu superior único / drawer no mobile)
+         -> /app = HubHomePage (saudação e pendências)
+         -> menus por processo -> telas diretamente, sem landing intermediária
+         -> /app/areas/* e /app/visao-geral redirecionam para /app
+         -> demais /app/* = conteúdo em largura total, sem sidebar/abas
+    -> api/client -> backend /api
+```
+
+## Endpoints (se houver)
+
+Os contratos são consumidos pelas páginas; o frontend não publica endpoints.
+
+## Estrutura de Dados (DTOs, Entidades)
+
+Tipos de transporte ficam próximos das páginas ou em `src/types.ts`. O estado
+de autenticação mantém usuário, organizações acessíveis, contexto ativo e
+permissões efetivas.
+
+## Integrações externas (se houver)
+
+Somente o backend configurado por `VITE_API_URL` ou `/api` no mesmo host.
+
+## Tratamento de Erros
+
+O interceptor Axios preserva o token contextual e `describeError` converte
+Problem Details em mensagens operacionais.
+
+Rotas inexistentes, métodos indisponíveis, formatos não suportados e recursos
+desatualizados recebem mensagens próprias para 404, 405, 415 e 428, sem expor
+o texto técnico do Axios ao usuário final. Relações ainda ausentes são descritas
+como indisponíveis nesta versão, sem citar API, endpoint ou payload.
+
+O formulário compartilhado valida números no próprio campo. Valores monetários,
+quantidades e inteiros são não negativos por padrão; percentuais aceitam de 0 a
+100; limites específicos usam `min`/`max`. Campos inválidos mantêm a ação Salvar
+desabilitada e expoentes ou sinal positivo não são aceitos pelo input numérico.
+Campos numericos especializados fora do CRUD reutilizam `NumberField`: removem
+zeros a esquerda, bloqueiam limites invalidos e mantem sinal negativo somente em
+dominios que o exigem, como ajuste de saida do estoque.
+Todo diálogo compartilhado confirma o descarte quando há alteração não salva;
+formulário intacto continua fechando diretamente.
+
+Seletores de referência oferecem criação e edição contextual quando o perfil
+possui a permissão correspondente. A edição reutiliza o formulário oficial do
+recurso, preserva o documento principal e mantém `ETag`/`If-Match` nos cadastros
+versionados.
+
+Todos os modais passam por `AppDialog`: o backdrop bloqueia a aplicação inteira,
+as larguras `xs/sm/md/lg` voltam a representar a complexidade do fluxo, somente
+o conteúdo rola e título, fechamento e ações permanecem visíveis. Operações em
+andamento bloqueiam Escape/backdrop; confirmações críticas usam `alertdialog`.
+
+As superfícies seguem uma regra previsível: ação curta ou confirmação usa
+diálogo; consulta detalhada usa subpágina independente, com retorno à lista.
+A criação e a edição principais do CRUD usam `ResourceFormPage`. Operações
+próprias extensas usam `OperationalFormPage`.
+Ambas usam `FormPage` para ações, erros e confirmação de descarte.
+
+O cliente HTTP possui timeout de 15 segundos, preserva `Authorization` explícita
+na validação de JWT candidato e centraliza o formato estrito de `If-Match`. Chaves
+de consultas enterprise começam por `['tenant', organizationId]`.
+
+## Testes (curl ou equivalente)
+
+Gates disponíveis: `npm run typecheck`, `npm run lint`, `npm test` e
+`npm run build`. Vitest executa testes unitários/de integração em jsdom com
+Testing Library; E2E contra o backend real será acrescentado no recorte próprio.
+
+Em 2026-10-23, a revisão e o detalhe da Nota de Entrada receberam regressões para
+o custo médio ponderado estimado e registrado por item.
+
+Em 2026-10-24, a Nota passou a recolher observações opcionais, manter a barra de
+ações visível durante a rolagem e resumir o impacto do custo médio por item antes
+de abrir sua memória de cálculo. Typecheck, lint, build e 31 testes focados
+passaram. A suíte integral serial foi iniciada, mas o runner encerrou sem emitir
+relatório final e por isso não foi contabilizada como aprovada.
+No navegador, o fluxo foi validado contra backend e banco locais isolados: login,
+seleção de organização, formulário responsivo, observações recolhidas com valores
+preservados e memória expansível do custo médio no documento confirmado.
+
+`HeaderAreaNavigation.test.tsx` cobre navegação direta, filtros na URL, RBAC,
+teclado, troca/fechamento de menus e drawer mobile. `AppLayout.test.tsx` verifica
+a ausência de sidebar e abas também dentro das telas. `App.test.tsx` cobre a
+home integrada e os redirecionamentos de URLs antigas; `DashboardPage.test.tsx`
+cobre permissões, dados consultados e ausência de atalhos duplicados.
+`HubHomePage.test.tsx` cobre a ordem Hub → resumo, painel único de pendências,
+deduplicação de consultas, abertura do menu pelos cartões em desktop/mobile e
+falha de leitura sem exibir ausência de pendências.
+
+Validação de 2026-09-11 após restaurar o Hub com resumo abaixo: 229 testes em 42
+arquivos passaram; typecheck, lint, build e diff-check aprovados. Conferência no
+navegador local cobriu a composição completa, cartão abrindo o menu existente e
+drawer mobile, sem overflow; o tamanho original da prévia foi restaurado.
+Permanecem mensagens XHR `AggregateError` de testes preexistentes no jsdom
+(sem testes falhando) e o aviso de chunk MUI de 603 kB no build.
+
+Regressão completa de 2026-09-29: 358 testes em 66 arquivos passaram; typecheck,
+lint e build também foram aprovados. A rodada inclui autenticação/tenant, menus,
+formulários compartilhados, eventos/acesso, instalações, compras, estoque,
+fiscal, financeiro, vendas, serviços e CRUDs legados. O build mantém apenas o
+aviso conhecido de chunks MUI/DataGrid acima de 500 kB.
+
+`AppDialog.test.tsx` e `theme.test.ts` protegem rótulo acessível, botão fechar,
+bloqueio durante submissão, largura semântica e backdrop de viewport inteiro.
+
+Regressão focalizada de 2026-09-12: 15 testes em 3 arquivos passaram. Os testes
+de layout verificam menus de conta/contexto acima do cabeçalho, e os de navegação
+mantêm o menu de áreas e o drawer abaixo das sobreposições modais. A reprodução
+visual confirmou o menu de conta inteiro acima da segunda linha do cabeçalho.
+
+Validação de 2026-09-12 da home acionável e detalhes por contexto: 256 testes em
+47 arquivos passaram (`npm test -- --maxWorkers=1`); typecheck, lint e build
+aprovados. Regressões cobrem períodos financeiros, links para o registro exato,
+isolamento por organização, permissões dos comandos e ações de compras/serviços.
+Conferência visual em desktop e mobile cobriu a home compacta, troca de período
+e drawer financeiro, sem overflow horizontal. A organização local está sem
+registros para esses fluxos; dados preenchidos foram cobertos por testes, sem
+baixas ou alterações de estoque no navegador. Permanecem as mensagens XHR do
+jsdom e o aviso do chunk MUI de 603,25 kB, sem reprovação dos gates.
+
+## Decisões Técnicas
+
+- A navegação é filtrada pelas permissões retornadas pelo backend.
+- `src/theme/hubTokens.ts` concentra cores semânticas, superfícies e raios do
+  Seven Tickets Web. `src/theme.ts` aplica esses tokens ao MUI; use o mesmo
+  tema nas telas dedicadas em vez de criar cores locais. Usa Montserrat local
+  (WOFF2 Latin, com licença OFL no build), ações em cápsula e rodapés de
+  diálogos separados visualmente. Mantém os alvos de toque, larguras de
+  diálogos e pontos de quebra Kaneko. O preenchimento das ações no modo
+  escuro usa um roxo diferente do texto para preservar contraste.
+- O cabeçalho usa a faixa roxa e a busca em superfície clara do Seven Tickets.
+  No modo escuro, a faixa é adaptada ao tema; menus e formulários mantêm
+  superfícies próprias. Os slots, alturas, pontos de quebra e caminhos de
+  navegação continuam definidos pelo Kaneko.
+- O shell mantém a identidade Kaneko e a navegação principal no topo:
+  sem sidebar ou abas abertas. `/app` mostra saudação e pendências, sem atalhos
+  de áreas ou resumo do dia. O cabeçalho e seu menu mobile continuam sujeitos
+  às permissões da organização.
+- A home usa chaves de consulta `dashboard` por organização. O teste da home
+  cobre o conteúdo reduzido, navegação desktop/mobile e falha de pendências.
+- Home compacta com financeiro separado por fluxo e período; indicadores abrem
+  títulos reais. `useLinkedDetail` permite acesso direto aos detalhes nas telas
+  existentes, sem adicionar páginas intermediárias ou armazenar registros no navegador.
+  Comandos financeiros verificam `rowActionPermissions`; ver [[listagens]] e
+  [[fiscal-financeiro]]. Contadores/filtros ausentes permanecem no backlog backend.
+- Áreas: Operação, Vendas, Estoque, Financeiro, Cadastros e Administração.
+  `HeaderAreaNavigation` abre processos sobre a tela atual, apenas com links
+  diretos. Notas de entrada ficam em Estoque/Compras; saída e serviço em Vendas.
+  O identificador interno `comercial` e as URLs das telas são preservados.
+  O catálogo `areaNavigation.tsx` continua usando `visibleProcessGroups` para RBAC.
+  Favoritos e recentes salvos em `kaneko.ui.{org}.{login}` não são apagados;
+  `rememberPath` continua registrando visitas para a busca existente.
+- URLs antigas `/app/areas/{id}` e `/app/visao-geral` redirecionam para `/app`.
+  Sidebar, abas e páginas de área antigas permanecem no código, fora do shell/rotas ativos,
+  para não misturar uma limpeza ampla com a simplificação aprovada.
+- Em `xl+`, marca, áreas, busca e conta ficam na mesma linha. Entre `md` e `xl`,
+  as áreas ocupam uma segunda linha de 44px. `layoutMetrics` sincroniza o espaço
+  do conteúdo. No celular, as áreas abrem em um único drawer com grupos
+  expansíveis e os mesmos links. Escape devolve foco e as setas percorrem as áreas.
+- Camadas seguem o tema MUI: cabeçalho em `appBar`, menu de áreas em
+  `appBar + 1`, drawer na camada padrão `drawer` e menus de conta/contexto na
+  camada padrão `modal`. Isso impede que a navegação encubra menus ou diálogos,
+  sem aumentar arbitrariamente o z-index de cada sobreposição.
+- O tema declara `modal = 1600` como fonte única da camada de diálogos. Popovers
+  de calendário usam `modal + 1`, evitando que o seletor de data abra atrás do
+  formulário.
+- `AppDialog` é a única porta para modais MUI. Confirmações usam `xs`; ações
+  pontuais, busca, filtros e seletores mantêm a largura apropriada à tarefa.
+- `QuickCreateProvider` mantém um registro adicional para cadastros contextuais
+  de módulos com tela própria. Isso permite criar referências ausentes sem gerar
+  rotas CRUD duplicadas e sem perder o formulário principal em andamento.
+  Se a referência exige página, o shell mantém o documento montado, suspende
+  seus diálogos e exibe o cadastro no conteúdo principal. Um único bloqueador de
+  navegação dá prioridade à página contextual, inclusive no Voltar do navegador.
+- Nota de Entrada é página dedicada (lista/wizard/detalhe), fora do CRUD genérico.
+- Componentes ativos do shell: `AppHeader`, `HeaderAreaNavigation`,
+  `ContextSelector`, `UserAccountMenu` e métricas de layout (`layoutMetrics`).
+- A tela de seleção troca o contexto emitindo novo JWT; IDs de tenant não são
+  enviados por header.
+- O login continua emitindo JWT global compatível com as APIs legadas.
+- Usuário sem Membership recebe estado explícito de acesso não provisionado e
+  não entra no shell tenant-aware. Após login ou cadastro, o JWT global exige
+  escolha explícita mesmo com uma única organização. Um JWT contextual válido
+  pode restaurar a organização ativa ao recarregar a aplicação.
+- O vendor compartilhado ainda gera aviso acima de 500 kB; páginas operacionais
+  agora são carregadas em chunks independentes.
+- Ferramentas de teste e lint são somente `devDependencies`; Vite 7 e Vitest 4
+  substituem versões vulneráveis sem alterar React, MUI ou o runtime do produto.
+- O shell contextual reúne o fluxo enterprise de eventos e as superfícies
+  legadas preservadas. As rotas antigas são identificadas como compatibilidade;
+  suas APIs ainda não garantem isolamento organizacional, exceto Pagamentos V38,
+  Clientes V40, Transportadoras V41, Frota V48, Fornecedores V42, Cargos V43 e
+  Funcionários documentados em [[pagamentos]], [[clientes]], [[logistica]],
+  [[fornecedores]] e [[rh]].
+- O shell possui skip link, foco visível, rótulos acessíveis e respeita redução
+  de movimento. A fonte externa foi removida para não depender de rede na operação.
+- O design system global define hierarquia tipográfica, espaçamento, foco e alvos
+  mínimos de 44 px para ações e campos. O conteúdo mantém largura operacional
+  máxima sem limitar tabelas, e modais usam cabeçalho, rolagem e rodapé previsíveis.
+- A cobertura controller por controller está registrada em [[paridade-api]].
+- A restauração das telas antigas concluiu a paridade funcional, mas não a
+  paridade de isolamento. Cada módulo legado só será declarado tenant-aware após
+  o respectivo contrato do backend validar o JWT contextual e particionar cache,
+  referências e permissões pela organização ativa.
+
+## Módulos relacionados
+
+- [[auth]]
+- [[acesso]]
+- [[listagens]]
+- [[dashboard]]
+- [[pagamentos]]
+- [[clientes]]
+- [[logistica]]
+- [[fornecedores]]
+- [[rh]]
+
+## Histórico
+
+| Data | Ação |
+|---|---|
+| 2026-11-22 | Uniformiza acesso e retorno nas subpáginas de detalhe; formulários principais de cadastro saem dos modais. |
+| 2026-11-21 | Ativa filtros por tipo nos contadores do Pátio e corrige os rótulos no singular. |
+| 2026-11-20 | Adiciona seletor Cartões/Listagem ao Pátio com persistência por usuário/organização e ações preservadas. |
+| 2026-11-20 | Refaz a apresentação das pendências por categoria, sem sobreposição, mantendo RBAC e os links individuais. |
+| 2026-11-13 | Agrupa Clientes e Fornecedores em Cadastros e move Veículos e Tarifas para Operação → Estacionamento. |
+| 2026-11-13 | Move o atalho de Fornecedores de Estoque para Cadastros → Parceiros. |
+| 2026-11-10 | Move Instalações de Administração para Operação → Estacionamento, sem alterar rota ou permissão. |
+| 2026-11-10 | Isola a prévia 5174, mantém os arquivos de builds anteriores para abas abertas e melhora a tela de recuperação. |
+| 2026-11-10 | Exibe recuperação de erros de rota com recarga manual na mesma URL, inclusive após falha de download de arquivos da tela. |
+| 2026-11-09 | Aplica a logo original do Figma e o nome yes7parking no cabeçalho, autenticação e aba do navegador. |
+| 2026-11-09 | Remove Início dos menus; mantém o logo Kaneko como atalho do cabeçalho para a home. |
+| 2026-11-09 | Move Ordens de Serviço para Operação → Serviços e mantém Notas de Serviço em Vendas. |
+| 2026-11-09 | Move os dois atalhos de eventos para Operação → Eventos, sem alterar permissões. |
+| 2026-11-09 | Alinhadas as políticas de menu, rotas, busca, Pátio e Relatórios ao RBAC da API. |
+| 2026-11-09 | Mostra OS automática no Pátio e NFS-e pendente no detalhe da ordem. |
+| 2026-11-08 | Padroniza seleção por nome em Eventos e Instalações, estado da lista em Ordens de Serviço e Financeiro e cabeçalho das três notas. |
+| 2026-11-08 | Generaliza formulários extensos em página no CRUD, seletores, instalações, eventos e serviços; mantém modais para ações curtas e confirmações. |
+| 2026-11-08 | Move o formulário completo de lançamento a pagar e a receber para página, com a mesma grade e proteção de descarte; mantém baixa e cancelamento em diálogo. |
+| 2026-11-08 | Substitui painéis laterais de detalhe por páginas; mantém diálogos para operações curtas e o drawer apenas como navegação mobile ativa. |
+| 2026-11-08 | Redesenha o miolo: rótulos fixos acima dos campos, cabeçalho semântico e rodapé fixo de diálogos, identidade de linha e hierarquia das tabelas, sem mudar rotas ou ações. |
+| 2026-11-08 | Redesenha cabeçalho, busca, seleção de áreas e superfícies operacionais com os padrões público e de produtor do Seven Tickets, preservando os fluxos e a estrutura das telas. |
+| 2026-11-08 | Adota a Montserrat da referência e os tratamentos de botões, títulos, tabelas e diálogos no próprio componente, além da paleta. Preserva a estrutura das páginas e os fluxos. |
+| 2026-11-08 | Alinha o tema compartilhado ao Seven Tickets Web (main 95181e4): roxo #800084, superfícies neutras, estados semânticos e anéis de foco. Mantém HexMark, tipografia, dimensões, pontos de quebra, rotas e fluxos Kaneko. |
+| 2026-11-08 | Aplica precisão decimal comum a formulários, listas, detalhes e relatórios. |
+| 2026-11-08 | Entrada, estoque e contas a pagar exibem e aceitam milionésimos nos fluxos habilitados. |
+| 2026-11-05 | Remove a operação de Pedido de Venda; Notas de Saída são o fluxo de mercadorias. |
+| 2026-11-05 | Retira a compatibilidade histórica de Pedido de Venda dos contratos e telas de nota, estoque e financeiro. |
+| 2026-10-30 | Remove integralmente as rotas, telas, contratos e atalhos de Ordem/Recebimento de Compra; Nota de Entrada fica como fluxo único. |
+| 2026-11-06 | Retira da home os atalhos de áreas duplicados e o cartão informativo, mantendo a navegação no cabeçalho. |
+| 2026-10-30 | Centraliza no `PageHeader` o retorno à página anterior, com fallback seguro para o Hub quando não existe histórico interno. |
+| 2026-10-30 | Aplica uma identidade visual perceptível ao sistema: superfícies elevadas, fundo com profundidade, cabeçalhos com acento, shell translúcido e cartões operacionais maiores. |
+| 2026-10-30 | Revisa o design system do sistema inteiro: hierarquia, alvos de toque, campos, diálogos, largura de conteúdo e feedback visual compartilhado. |
+| 2026-10-23 | Exibe na Nota de Entrada o saldo e custo atuais, o custo da entrada e o custo médio ponderado estimado/registrado por item. |
+| 2026-09-29 | Padroniza entradas numéricas especializadas em estoque, financeiro, eventos, vendas, instalações, filtros e referências. |
+| 2026-09-29 | Adiciona edição contextual aos itens dos seletores, com RBAC, formulário compartilhado, preservação do documento e suporte a ETag. |
+| 2026-09-29 | Estende o cadastro rápido a recursos especializados sem criar rotas CRUD duplicadas. |
+| 2026-09-29 | Amplia a Ordem de Compra com dados comerciais e logísticos sem misturar a identidade fiscal da Nota de Entrada. |
+| 2026-08-01 | Inicializa o brain do frontend e registra o contexto multiempresa. |
+| 2026-08-01 | Adiciona console operacional QR mobile-first para eventos. |
+| 2026-08-01 | Registra bloqueio operacional de credencial e dívida de bundle. |
+| 2026-08-02 | Adiciona gates de lint, testes jsdom e build sobre a linha segura do Vite. |
+| 2026-08-02 | Separa o shell enterprise dos cadastros legados e ativa lazy loading por página. |
+| 2026-08-02 | Padroniza timeout, ETag e chaves de cache tenant-aware no cliente HTTP. |
+| 2026-08-03 | Adiciona workspace de referencias reais e administracao enterprise. |
+| 2026-08-03 | Adiciona cadastro encadeado de locais, patios, setores e vagas. |
+| 2026-08-03 | Adiciona configuracao e ciclo operacional completo de eventos e ofertas. |
+| 2026-08-03 | Adiciona funil de holds, pedidos, cancelamento e credenciais. |
+| 2026-08-03 | Adiciona dashboard de disponibilidade e decisoes de acesso reais. |
+| 2026-08-03 | Reforça acessibilidade, seleção de tenant e permissões por ação. |
+| 2026-08-03 | Consolida a matriz de paridade das APIs enterprise. |
+| 2026-08-03 | Restaura no shell as rotas legadas removidas durante a adoção multiempresa. |
+| 2026-08-03 | Consolida a meta de unificação: nenhum módulo legado será descartado e todos migrarão para tenancy real. |
+| 2026-08-03 | Integra formas e condições de pagamento ao contexto organizacional do backend V38. |
+| 2026-08-03 | Integra Clientes ao contexto organizacional do backend V40. |
+| 2026-08-03 | Integra Transportadoras ao contexto organizacional do backend V41. |
+| 2026-08-03 | Integra veículos e vínculos de frota ao contexto organizacional V48. |
+| 2026-08-03 | Integra Fornecedores ao contexto organizacional do backend V42. |
+| 2026-08-03 | Integra Cargos ao contexto organizacional do backend V43. |
+| 2026-08-03 | Integra Funcionários ao contexto organizacional preservando `/api/funcionarios`. |
+| 2026-08-03 | Integra Categoria, Marca, Unidade de Medida, Produto e Serviço aos contratos V50-V52. |
+| 2026-08-03 | Integra Produto–Fornecedor ao contexto organizacional V53 sem ativar notas ou estoque. |
+| 2026-08-03 | Integra a posição e razão de estoque V54 sem acoplar notas ou movimentações de pátio. |
+| 2026-08-04 | Integra Nota de Entrada e Conta a Pagar aos contratos V55. |
+| 2026-08-04 | Integra Nota de Saída e Conta a Receber aos contratos V56. |
+| 2026-08-04 | Integra Nota de Serviço tenant-aware aos contratos V57. |
+| 2026-09-04 | Consolida design system de listagem, detalhes, dashboard operacional, busca por teclado e preferências visuais. |
+| 2026-09-04 | Aproxima login split-screen e shell (pill ativo, marca Hub) do padrão visual YES7. |
+| 2026-09-04 | Porta tokens, HexMark, LoginHeroDiagram, login e shell a partir do repositório yes7one-frontend. |
+| 2026-09-04 | Adota home Hub (`HubHomePage`) com grade de módulos e pendências; dashboard operacional em `/app/visao-geral`. |
+| 2026-09-09 | Porta componentes de shell do Hub (`AppHeader`, `AppSidebar`, `HubLauncherButton`, `OpenModulesBar`, tema/dialogs/DataGrid). |
+| 2026-09-09 | Prioriza responsividade mobile: header compacto, login form-first, launcher bottom sheet, dialogs fullscreen, safe-area. |
+| 2026-09-11 | Navegação por áreas (Estoque/Fiscal/Financeiro) com mega menu, favoritos/recentes e Nota de Entrada dedicada. |
+| 2026-09-11 | Mega menu completo em 7 áreas; fluxo Compras com atalhos e ContasPagarPage. |
+| 2026-09-11 | Homes das sete áreas passam a destacar ações operacionais do dia respeitando RBAC. |
+| 2026-09-11 | Expõe as áreas no cabeçalho com menus por processo, drawer mobile e testes de RBAC, teclado e navegação direta; preserva preferências e rotas. |
+| 2026-09-11 | Simplifica a navegação conforme aprovação: remove sidebar/abas/grade de módulos do shell, reúne notas nos processos e torna o resumo do dia a home. |
+| 2026-09-11 | Restaura a home do Hub com pendências e resumo do dia abaixo, conforme ajuste do usuário; cartões reutilizam o menu e as consultas são compartilhadas. |
+| 2026-09-12 | Corrige menu de conta encoberto pela navegação, alinhando as camadas do cabeçalho/menus ao tema MUI e adicionando regressão de sobreposição. |
+| 2026-09-12 | Torna pendências acionáveis, compacta a home e separa finanças por período; alinha detalhes de compras/serviços e permissões financeiras. |
+| 2026-09-28 | Centraliza a camada real dos modais no tema e mantém calendários acima dos formulários. |
+| 2026-09-28 | Adiciona validação numérica compartilhada, limites inline e bloqueio de submissão inválida nos formulários. |
+| 2026-09-28 | Protege o descarte em todos os formulários compartilhados, mantém erros reais na busca por ID e traduz 405/415/428 em mensagens operacionais. |
+| 2026-09-28 | Percorre 45 rotas, 22 formulários e fluxos especializados no navegador desktop/mobile; padroniza estados, detalhes e mensagens operacionais encontrados durante a execução. |
+| 2026-09-29 | Centraliza todos os modais em AppDialog, restaura larguras semânticas, backdrop integral, cabeçalho/ações fixos e acessibilidade de confirmações. |
+| 2026-10-23 | Exibe na revisão e no documento da Nota de Entrada o saldo, custo médio anterior, custo da entrada e custo médio projetado/registrado por item; typecheck, lint e build passaram, e os testes afetados passaram isoladamente. |
+| 2026-10-24 | Compacta a conferência da Nota, recolhe campos opcionais, fixa as ações operacionais e remove jargão de API das mensagens compartilhadas. |
+| 2026-10-30 | Define a regra global de superfícies e adiciona `OperationalFormDialog` para cadastros customizados com ações, rolagem mobile e descarte consistentes. |
+| 2026-10-30 | Isola a navegação do `PageHeader` para manter páginas e testes reutilizáveis fora do contexto de rotas, sem alterar o comportamento dentro do aplicativo. |
+| 2026-11-05 | Aplica páginas dedicadas ao fluxo longo de Nota de Saída e o diálogo padronizado de reversão interna às notas fiscais. A conferência e os efeitos são segregados por organização e permissões. |

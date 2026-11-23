@@ -1,17 +1,22 @@
-import { Controller, useFormContext } from 'react-hook-form';
+import { Controller, useFormContext, useWatch } from 'react-hook-form';
 import {
+  Box,
   FormControlLabel,
   InputAdornment,
   MenuItem,
   Switch,
-  TextField,
+  Typography,
 } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import dayjs from 'dayjs';
 import type { FieldConfig } from './fieldConfig';
 import { ReferenceSelect } from './ReferenceSelect';
-import { SubItemsEditor } from './SubItemsEditor';
+import { InboundNoteCostsSummary, SubItemsEditor } from './SubItemsEditor';
 import { DocumentField } from './DocumentField';
+import { normalizeNumericInput } from './NumberField';
+import { applyContactMask } from './contactMask';
+import { DECIMAL_STEP, exactDecimal } from '../../utils/fixedDecimal';
+import { FormField, formFieldSlot } from './FormField';
 
 interface Props {
   field: FieldConfig;
@@ -21,14 +26,68 @@ interface Props {
 
 const NUMERIC: FieldConfig['type'][] = ['number', 'integer', 'money', 'percent'];
 
+export { normalizeNumericInput } from './NumberField';
+
 export function FieldRenderer({ field, namePrefix = '', dense }: Props) {
-  const { control } = useFormContext();
+  const { clearErrors, control, setError, setValue } = useFormContext();
+  const formValues = useWatch({ control }) as Record<string, unknown>;
+  const disabled = field.disabled || field.disabledWhen?.(formValues);
   const name = `${namePrefix}${field.name}`;
-  const rules = { required: field.required ? 'Campo obrigatório' : false };
   const size = dense ? 'small' : 'small';
+  const isNumeric = NUMERIC.includes(field.type);
+  const isMoney = field.type === 'money';
+  const isPercent = field.type === 'percent';
+  const minimum = isNumeric ? field.min ?? 0 : undefined;
+  const maximum = isNumeric ? field.max ?? (isPercent ? 100 : undefined) : undefined;
+  const dependencies = field.dependsOn?.map((dependency) => `${namePrefix}${dependency}`);
+  // Valores calculados e somente leitura não são entradas do formulário.
+  // Uma margem negativa já salva, por exemplo, não invalida a edição do produto.
+  const rules = disabled ? {} : {
+    required: field.required ? 'Campo obrigatório' : false,
+    ...(field.maxLength !== undefined ? {
+      maxLength: { value: field.maxLength, message: `Use no máximo ${field.maxLength} caracteres.` },
+    } : {}),
+    ...(dependencies?.length ? { deps: dependencies } : {}),
+    ...(isNumeric ? {
+      validate: (value: unknown) => {
+        if (value === '' || value === undefined || value === null) return true;
+        const parsed = Number(value);
+        if (!Number.isFinite(parsed)) return 'Informe um número válido.';
+        if (field.type === 'integer' && !Number.isInteger(parsed)) return 'Informe um número inteiro.';
+        if (minimum !== undefined && parsed < minimum) return `O valor mínimo é ${minimum}.`;
+        if (maximum !== undefined && parsed > maximum) return `O valor máximo é ${maximum}.`;
+        if (field.type !== 'integer') {
+          try {
+            exactDecimal(value, field.label);
+          } catch (error) {
+            return error instanceof Error ? error.message : 'Informe um número válido.';
+          }
+        }
+        return field.validate?.(value, formValues, namePrefix) ?? true;
+      },
+    } : field.validate ? {
+      validate: (value: unknown) => field.validate?.(value, formValues, namePrefix) ?? true,
+    } : {}),
+  };
+
+  if (field.type === 'section') {
+    return (
+      <Box component="header" sx={{ px: 1.75, py: 1.15, borderRadius: '10px', bgcolor: 'action.hover', boxShadow: (theme) => `inset 3px 0 0 ${theme.palette.primary.main}` }}>
+        <Typography component="h3" variant="subtitle2" fontWeight={750} color="primary.main">{field.label}</Typography>
+        {field.helperText && (
+          <Typography variant="body2" color="text.secondary">{field.helperText}</Typography>
+        )}
+      </Box>
+    );
+  }
 
   if (field.type === 'subitems' && field.subFields) {
-    return <SubItemsEditor name={name} label={field.label} subFields={field.subFields} />;
+    return <SubItemsEditor name={name} label={field.label} subFields={field.subFields}
+      summary={field.subItemsSummary} disabled={disabled} />;
+  }
+
+  if (field.type === 'subitems-summary' && field.subItemsSummary === 'inbound-note-costs') {
+    return <InboundNoteCostsSummary />;
   }
 
   if (field.type === 'document') {
@@ -42,7 +101,13 @@ export function FieldRenderer({ field, namePrefix = '', dense }: Props) {
         control={control}
         render={({ field: f }) => (
           <FormControlLabel
-            control={<Switch checked={!!f.value} onChange={(e) => f.onChange(e.target.checked)} />}
+            control={(
+              <Switch
+                checked={!!f.value}
+                onChange={(e) => f.onChange(e.target.checked)}
+                disabled={disabled}
+              />
+            )}
             label={field.label}
           />
         )}
@@ -60,11 +125,25 @@ export function FieldRenderer({ field, namePrefix = '', dense }: Props) {
           <ReferenceSelect
             label={field.label}
             value={f.value ?? null}
-            onChange={f.onChange}
+            onChange={(value, option) => {
+              f.onChange(value);
+              const inherited = field.reference?.inheritFields;
+              if (!inherited || (value != null && !option)) return;
+              for (const [source, target] of Object.entries(inherited)) {
+                setValue(`${namePrefix}${target}`, value == null ? '' : option?.[source] ?? '', {
+                  shouldDirty: true,
+                  shouldTouch: true,
+                  shouldValidate: true,
+                });
+              }
+            }}
             reference={field.reference!}
             required={field.required}
-            disabled={field.disabled}
+            disabled={disabled}
             error={fieldState.error?.message}
+            helperText={field.helperText}
+            reserveHelperSpace={dense}
+            stackedLabel
           />
         )}
       />
@@ -79,16 +158,23 @@ export function FieldRenderer({ field, namePrefix = '', dense }: Props) {
         rules={rules}
         render={({ field: f, fieldState }) => (
           <DatePicker
+            disabled={disabled}
+            disableFuture={field.disableFuture}
             label={field.label}
             value={f.value ? dayjs(f.value) : null}
             onChange={(d) => f.onChange(d && d.isValid() ? d.format('YYYY-MM-DD') : undefined)}
             slotProps={{
+              popper: {
+                sx: (theme) => ({ zIndex: theme.zIndex.modal + 1 }),
+              },
               textField: {
+                ...formFieldSlot,
                 fullWidth: true,
                 size,
                 required: field.required,
                 error: !!fieldState.error,
-                helperText: fieldState.error?.message || field.helperText,
+                helperText: fieldState.error?.message || field.helperText || (dense ? ' ' : undefined),
+                FormHelperTextProps: dense ? { sx: { minHeight: '1.25rem', mt: 0.5 } } : undefined,
               },
             }}
           />
@@ -104,17 +190,18 @@ export function FieldRenderer({ field, namePrefix = '', dense }: Props) {
         control={control}
         rules={rules}
         render={({ field: f, fieldState }) => (
-          <TextField
+          <FormField
             select
             fullWidth
             size={size}
             label={field.label}
             required={field.required}
-            disabled={field.disabled}
+            disabled={disabled}
             value={f.value ?? ''}
             onChange={(e) => f.onChange(e.target.value === '' ? undefined : e.target.value)}
             error={!!fieldState.error}
-            helperText={fieldState.error?.message || field.helperText}
+            helperText={fieldState.error?.message || field.helperText || (dense ? ' ' : undefined)}
+            FormHelperTextProps={dense ? { sx: { minHeight: '1.25rem', mt: 0.5 } } : undefined}
           >
             <MenuItem value="">
               <em>—</em>
@@ -124,15 +211,12 @@ export function FieldRenderer({ field, namePrefix = '', dense }: Props) {
                 {opt.label}
               </MenuItem>
             ))}
-          </TextField>
+          </FormField>
         )}
       />
     );
   }
 
-  const isNumeric = NUMERIC.includes(field.type);
-  const isMoney = field.type === 'money';
-  const isPercent = field.type === 'percent';
   // Cadastro em CAIXA ALTA: campos de texto viram maiúsculo ao digitar.
   // Exceção: senha (type 'password', quebraria o login) e e-mail.
   const upper = (field.type === 'text' || field.type === 'textarea') && field.name !== 'email';
@@ -143,27 +227,55 @@ export function FieldRenderer({ field, namePrefix = '', dense }: Props) {
       control={control}
       rules={rules}
       render={({ field: f, fieldState }) => (
-        <TextField
+        <FormField
           fullWidth
           size={size}
           label={field.label}
           required={field.required}
-          disabled={field.disabled}
+          disabled={disabled}
           type={field.type === 'password' ? 'password' : isNumeric ? 'number' : 'text'}
           multiline={field.type === 'textarea'}
           minRows={field.type === 'textarea' ? 2 : undefined}
           value={f.value ?? ''}
+          onFocus={(event) => {
+            if (isNumeric && (f.value === 0 || f.value === '0')) event.target.select();
+          }}
+          onKeyDown={(event) => {
+            if (!isNumeric) return;
+            if (['e', 'E', '+'].includes(event.key)
+              || (event.key === '-' && minimum !== undefined && minimum >= 0)) {
+              event.preventDefault();
+            }
+          }}
           onChange={(e) => {
             const v = e.target.value;
-            if (isNumeric) f.onChange(v === '' ? undefined : Number(v));
+            if (field.contactMask) {
+              const previous = String(f.value ?? '');
+              const formatted = applyContactMask(e.target, field.contactMask, previous);
+              if (formatted !== previous) f.onChange(formatted);
+            } else if (isNumeric) {
+              if (v.startsWith('-') && minimum !== undefined && minimum >= 0) {
+                setError(name, { type: 'min', message: `O valor mínimo é ${minimum}.` });
+                return;
+              }
+              clearErrors(name);
+              f.onChange(v === '' ? undefined : normalizeNumericInput(v));
+            }
             else f.onChange(upper ? v.toUpperCase() : v);
           }}
           inputProps={{
-            ...(isNumeric ? { step: field.step ?? (field.type === 'integer' ? 1 : 0.01) } : {}),
+            ...(isNumeric ? {
+              step: field.step ?? (field.type === 'integer' ? 1 : DECIMAL_STEP),
+              min: minimum,
+              max: maximum,
+              inputMode: field.type === 'integer' ? 'numeric' : 'decimal',
+            } : {}),
+            ...(field.inputMode ? { inputMode: field.inputMode } : {}),
             ...(upper ? { style: { textTransform: 'uppercase' } } : {}),
           }}
           error={!!fieldState.error}
-          helperText={fieldState.error?.message || field.helperText}
+          helperText={fieldState.error?.message || field.helperText || (dense ? ' ' : undefined)}
+          FormHelperTextProps={dense ? { sx: { minHeight: '1.25rem', mt: 0.5 } } : undefined}
           InputProps={{
             startAdornment: isMoney ? <InputAdornment position="start">R$</InputAdornment> : undefined,
             endAdornment: isPercent ? <InputAdornment position="end">%</InputAdornment> : undefined,

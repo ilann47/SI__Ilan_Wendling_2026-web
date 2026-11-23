@@ -1,7 +1,6 @@
-import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
-import CancelOutlinedIcon from '@mui/icons-material/CancelOutlined';
 import { type ResourceConfig } from '../components/crud/resourceConfig';
 import { type FieldConfig } from '../components/form/fieldConfig';
+import { DECIMAL_STEP } from '../utils/fixedDecimal';
 import { cols } from './columns';
 import { tipoFreteOptions } from './options';
 
@@ -18,10 +17,10 @@ const itensNotaSubFields: FieldConfig[] = [
     cols: 4,
     reference: { basePath: '/api/produtos', labelField: 'nome' },
   },
-  { name: 'quantidade', label: 'Qtd.', type: 'number', required: true, cols: 2 },
-  { name: 'valorUnitario', label: 'Vlr. unit.', type: 'money', required: true, cols: 2 },
-  { name: 'valorDesconto', label: 'Desc.', type: 'money', cols: 2 },
-  { name: 'percentualDesconto', label: '% Desc.', type: 'percent', cols: 1 },
+  { name: 'quantidade', label: 'Qtd.', type: 'number', required: true, cols: 2, min: 0.000001, step: 0.000001 },
+  { name: 'valorUnitario', label: 'Vlr. unit.', type: 'money', step: 0.000001, required: true, cols: 2 },
+  { name: 'valorDesconto', label: 'Desc.', type: 'money', step: 0.000001, cols: 2 },
+  { name: 'percentualDesconto', label: '% Desc.', type: 'percent', step: 0.000001, cols: 1 },
 ];
 
 export const notaEntradaConfig: ResourceConfig = {
@@ -29,7 +28,19 @@ export const notaEntradaConfig: ResourceConfig = {
   basePath: '/api/notas-entrada',
   singular: 'Nota de Entrada',
   plural: 'Notas de Entrada',
-  subtitle: 'Entradas de mercadoria (compras) com baixa no estoque e contas a pagar.',
+  grammaticalGender: 'feminine',
+  tenantAware: true,
+  permissions: {
+    read: ['fiscal:read'],
+    create: ['fiscal:manage'],
+    delete: ['fiscal:manage'],
+  },
+  requiredAllPermissions: {
+    create: ['suppliers:read', 'catalog:read', 'stock:read'],
+  },
+  subtitle: 'Entradas de mercadoria com estoque e contas a pagar.',
+  searchFilter: 'numero',
+  unavailableRelations: [],
   canEdit: false,
   canDelete: true,
   columns: [
@@ -60,36 +71,24 @@ export const notaEntradaConfig: ResourceConfig = {
       cols: 6,
       reference: { basePath: '/api/condicoes-pagamento', labelField: 'nome' },
     },
+    {
+      name: 'localEstoqueId',
+      label: 'Local de estoque',
+      type: 'reference',
+      required: true,
+      cols: 6,
+      reference: { basePath: '/api/v1/stock-locations', labelField: 'nome' },
+    },
     { name: 'dataEmissao', label: 'Emissão', type: 'date', cols: 4 },
     { name: 'dataChegada', label: 'Chegada', type: 'date', cols: 4 },
     { name: 'valorFrete', label: 'Frete', type: 'money', cols: 3 },
     { name: 'valorSeguro', label: 'Seguro', type: 'money', cols: 3 },
-    { name: 'outrasDespesas', label: 'Outras desp.', type: 'money', cols: 3 },
+    { name: 'outrasDespesas', label: 'Outras despesas', type: 'money', cols: 3 },
     { name: 'valorDesconto', label: 'Desconto', type: 'money', cols: 3 },
     { name: 'observacao', label: 'Observação', type: 'textarea' },
     { name: 'itens', label: 'Itens', type: 'subitems', subFields: itensNotaSubFields },
   ],
-  rowActions: [
-    {
-      key: 'confirmar',
-      label: 'Confirmar',
-      icon: <CheckCircleOutlineIcon />,
-      method: 'post',
-      pathSuffix: (r) => `/${r.id}/confirmacao`,
-      confirm: 'Confirmar a nota? Isso soma o estoque e gera as contas a pagar.',
-      visible: (r) => r.situacao === 'PENDENTE',
-    },
-    {
-      key: 'cancelar',
-      label: 'Cancelar',
-      icon: <CancelOutlinedIcon />,
-      color: 'error',
-      method: 'post',
-      pathSuffix: (r) => `/${r.id}/cancelamento`,
-      confirm: 'Cancelar esta nota?',
-      visible: (r) => r.situacao === 'PENDENTE',
-    },
-  ],
+  rowActions: [],
 };
 
 export const notaSaidaConfig: ResourceConfig = {
@@ -97,7 +96,13 @@ export const notaSaidaConfig: ResourceConfig = {
   basePath: '/api/notas-saida',
   singular: 'Nota de Saída',
   plural: 'Notas de Saída',
-  subtitle: 'Saídas de mercadoria (vendas) com baixa no estoque e contas a receber.',
+  grammaticalGender: 'feminine',
+  tenantAware: true,
+  permissions: { read: ['fiscal:read'], create: ['fiscal:manage'], delete: ['fiscal:manage'] },
+  requiredAllPermissions: { create: ['customers:read', 'catalog:read', 'stock:read'] },
+  subtitle: 'Saídas de mercadoria com estoque e contas a receber.',
+  searchFilter: 'numero',
+  rowActionPermissions: ['fiscal:manage'],
   canEdit: false,
   canDelete: true,
   columns: [
@@ -128,46 +133,79 @@ export const notaSaidaConfig: ResourceConfig = {
       cols: 6,
       reference: { basePath: '/api/condicoes-pagamento', labelField: 'nome' },
     },
+    {
+      name: 'localEstoqueId', label: 'Local de estoque', type: 'reference', required: true, cols: 6,
+      reference: { basePath: '/api/v1/stock-locations', labelField: 'nome' },
+    },
     { name: 'dataEmissao', label: 'Emissão', type: 'date', cols: 4 },
     { name: 'dataSaida', label: 'Saída', type: 'date', cols: 4 },
-    { name: 'valorFrete', label: 'Frete', type: 'money', cols: 3 },
-    { name: 'valorSeguro', label: 'Seguro', type: 'money', cols: 3 },
-    { name: 'outrasDespesas', label: 'Outras desp.', type: 'money', cols: 3 },
-    { name: 'valorDesconto', label: 'Desconto', type: 'money', cols: 3 },
+    { name: 'valorFrete', label: 'Frete', type: 'money', step: 0.000001, cols: 3 },
+    { name: 'valorSeguro', label: 'Seguro', type: 'money', step: 0.000001, cols: 3 },
+    { name: 'outrasDespesas', label: 'Outras despesas', type: 'money', step: 0.000001, cols: 3 },
+    { name: 'valorDesconto', label: 'Desconto', type: 'money', step: 0.000001, cols: 3 },
     { name: 'observacao', label: 'Observação', type: 'textarea' },
     { name: 'itens', label: 'Itens', type: 'subitems', subFields: itensNotaSubFields },
   ],
-  rowActions: [
-    {
-      key: 'confirmar',
-      label: 'Confirmar',
-      icon: <CheckCircleOutlineIcon />,
-      method: 'post',
-      pathSuffix: (r) => `/${r.id}/confirmacao`,
-      confirm: 'Confirmar a nota? Isso baixa o estoque e gera as contas a receber.',
-      visible: (r) => r.situacao === 'PENDENTE',
-    },
-    {
-      key: 'cancelar',
-      label: 'Cancelar',
-      icon: <CancelOutlinedIcon />,
-      color: 'error',
-      method: 'post',
-      pathSuffix: (r) => `/${r.id}/cancelamento`,
-      confirm: 'Cancelar esta nota?',
-      visible: (r) => r.situacao === 'PENDENTE',
-    },
+};
+
+const noteServiceItems: FieldConfig = {
+  name: 'itens', label: 'Serviços prestados', type: 'subitems', cols: 12,
+  subFields: [
+    { name: 'servicoId', label: 'Serviço', type: 'reference', required: true, cols: 5,
+      reference: { basePath: '/api/servicos', labelField: 'nome', inheritFields: { valorPadrao: 'valorUnitario' } } },
+    { name: 'quantidade', label: 'Quantidade', type: 'number', required: true, min: DECIMAL_STEP, cols: 2 },
+    { name: 'valorUnitario', label: 'Valor unitário', type: 'money', required: true, cols: 2 },
+    { name: 'valorDesconto', label: 'Desconto do item', type: 'money', cols: 2 },
   ],
 };
+const noteServiceCustomer: FieldConfig = {
+  name: 'clienteId', label: 'Cliente', type: 'reference', required: true, cols: 12,
+  reference: { basePath: '/api/clientes', labelField: 'nome' },
+};
+const noteServicePayment: FieldConfig[] = [
+  { name: 'dataEmissao', label: 'Data de emissão', type: 'date', disableFuture: true, cols: 6 },
+  { name: 'aliquotaIss', label: 'Alíquota ISS', type: 'percent', cols: 6 },
+  { name: 'condicaoPagamentoId', label: 'Condição de pagamento', type: 'reference', cols: 6,
+    reference: { basePath: '/api/condicoes-pagamento', labelField: 'nome' } },
+  { name: 'formaPagamentoId', label: 'Forma de pagamento', type: 'reference', cols: 6,
+    reference: { basePath: '/api/formas-pagamento', labelField: 'nome' } },
+];
+const noteServiceObservation: FieldConfig = { name: 'observacao', label: 'Observação', type: 'textarea', maxLength: 255, cols: 12 };
+const noteServiceDiscount: FieldConfig = { name: 'valorDesconto', label: 'Desconto da nota', type: 'money', cols: 6 };
+export const serviceNoteEditFields = (linked: boolean) => [
+  ...(linked ? [] : [noteServiceCustomer, noteServiceItems, noteServiceDiscount]),
+  ...noteServicePayment,
+  noteServiceObservation,
+];
 
 export const notaServicoConfig: ResourceConfig = {
   key: 'notas-servico',
   basePath: '/api/notas-servico',
   singular: 'Nota de Serviço',
   plural: 'Notas de Serviço',
-  subtitle: 'Notas fiscais de serviço (NFS-e) com apuração de ISS.',
-  canEdit: true,
-  canDelete: true,
+  grammaticalGender: 'feminine',
+  tenantAware: true,
+  permissions: {
+    read: ['fiscal:read'], create: ['fiscal:manage'],
+    update: ['fiscal:manage'], delete: ['fiscal:manage'],
+  },
+  requiredAllPermissions: { create: ['customers:read', 'catalog:read'] },
+  subtitle: 'Confira serviços prestados e acompanhe as cobranças.',
+  searchFilter: 'numero',
+  detailLinks: [{ field: 'ordemServicoId', label: 'Ver ordem de serviço',
+    path: '/app/ordens-servico', permissions: ['service_orders:read'] }],
+  rowActionPermissions: ['fiscal:manage'],
+  canEdit: false,
+  canDelete: false,
+  defaultSort: 'dataEmissao,desc',
+  filters: [
+    { name: 'numero', label: 'Número', type: 'text' },
+    { name: 'situacao', label: 'Situação', type: 'select', options: [
+      { value: 'PENDENTE', label: 'Pendente' }, { value: 'EMITIDA', label: 'Emitida' },
+      { value: 'CANCELADA', label: 'Cancelada' },
+    ] },
+    { name: 'clienteId', label: 'Cliente', type: 'reference', reference: { basePath: '/api/clientes', labelField: 'nome' } },
+  ],
   columns: [
     cols.id(),
     cols.text('numero', 'Número', { flex: 0, width: 120 }),
@@ -178,78 +216,10 @@ export const notaServicoConfig: ResourceConfig = {
     cols.status('situacao', 'Situação'),
   ],
   fields: [
-    { name: 'numero', label: 'Número', type: 'text', required: true, cols: 4 },
-    { name: 'serie', label: 'Série', type: 'text', cols: 2 },
-    { name: 'modelo', label: 'Modelo', type: 'text', cols: 2 },
-    {
-      name: 'clienteId',
-      label: 'Cliente',
-      type: 'reference',
-      required: true,
-      cols: 4,
-      reference: { basePath: '/api/clientes', labelField: 'nome' },
-    },
-    {
-      name: 'servicoId',
-      label: 'Serviço',
-      type: 'reference',
-      cols: 4,
-      reference: { basePath: '/api/servicos', labelField: 'nome' },
-    },
-    { name: 'valorServico', label: 'Valor do serviço', type: 'money', required: true, cols: 4 },
-    { name: 'aliquotaIss', label: 'Alíquota ISS', type: 'percent', cols: 4 },
-    { name: 'valorDesconto', label: 'Desconto', type: 'money', cols: 4 },
-    { name: 'dataEmissao', label: 'Emissão', type: 'date', cols: 4 },
-    {
-      name: 'movimentacaoId',
-      label: 'Movimentação (origem)',
-      type: 'reference',
-      cols: 6,
-      reference: { basePath: '/api/movimentacoes', labelField: 'veiculoPlaca' },
-    },
-    {
-      name: 'mensalistaId',
-      label: 'Mensalista (origem)',
-      type: 'reference',
-      cols: 6,
-      reference: { basePath: '/api/mensalistas', labelField: 'veiculoPlaca' },
-    },
-    {
-      name: 'condicaoPagamentoId',
-      label: 'Condição de pagamento',
-      type: 'reference',
-      cols: 6,
-      reference: { basePath: '/api/condicoes-pagamento', labelField: 'nome' },
-    },
-    {
-      name: 'formaPagamentoId',
-      label: 'Forma de pagamento',
-      type: 'reference',
-      cols: 6,
-      reference: { basePath: '/api/formas-pagamento', labelField: 'nome' },
-    },
-    { name: 'observacao', label: 'Observação', type: 'textarea' },
-  ],
-  rowActions: [
-    {
-      key: 'emitir',
-      label: 'Emitir',
-      icon: <CheckCircleOutlineIcon />,
-      method: 'post',
-      pathSuffix: (r) => `/${r.id}/emissao`,
-      confirm: 'Emitir esta nota de serviço?',
-      visible: (r) => r.situacao === 'PENDENTE',
-    },
-    {
-      key: 'cancelar',
-      label: 'Cancelar',
-      icon: <CancelOutlinedIcon />,
-      color: 'error',
-      method: 'post',
-      pathSuffix: (r) => `/${r.id}/cancelamento`,
-      confirm: 'Cancelar esta nota?',
-      visible: (r) => r.situacao !== 'CANCELADA',
-    },
+    { name: 'numero', label: 'Número', type: 'text', required: true, maxLength: 20, cols: 4 },
+    { name: 'serie', label: 'Série', type: 'text', maxLength: 10, cols: 4 },
+    { name: 'modelo', label: 'Modelo', type: 'text', maxLength: 10, cols: 4 },
+    ...serviceNoteEditFields(false),
   ],
 };
 

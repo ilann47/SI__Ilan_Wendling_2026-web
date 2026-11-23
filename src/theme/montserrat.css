@@ -1,0 +1,8 @@
+/* Montserrat v31, Latin (Portuguese included); see public/Montserrat-OFL.txt. */
+@font-face {
+  font-family: Montserrat;
+  src: url('./montserrat-latin.woff2') format('woff2');
+  font-style: normal;
+  font-weight: 400 850;
+  font-display: swap;
+}

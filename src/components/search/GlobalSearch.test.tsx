@@ -1,0 +1,48 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router-dom';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { api } from '../../api/client';
+import { useAuth } from '../../auth/AuthContext';
+import { GlobalSearch } from './GlobalSearch';
+
+vi.mock('../../auth/AuthContext', () => ({ useAuth: vi.fn() }));
+afterEach(() => vi.restoreAllMocks());
+
+describe('GlobalSearch', () => {
+  it('oculta o catálogo técnico de bloqueios mesmo quando autorizado', async () => {
+    vi.mocked(useAuth).mockReturnValue({ activeOrganization: { organizationId: 7 }, permissions: ['organizations:admin', 'audit:read'] } as unknown as ReturnType<typeof useAuth>);
+    vi.spyOn(api, 'get').mockResolvedValue({ data: { termo: 'bloqueios', total: 1, grupos: [{ grupo: 'Diagnósticos', resultados: [{
+      tipo: 'MODULO', id: 1, titulo: 'Bloqueios e dependências', caminho: '/app/bloqueios',
+    }] }] } });
+    render(<MemoryRouter><QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}><GlobalSearch /></QueryClientProvider></MemoryRouter>);
+    await userEvent.keyboard('{Control>}k{/Control}');
+    await userEvent.type(screen.getByPlaceholderText(/Cliente, CPF/), 'bloqueios');
+    await waitFor(() => expect(api.get).toHaveBeenCalled());
+    expect(screen.queryByText('Bloqueios e dependências')).not.toBeInTheDocument();
+  });
+  it('abre com Ctrl+K e apresenta resultados agrupados do backend', async () => {
+    const auth = { activeOrganization: { organizationId: 7 }, permissions: ['customers:read', 'operations:read'] } as unknown as ReturnType<typeof useAuth>;
+    vi.mocked(useAuth).mockReturnValue(auth);
+    vi.spyOn(api, 'get').mockResolvedValueOnce({ data: { termo: 'mariana', total: 3, grupos: [{
+      grupo: 'Clientes', resultados: [{ tipo: 'CLIENTE', id: 1, titulo: 'Mariana Souza',
+        subtitulo: '12345678909', status: 'ATIVO', caminho: '/app/clientes' }],
+    }, { grupo: 'Veículos', resultados: [{ tipo: 'VEICULO', id: 2, titulo: 'ABC1D23',
+      subtitulo: 'SUV · Mariana Souza', status: 'ATIVO', caminho: '/app/veiculos' }],
+    }, { grupo: 'Fiscal', resultados: [{ tipo: 'NOTA', id: 3, titulo: 'Nota não autorizada', caminho: '/app/notas-entrada/3' }] }] } });
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(<MemoryRouter><QueryClientProvider client={client}><GlobalSearch /></QueryClientProvider></MemoryRouter>);
+
+    await userEvent.keyboard('{Control>}k{/Control}');
+    await userEvent.type(screen.getByPlaceholderText(/Cliente, CPF/), 'mariana');
+
+    expect((await screen.findAllByText((_, node) => node?.textContent === 'Mariana Souza')).length).toBeGreaterThan(0);
+    expect(screen.getAllByText((_, node) => node?.textContent === 'ABC1D23').length).toBeGreaterThan(0);
+    expect(screen.queryByText('Nota não autorizada')).not.toBeInTheDocument();
+    expect(api.get).toHaveBeenCalledWith('/api/v1/search', { params: { q: 'mariana', limit: 5 } });
+
+    await userEvent.keyboard('{ArrowDown}{Enter}');
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+  });
+});

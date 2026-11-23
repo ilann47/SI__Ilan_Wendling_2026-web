@@ -2,19 +2,65 @@ import { type ResourceConfig } from '../components/crud/resourceConfig';
 import { cols } from './columns';
 import PaymentsIcon from '@mui/icons-material/Payments';
 import CancelOutlinedIcon from '@mui/icons-material/CancelOutlined';
+import { Button } from '@mui/material';
+import { Link as RouterLink } from 'react-router-dom';
 
 export const contaPagarConfig: ResourceConfig = {
   key: 'contas-pagar',
+  rowActionPermissions: ['finance:manage'],
   basePath: '/api/contas-pagar',
   singular: 'Conta a Pagar',
   plural: 'Contas a Pagar',
-  subtitle: 'Títulos a pagar (parcelas de fornecedores).',
+  grammaticalGender: 'feminine',
+  tenantAware: true,
+  permissions: {
+    read: ['finance:read'],
+    create: ['finance:manage'],
+    update: ['finance:manage'],
+  },
+  requiredAllPermissions: {
+    create: ['suppliers:read'],
+  },
+  subtitle: 'Títulos a pagar de fornecedores.',
+  unavailableRelations: ['Pagamentos individuais', 'Documento de origem detalhado'],
+  filters: [
+    { name: 'situacao', label: 'Situação', type: 'select', options: [
+      { value: 'PENDENTE', label: 'Pendente' },
+      { value: 'PARCIAL', label: 'Parcial' },
+      { value: 'PAGA', label: 'Paga' },
+      { value: 'CANCELADA', label: 'Cancelada' },
+    ] },
+    {
+      name: 'fornecedorId',
+      label: 'Fornecedor',
+      type: 'reference',
+      reference: { basePath: '/api/fornecedores', labelField: 'nome' },
+    },
+    {
+      name: 'notaEntradaId',
+      label: 'Nota de entrada',
+      type: 'reference',
+      reference: { basePath: '/api/notas-entrada', labelField: 'numero' },
+    },
+  ],
   defaultSort: 'dataVencimento,asc',
   canEdit: false,
   canDelete: false,
   columns: [
     cols.id(),
     cols.text('fornecedorNome', 'Fornecedor'),
+    cols.text('notaEntradaNumero', 'Nota', {
+      renderCell: (params) => params.row.notaEntradaId ? (
+        <Button
+          component={RouterLink}
+          to={`/app/notas-entrada/${params.row.notaEntradaId}`}
+          size="small"
+          onClick={(event) => event.stopPropagation()}
+        >
+          {params.value ?? `Nota ${params.row.notaEntradaId}`}
+        </Button>
+      ) : '—',
+    }),
     cols.number('numeroParcela', 'Parc.'),
     cols.money('valorTotal', 'Total'),
     cols.money('valorPago', 'Pago'),
@@ -44,11 +90,11 @@ export const contaPagarConfig: ResourceConfig = {
       cols: 6,
       reference: { basePath: '/api/formas-pagamento', labelField: 'nome' },
     },
-    { name: 'valorOriginal', label: 'Valor original', type: 'money', required: true, cols: 3 },
-    { name: 'valorDesconto', label: 'Desconto', type: 'money', cols: 3 },
-    { name: 'valorJuros', label: 'Juros', type: 'money', cols: 3 },
-    { name: 'valorMulta', label: 'Multa', type: 'money', cols: 3 },
-    { name: 'valorTotal', label: 'Total (auto se vazio)', type: 'money', cols: 4 },
+    { name: 'valorOriginal', label: 'Valor original', type: 'money', step: 0.000001, required: true, cols: 3 },
+    { name: 'valorDesconto', label: 'Desconto', type: 'money', step: 0.000001, cols: 3 },
+    { name: 'valorJuros', label: 'Juros', type: 'money', step: 0.000001, cols: 3 },
+    { name: 'valorMulta', label: 'Multa', type: 'money', step: 0.000001, cols: 3 },
+    { name: 'valorTotal', label: 'Total (auto se vazio)', type: 'money', step: 0.000001, cols: 4 },
     { name: 'dataEmissao', label: 'Emissão', type: 'date', cols: 4 },
     { name: 'dataVencimento', label: 'Vencimento', type: 'date', required: true, cols: 4 },
     { name: 'numeroParcela', label: 'Parcela', type: 'integer', cols: 3 },
@@ -65,7 +111,7 @@ export const contaPagarConfig: ResourceConfig = {
       pathSuffix: (r) => `/${r.id}/baixa`,
       payloadAs: 'body',
       formFields: [
-        { name: 'valor', label: 'Valor', type: 'money', required: true, cols: 6 },
+        { name: 'valor', label: 'Valor', type: 'money', step: 0.000001, required: true, cols: 6 },
         { name: 'data', label: 'Data', type: 'date', cols: 6 },
       ],
       visible: (r) => r.situacao !== 'PAGA' && r.situacao !== 'CANCELADA',
@@ -85,10 +131,24 @@ export const contaPagarConfig: ResourceConfig = {
 
 export const contaReceberConfig: ResourceConfig = {
   key: 'contas-receber',
+  rowActionPermissions: ['finance:manage'],
   basePath: '/api/contas-receber',
   singular: 'Conta a Receber',
   plural: 'Contas a Receber',
-  subtitle: 'Títulos a receber (parcelas de clientes).',
+  grammaticalGender: 'feminine',
+  tenantAware: true,
+  permissions: { read: ['finance:read'], create: ['finance:manage'], update: ['finance:manage'] },
+  requiredAllPermissions: { create: ['customers:read'] },
+  subtitle: 'Títulos a receber de clientes.',
+  unavailableRelations: ['Recebimentos individuais', 'Documento de origem detalhado'],
+  filters: [
+    { name: 'situacao', label: 'Situação', type: 'select', options: [
+      { value: 'PENDENTE', label: 'Pendente' },
+      { value: 'PARCIAL', label: 'Parcial' },
+      { value: 'RECEBIDA', label: 'Recebida' },
+      { value: 'CANCELADA', label: 'Cancelada' },
+    ] },
+  ],
   defaultSort: 'dataVencimento,asc',
   canEdit: false,
   canDelete: false,
@@ -145,7 +205,7 @@ export const contaReceberConfig: ResourceConfig = {
       pathSuffix: (r) => `/${r.id}/baixa`,
       payloadAs: 'body',
       formFields: [
-        { name: 'valor', label: 'Valor', type: 'money', required: true, cols: 6 },
+        { name: 'valor', label: 'Valor', type: 'money', step: 0.000001, required: true, cols: 6 },
         { name: 'data', label: 'Data', type: 'date', cols: 6 },
       ],
       visible: (r) => r.situacao !== 'RECEBIDA' && r.situacao !== 'CANCELADA',
@@ -163,80 +223,4 @@ export const contaReceberConfig: ResourceConfig = {
   ],
 };
 
-export const contaPagarAvulsaConfig: ResourceConfig = {
-  key: 'contas-pagar-avulsas',
-  basePath: '/api/contas-pagar-avulsas',
-  singular: 'Despesa Avulsa',
-  plural: 'Contas a Pagar Avulsas',
-  subtitle: 'Despesas avulsas sem vínculo com fornecedor.',
-  defaultSort: 'dataVencimento,asc',
-  canEdit: true,
-  canDelete: true,
-  columns: [
-    cols.id(),
-    cols.text('descricao', 'Descrição'),
-    cols.text('fornecedorNome', 'Fornecedor'),
-    cols.money('valorTotal', 'Total'),
-    cols.money('valorPago', 'Pago'),
-    cols.date('dataVencimento', 'Vencimento'),
-    cols.status('situacao', 'Situação'),
-  ],
-  fields: [
-    { name: 'descricao', label: 'Descrição', type: 'text', required: true, cols: 8 },
-    {
-      name: 'fornecedorId',
-      label: 'Fornecedor',
-      type: 'reference',
-      cols: 4,
-      reference: { basePath: '/api/fornecedores', labelField: 'nome' },
-    },
-    {
-      name: 'formaPagamentoId',
-      label: 'Forma de pagamento',
-      type: 'reference',
-      cols: 4,
-      reference: { basePath: '/api/formas-pagamento', labelField: 'nome' },
-    },
-    { name: 'numeroNota', label: 'Nº nota', type: 'text', cols: 3 },
-    { name: 'modelo', label: 'Modelo', type: 'text', cols: 2 },
-    { name: 'serie', label: 'Série', type: 'text', cols: 3 },
-    { name: 'valorOriginal', label: 'Valor original', type: 'money', required: true, cols: 3 },
-    { name: 'valorDesconto', label: 'Desconto', type: 'money', cols: 3 },
-    { name: 'valorJuros', label: 'Juros', type: 'money', cols: 3 },
-    { name: 'valorMulta', label: 'Multa', type: 'money', cols: 3 },
-    { name: 'valorTotal', label: 'Total (auto se vazio)', type: 'money', cols: 4 },
-    { name: 'dataEmissao', label: 'Emissão', type: 'date', cols: 4 },
-    { name: 'dataVencimento', label: 'Vencimento', type: 'date', required: true, cols: 4 },
-    { name: 'numeroParcela', label: 'Parcela', type: 'integer', cols: 3 },
-    { name: 'totalParcelas', label: 'Total parcelas', type: 'integer', cols: 3 },
-    { name: 'observacao', label: 'Observação', type: 'textarea' },
-  ],
-  rowActions: [
-    {
-      key: 'baixar',
-      label: 'Baixar (pagamento)',
-      icon: <PaymentsIcon />,
-      color: 'success',
-      method: 'post',
-      pathSuffix: (r) => `/${r.id}/baixa`,
-      payloadAs: 'body',
-      formFields: [
-        { name: 'valor', label: 'Valor', type: 'money', required: true, cols: 6 },
-        { name: 'data', label: 'Data', type: 'date', cols: 6 },
-      ],
-      visible: (r) => r.situacao !== 'PAGA' && r.situacao !== 'CANCELADA',
-    },
-    {
-      key: 'cancelar',
-      label: 'Cancelar',
-      icon: <CancelOutlinedIcon />,
-      color: 'error',
-      method: 'post',
-      pathSuffix: (r) => `/${r.id}/cancelamento`,
-      confirm: 'Cancelar este título?',
-      visible: (r) => r.situacao !== 'PAGA' && r.situacao !== 'CANCELADA',
-    },
-  ],
-};
-
-export const financeiroConfigs = [contaPagarConfig, contaReceberConfig, contaPagarAvulsaConfig];
+export const financeiroConfigs = [contaPagarConfig, contaReceberConfig];

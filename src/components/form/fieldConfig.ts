@@ -1,3 +1,5 @@
+import type { ContactMask } from './contactMask';
+
 export type FieldType =
   | 'text'
   | 'textarea'
@@ -11,7 +13,9 @@ export type FieldType =
   | 'reference'
   | 'password'
   | 'document'
-  | 'subitems';
+  | 'section'
+  | 'subitems'
+  | 'subitems-summary';
 
 export interface SelectOption {
   value: string;
@@ -27,6 +31,20 @@ export interface ReferenceConfig {
   secondaryField?: string;
   /** Parametros extras de filtro na busca de opcoes. */
   params?: Record<string, unknown>;
+  /** Consulta contextual quando o destino não possui configuração no registry genérico. */
+  readPermissions?: string[];
+  /** Parâmetro de busca e limite quando o seletor usa uma consulta contextual. */
+  searchField?: string;
+  /** A busca do servidor já inclui código e outros campos de referência. */
+  searchOnServer?: boolean;
+  maxSearchLength?: number;
+  /** Cadastro para um seletor que usa outro endpoint; criar não seleciona o registro. */
+  createSeparatelyAt?: string;
+  /**
+   * Copia valores do registro selecionado para outros campos do formulário.
+   * A chave é o campo da opção e o valor é o campo de destino.
+   */
+  inheritFields?: Record<string, string>;
 }
 
 export interface FieldConfig {
@@ -39,14 +57,41 @@ export interface FieldConfig {
   options?: SelectOption[];
   reference?: ReferenceConfig;
   subFields?: FieldConfig[];
+  /** Resumo especializado exibido abaixo de uma coleção de itens. */
+  subItemsSummary?: 'inbound-note-costs';
   helperText?: string;
   defaultValue?: unknown;
   disabled?: boolean;
+  /** Bloqueio calculado a partir dos valores atuais do formulario. */
+  disabledWhen?: (values: Record<string, unknown>) => boolean;
+  /** Mantem o campo editavel na criacao e bloqueia sua troca em registros existentes. */
+  disabledOnEdit?: boolean;
   step?: number;
+  /** Limites numéricos. Campos numéricos são não negativos por padrão. */
+  min?: number;
+  max?: number;
+  /** Limite de texto validado sem truncar digitação ou colagem. */
+  maxLength?: number;
+  /** Teclado adequado ao conteúdo, sem converter o valor em número. */
+  inputMode?: 'email' | 'numeric' | 'tel';
+  /** Máscara ativa para telefone ou CEP, sem aceitar dígitos acima do limite. */
+  contactMask?: ContactMask;
+  /** No calendário, impede selecionar datas posteriores a hoje. */
+  disableFuture?: boolean;
+  /** Validação contextual que pode comparar o campo com outros valores do formulário. */
+  validate?: (
+    value: unknown,
+    values: Record<string, unknown>,
+    namePrefix: string,
+  ) => true | string;
+  /** Campos irmãos que devem disparar novamente a validação contextual. */
+  dependsOn?: string[];
   /** Para type 'document': modo fixo de mascara/validacao. Default 'auto'. */
   documentMode?: 'cpf' | 'cnpj' | 'auto';
   /** Para type 'document': nome do campo irmao (ex.: 'tipo') que define CPF/CNPJ. */
   documentTypeFrom?: string;
+  /** Para type 'document': aceita CNPJ alfanumérico no cadastro que suporta esse formato. */
+  allowAlphanumericCnpj?: boolean;
 }
 
 /** Valor inicial de um campo ao abrir o formulario em modo de criacao. */
